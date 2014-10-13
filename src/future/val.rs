@@ -86,9 +86,9 @@ impl<T: Send> Completer<T> {
  *
  */
 
-impl<T: Send> Future<Completer<T>> for Completer<T> {
+impl<T: Send> Future<ConsumerState<T>> for Completer<T> {
     #[inline]
-    fn receive<F: FnOnce(Completer<T>) + Send>(self, cb: F) {
+    fn receive<F: FnOnce(ConsumerState<T>) + Send>(self, cb: F) {
         self.inner.completer_receive(cb);
     }
 
@@ -98,9 +98,37 @@ impl<T: Send> Future<Completer<T>> for Completer<T> {
     }
 }
 
-impl<T: Send> SyncFuture<Completer<T>> for Completer<T> {
-    fn take(self) -> Completer<T> {
+impl<T: Send> SyncFuture<ConsumerState<T>> for Completer<T> {
+    fn take(self) -> ConsumerState<T> {
         self.inner.completer_take()
+    }
+}
+
+pub enum ConsumerState<T> {
+    ValWaiting(Completer<T>),
+    ValCanceled,
+}
+
+impl<T> ConsumerState<T> {
+    pub fn is_waiting(&self) -> bool {
+        match *self {
+            ValWaiting(..) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_canceled(&self) -> bool {
+        match *self {
+            ValCanceled => true,
+            _ => false,
+        }
+    }
+
+    pub fn unwrap(self) -> Completer<T> {
+        match self {
+            ValWaiting(v) => v,
+            _ => fail!("called `ConsumerState::unwrap()` on a `Canceled` state"),
+        }
     }
 }
 
@@ -203,11 +231,11 @@ impl<T: Send> FutureImpl<T> {
         core.put(val);
     }
 
-    fn fail(self, desc: &'static str) {
+    fn fail(self, _desc: &'static str) {
         unimplemented!()
     }
 
-    fn completer_receive<F: FnOnce(Completer<T>) + Send>(self, cb: F) {
+    fn completer_receive<F: FnOnce(ConsumerState<T>) + Send>(self, cb: F) {
         // Run the synchronized logic within a scope such that the lock
         // is released at the end of the scope.
         {
@@ -229,10 +257,10 @@ impl<T: Send> FutureImpl<T> {
 
         // Invoke the callback with the completer (simply wrap the
         // FutureImpl instance)
-        cb(Completer::new(self));
+        cb(ValWaiting(Completer::new(self)));
     }
 
-    fn completer_take(self) -> Completer<T> {
+    fn completer_take(self) -> ConsumerState<T> {
         // Run the synchronized logic within a scope such that the lock
         // is released at the end of the scope.
         {
@@ -261,7 +289,7 @@ impl<T: Send> FutureImpl<T> {
         }
 
         // Return the completer (simply wrap the FutureImpl instance)
-        Completer::new(self)
+        ValWaiting(Completer::new(self))
     }
 
     fn notify_completer<'a>(&'a self, mut core: LockedCore<'a, T>)
@@ -276,7 +304,7 @@ impl<T: Send> FutureImpl<T> {
                     Callback(cb) => {
                         drop(core);
 
-                        cb.call_once((Completer::new(self.clone()),));
+                        cb.call_once((ValWaiting(Completer::new(self.clone())),));
 
                         core = self.lock();
                     }
@@ -348,7 +376,7 @@ impl<T: Send> Core<T> {
 enum State<T> {
     Pending,
     ConsumerWait(WaitStrategy<T>),
-    CompleterWait(WaitStrategy<Completer<T>>),
+    CompleterWait(WaitStrategy<ConsumerState<T>>),
 }
 
 impl<T: Send> State<T> {
@@ -446,9 +474,9 @@ mod test {
         let w1 = Arc::new(AtomicBool::new(false));
         let w2 = w1.clone();
 
-        c.receive(move |:c: Completer<&'static str>| {
+        c.receive(move |:c: ConsumerState<&'static str>| {
             assert!(w2.load(Relaxed));
-            c.complete("zomg");
+            c.unwrap().complete("zomg");
         });
 
         w1.store(true, Relaxed);
@@ -464,9 +492,9 @@ mod test {
         spawn(proc() {
             sleep(Duration::milliseconds(50));
 
-            c.receive(move |:c: Completer<&'static str>| {
+            c.receive(move |:c: ConsumerState<&'static str>| {
                 assert!(w2.load(Relaxed));
-                c.complete("zomg");
+                c.unwrap().complete("zomg");
             });
         });
 
@@ -480,9 +508,9 @@ mod test {
         let w1 = Arc::new(AtomicBool::new(false));
         let w2 = w1.clone();
 
-        c.receive(move |:c: Completer<&'static str>| {
+        c.receive(move |:c: ConsumerState<&'static str>| {
             assert!(w2.load(Relaxed));
-            c.complete("zomg");
+            c.unwrap().complete("zomg");
         });
 
         let (tx, rx) = channel();
@@ -505,9 +533,9 @@ mod test {
         spawn(proc() {
             sleep(Duration::milliseconds(50));
 
-            c.receive(move |:c: Completer<&'static str>| {
+            c.receive(move |:c: ConsumerState<&'static str>| {
                 assert!(w2.load(Relaxed));
-                c.complete("zomg");
+                c.unwrap().complete("zomg");
             });
         });
 
@@ -527,7 +555,7 @@ mod test {
         let (f, c) = future();
 
         spawn(proc() {
-            c.take().complete("zomg");
+            c.take().unwrap().complete("zomg");
         });
 
         sleep(Duration::milliseconds(50));
@@ -540,7 +568,7 @@ mod test {
 
         spawn(proc() {
             sleep(Duration::milliseconds(50));
-            c.take().complete("zomg");
+            c.take().unwrap().complete("zomg");
         });
 
         assert_eq!("zomg", f.take());
@@ -552,7 +580,7 @@ mod test {
         let (tx, rx) = channel::<&'static str>();
 
         spawn(proc() {
-            c.take().complete("zomg");
+            c.take().unwrap().complete("zomg");
         });
 
         sleep(Duration::milliseconds(50));
@@ -567,7 +595,7 @@ mod test {
 
         spawn(proc() {
             sleep(Duration::milliseconds(50));
-            c.take().complete("zomg");
+            c.take().unwrap().complete("zomg");
         });
 
         f.receive(move |:v| tx.send(v));
@@ -583,7 +611,9 @@ mod test {
             c.complete("done");
         } else {
             let d2 = d.clone();
-            c.receive(move |:c| waiting(count + 1, d2, c));
+            c.receive(move |:c: ConsumerState<&'static str>| {
+                waiting(count + 1, d2, c.unwrap())
+            });
         }
 
         d.fetch_sub(1, Relaxed);
@@ -618,7 +648,9 @@ mod test {
         let (tx, rx) = channel::<&'static str>();
 
         spawn(proc() {
-            c.take().take().take().complete("zomg");
+            c.take().unwrap()
+                .take().unwrap()
+                .take().unwrap().complete("zomg");
         });
 
         sleep(Duration::milliseconds(50));
@@ -631,7 +663,9 @@ mod test {
         let (f, c) = future();
 
         spawn(proc() {
-            c.take().take().take().complete("zomg");
+            c.take().unwrap()
+                .take().unwrap()
+                .take().unwrap().complete("zomg");
         });
 
         sleep(Duration::milliseconds(50));
