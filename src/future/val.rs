@@ -51,6 +51,20 @@ impl<T: Send> SyncFuture<T> for FutureVal<T> {
     }
 }
 
+#[unsafe_destructor]
+impl<T: Send> Drop for FutureVal<T> {
+    fn drop(&mut self) {
+        // For now, always call cancel. If the future has already been
+        // consumed, this will be a no-op.
+        //
+        // Implementing it this way is the simplest option for now,
+        // however a drawback is that the lock will always be acquired a
+        // second time even if receive or cancel was just called
+        // previously.
+        self.inner.cancel();
+    }
+}
+
 impl<T: fmt::Show> fmt::Show for FutureVal<T> {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         try!(write!(fmt, "FutureVal"));
@@ -149,7 +163,7 @@ impl<T: Send> FutureImpl<T> {
         }
     }
 
-    fn receive<F: FnOnce(T) + Send>(self, cb: F) {
+    fn receive<F: FnOnce(T) + Send>(&self, cb: F) {
         // Acquire the lock
         let mut core = self.lock();
 
@@ -173,7 +187,7 @@ impl<T: Send> FutureImpl<T> {
         core.state = ConsumerWait(Callback(box cb));
     }
 
-    fn take(self) -> T {
+    fn take(&self) -> T {
         // Acquire the lock
         let mut core = self.lock();
 
@@ -198,16 +212,18 @@ impl<T: Send> FutureImpl<T> {
         }
     }
 
-    fn cancel(self) {
+    fn cancel(&self) {
         // Acquire the lock
         let mut core = self.lock();
 
-        // If the producer is currently waiting, notify it that the
-        // consumer has canceled the future.
-        core = self.notify_completer(core, false);
+        if core.state.is_pending() || core.state.is_completer_wait() {
+            // If the producer is currently waiting, notify it that the
+            // consumer has canceled the future.
+            core = self.notify_completer(core, false);
 
-        // Set the state to canceled
-        core.state = ConsumerCanceled;
+            // Set the state to canceled
+            core.state = ConsumerCanceled;
+        }
     }
 
     fn complete(self, val: T) {
@@ -408,6 +424,7 @@ impl<T: Send> Core<T> {
 
 enum State<T> {
     Pending,
+    Complete,
     ConsumerCanceled,
     ConsumerWait(WaitStrategy<T>),
     CompleterWait(WaitStrategy<ConsumerState<T>>),
@@ -440,6 +457,28 @@ impl<T: Send> State<T> {
             CompleterWait(..) => true,
             _ => false,
         }
+    }
+}
+
+impl<T> fmt::Show for State<T> {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        write!(fmt, "{}", match *self {
+            Pending => "Pending",
+            Complete => "Complete",
+            ConsumerCanceled => "ConsumerCanceled",
+            ConsumerWait(ref strategy) => {
+                match *strategy {
+                    Sync => "ConsumerWait(Sync)",
+                    Callback(..) => "ConsumerWait(Callback)",
+                }
+            }
+            CompleterWait(ref strategy) => {
+                match *strategy {
+                    Sync => "CompleterWait(Sync)",
+                    Callback(..) => "CompleterWait(Callback)",
+                }
+            }
+        })
     }
 }
 
@@ -764,6 +803,20 @@ mod test {
         sleep(Duration::milliseconds(50));
         f.cancel();
 
+        assert_eq!(rx.recv(), "done");
+    }
+
+    #[test]
+    pub fn test_dropping_val_signals_cancelation() {
+        let (f, c) = future::<uint>();
+        let (tx, rx) = channel();
+
+        spawn(proc() {
+            assert!(c.take().is_canceled());
+            tx.send("done");
+        });
+
+        drop(f);
         assert_eq!(rx.recv(), "done");
     }
 }
