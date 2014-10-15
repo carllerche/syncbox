@@ -6,62 +6,62 @@
 
 use std::{fmt, mem};
 use sync::{Arc, MutexCell, MutexCellGuard, CondVar};
-use super::{Future, SyncFuture};
+use super::{
+    Future,
+    SyncFuture,
+    FutureResult,
+    FutureError,
+    CancelationError,
+    ExecutionError,
+};
 
-// TODO:
-// * Consider renaming Completer -> Producer
-
-pub fn future<T: Send>() -> (FutureVal<T>, Completer<T>) {
+pub fn future<T: Send>() -> (FutureVal<T>, Producer<T>) {
     let inner = FutureImpl::new();
 
     let f = FutureVal::new(inner.clone());
-    let c = Completer::new(inner);
+    let c = Producer::new(inner);
 
     (f, c)
 }
 
 pub struct FutureVal<T> {
-    inner: FutureImpl<T>,
+    inner: Option<FutureImpl<T>>,
 }
 
 impl<T: Send> FutureVal<T> {
     /// Creates a new FutureVal with the given core
     #[inline]
     fn new(inner: FutureImpl<T>) -> FutureVal<T> {
-        FutureVal { inner: inner }
+        FutureVal { inner: Some(inner) }
     }
 }
 
 impl<T: Send> Future<T> for FutureVal<T> {
     #[inline]
-    fn receive<F: FnOnce(T) + Send>(self, cb: F) {
-        self.inner.receive(cb);
+    fn receive<F: FnOnce(FutureResult<T>) + Send>(mut self, cb: F) {
+        self.inner.take().unwrap().receive(cb);
     }
 
     #[inline]
-    fn cancel(self) {
-        self.inner.cancel();
+    fn cancel(mut self) {
+        self.inner.take().unwrap().cancel();
     }
 }
 
 impl<T: Send> SyncFuture<T> for FutureVal<T> {
     #[inline]
-    fn take(self) -> T {
-        self.inner.take()
+    fn take(mut self) -> FutureResult<T> {
+        self.inner.take().unwrap().take()
     }
 }
 
 #[unsafe_destructor]
 impl<T: Send> Drop for FutureVal<T> {
     fn drop(&mut self) {
-        // For now, always call cancel. If the future has already been
-        // consumed, this will be a no-op.
-        //
-        // Implementing it this way is the simplest option for now,
-        // however a drawback is that the lock will always be acquired a
-        // second time even if receive or cancel was just called
-        // previously.
-        self.inner.cancel();
+        match self.inner.take() {
+            Some(inner) => inner.cancel(),
+            None => {}
+        }
     }
 }
 
@@ -72,25 +72,44 @@ impl<T: fmt::Show> fmt::Show for FutureVal<T> {
     }
 }
 
-pub struct Completer<T> {
-    inner: FutureImpl<T>,
+pub struct Producer<T> {
+    inner: Option<FutureImpl<T>>,
 }
 
-impl<T: Send> Completer<T> {
-    /// Creates a new Completer with the given core
+impl<T: Send> Producer<T> {
+    /// Creates a new Producer with the given core
     #[inline]
-    fn new(inner: FutureImpl<T>) -> Completer<T> {
-        Completer { inner: inner }
+    fn new(inner: FutureImpl<T>) -> Producer<T> {
+        Producer { inner: Some(inner) }
     }
 
     #[inline]
-    pub fn complete(self, val: T) {
-        self.inner.complete(val);
+    pub fn complete(mut self, val: T) {
+        self.inner.take().unwrap().complete(Ok(val));
     }
 
     #[inline]
-    pub fn fail(self, desc: &'static str) {
-        self.inner.fail(desc);
+    pub fn fail(mut self, desc: &'static str) {
+        let inner = self.inner.take().unwrap();
+        inner.complete(Err(FutureError {
+            kind: ExecutionError,
+            desc: desc,
+        }));
+    }
+}
+
+#[unsafe_destructor]
+impl<T: Send> Drop for Producer<T> {
+    fn drop(&mut self) {
+        match self.inner.take() {
+            Some(inner) => {
+                inner.complete(Err(FutureError {
+                    kind: ExecutionError,
+                    desc: "producer dropped out of scope without completing",
+                }));
+            }
+            None => {}
+        }
     }
 }
 
@@ -100,10 +119,11 @@ impl<T: Send> Completer<T> {
  *
  */
 
-impl<T: Send> Future<ConsumerState<T>> for Completer<T> {
+impl<T: Send> Future<Producer<T>> for Producer<T> {
     #[inline]
-    fn receive<F: FnOnce(ConsumerState<T>) + Send>(self, cb: F) {
-        self.inner.completer_receive(cb);
+    fn receive<F: FnOnce(FutureResult<Producer<T>>) + Send>(mut self, cb: F) {
+        let inner = self.inner.take().unwrap();
+        inner.completer_receive(cb);
     }
 
     #[inline]
@@ -112,37 +132,10 @@ impl<T: Send> Future<ConsumerState<T>> for Completer<T> {
     }
 }
 
-impl<T: Send> SyncFuture<ConsumerState<T>> for Completer<T> {
-    fn take(self) -> ConsumerState<T> {
-        self.inner.completer_take()
-    }
-}
-
-pub enum ConsumerState<T> {
-    Waiting(Completer<T>),
-    Canceled,
-}
-
-impl<T> ConsumerState<T> {
-    pub fn is_waiting(&self) -> bool {
-        match *self {
-            Waiting(..) => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_canceled(&self) -> bool {
-        match *self {
-            Canceled => true,
-            _ => false,
-        }
-    }
-
-    pub fn unwrap(self) -> Completer<T> {
-        match self {
-            Waiting(v) => v,
-            _ => fail!("called `ConsumerState::unwrap()` on a `Canceled` state"),
-        }
+impl<T: Send> SyncFuture<Producer<T>> for Producer<T> {
+    fn take(mut self) -> FutureResult<Producer<T>> {
+        let inner = self.inner.take().unwrap();
+        inner.completer_take()
     }
 }
 
@@ -163,7 +156,7 @@ impl<T: Send> FutureImpl<T> {
         }
     }
 
-    fn receive<F: FnOnce(T) + Send>(&self, cb: F) {
+    fn receive<F: FnOnce(FutureResult<T>) + Send>(&self, cb: F) {
         // Acquire the lock
         let mut core = self.lock();
 
@@ -187,7 +180,7 @@ impl<T: Send> FutureImpl<T> {
         core.state = ConsumerWait(Callback(box cb));
     }
 
-    fn take(&self) -> T {
+    fn take(&self) -> FutureResult<T> {
         // Acquire the lock
         let mut core = self.lock();
 
@@ -226,7 +219,7 @@ impl<T: Send> FutureImpl<T> {
         }
     }
 
-    fn complete(self, val: T) {
+    fn complete(self, val: FutureResult<T>) {
         // Acquire the lock
         let mut core = self.lock();
 
@@ -255,11 +248,7 @@ impl<T: Send> FutureImpl<T> {
         core.put(val);
     }
 
-    fn fail(self, _desc: &'static str) {
-        unimplemented!()
-    }
-
-    fn completer_receive<F: FnOnce(ConsumerState<T>) + Send>(self, cb: F) {
+    fn completer_receive<F: FnOnce(FutureResult<Producer<T>>) + Send>(self, cb: F) {
         let mut canceled;
 
         // Run the synchronized logic within a scope such that the lock
@@ -286,15 +275,15 @@ impl<T: Send> FutureImpl<T> {
 
         if canceled {
             // Invoke the callback with the canceled state
-            cb(Canceled);
+            cb(Err(cancelation()));
         } else {
             // Invoke the callback with the completer (simply wrap the
             // FutureImpl instance)
-            cb(Waiting(Completer::new(self)));
+            cb(Ok(Producer::new(self)));
         }
     }
 
-    fn completer_take(self) -> ConsumerState<T> {
+    fn completer_take(self) -> FutureResult<Producer<T>> {
         let mut canceled;
 
         // Run the synchronized logic within a scope such that the lock
@@ -330,10 +319,10 @@ impl<T: Send> FutureImpl<T> {
         if canceled {
             // Return the fact that the consumer has canceled interest
             // for the future
-            Canceled
+            Err(cancelation())
         } else {
             // Return the completer (simply wrap the FutureImpl instance)
-            Waiting(Completer::new(self))
+            Ok(Producer::new(self))
         }
     }
 
@@ -350,9 +339,9 @@ impl<T: Send> FutureImpl<T> {
                         drop(core);
 
                         if interest {
-                            cb.call_once((Waiting(Completer::new(self.clone())),));
+                            cb.call_once((Ok(Producer::new(self.clone())),));
                         } else {
-                            cb.call_once((Canceled,));
+                            cb.call_once((Err(cancelation()),));
                         }
 
                         core = self.lock();
@@ -380,7 +369,7 @@ impl<T: Send> Clone for FutureImpl<T> {
 }
 
 struct Core<T> {
-    val: Option<T>,
+    val: Option<FutureResult<T>>,
     condvar: CondVar,
     state: State<T>,
 }
@@ -396,12 +385,14 @@ impl<T: Send> Core<T> {
         }
     }
 
-    fn put(&mut self, val: T) {
+    fn put(&mut self, val: FutureResult<T>) {
         assert!(self.val.is_none(), "future already completed");
+
+        self.state = Complete;
         self.val = Some(val);
     }
 
-    fn take_value(&mut self) -> Option<T> {
+    fn take_value(&mut self) -> Option<FutureResult<T>> {
         mem::replace(&mut self.val, None)
     }
 
@@ -427,7 +418,7 @@ enum State<T> {
     Complete,
     ConsumerCanceled,
     ConsumerWait(WaitStrategy<T>),
-    CompleterWait(WaitStrategy<ConsumerState<T>>),
+    CompleterWait(WaitStrategy<Producer<T>>),
 }
 
 impl<T: Send> State<T> {
@@ -483,8 +474,15 @@ impl<T> fmt::Show for State<T> {
 }
 
 enum WaitStrategy<T> {
-    Callback(Box<FnOnce<(T,), ()> + Send>),
+    Callback(Box<FnOnce<(FutureResult<T>,), ()> + Send>),
     Sync,
+}
+
+fn cancelation() -> FutureError {
+    FutureError {
+        kind: CancelationError,
+        desc: "future was canceled by consumer",
+    }
 }
 
 #[cfg(test)]
@@ -493,7 +491,7 @@ mod test {
     use std::time::Duration;
     use sync::Arc;
     use sync::atomic::{AtomicBool, AtomicUint, Relaxed};
-    use future::{Future, SyncFuture};
+    use future::{Future, SyncFuture, FutureResult};
     use super::*;
 
     #[test]
@@ -505,7 +503,7 @@ mod test {
         });
 
         sleep(Duration::milliseconds(50));
-        assert_eq!(f.take(), "zomg");
+        assert_eq!(f.take().unwrap(), "zomg");
     }
 
     #[test]
@@ -517,7 +515,7 @@ mod test {
             c.complete("zomg");
         });
 
-        assert_eq!(f.take(), "zomg");
+        assert_eq!(f.take().unwrap(), "zomg");
     }
 
     #[test]
@@ -530,7 +528,7 @@ mod test {
         });
 
         sleep(Duration::milliseconds(50));
-        f.receive(move |:v| tx.send(v));
+        f.receive(move |:v: FutureResult<&'static str>| tx.send(v.unwrap()));
         assert_eq!(rx.recv(), "zomg");
     }
 
@@ -544,7 +542,7 @@ mod test {
             c.complete("zomg");
         });
 
-        f.receive(move |:v| tx.send(v));
+        f.receive(move |:v: FutureResult<&'static str>| tx.send(v.unwrap()));
         assert_eq!(rx.recv(), "zomg");
     }
 
@@ -554,13 +552,13 @@ mod test {
         let w1 = Arc::new(AtomicBool::new(false));
         let w2 = w1.clone();
 
-        c.receive(move |:c: ConsumerState<&'static str>| {
+        c.receive(move |:c: FutureResult<Producer<&'static str>>| {
             assert!(w2.load(Relaxed));
             c.unwrap().complete("zomg");
         });
 
         w1.store(true, Relaxed);
-        assert_eq!(f.take(), "zomg");
+        assert_eq!(f.take().unwrap(), "zomg");
     }
 
     #[test]
@@ -572,14 +570,14 @@ mod test {
         spawn(proc() {
             sleep(Duration::milliseconds(50));
 
-            c.receive(move |:c: ConsumerState<&'static str>| {
+            c.receive(move |:c: FutureResult<Producer<&'static str>>| {
                 assert!(w2.load(Relaxed));
                 c.unwrap().complete("zomg");
             });
         });
 
         w1.store(true, Relaxed);
-        assert_eq!(f.take(), "zomg");
+        assert_eq!(f.take().unwrap(), "zomg");
     }
 
     #[test]
@@ -588,7 +586,7 @@ mod test {
         let w1 = Arc::new(AtomicBool::new(false));
         let w2 = w1.clone();
 
-        c.receive(move |:c: ConsumerState<&'static str>| {
+        c.receive(move |:c: FutureResult<Producer<&'static str>>| {
             assert!(w2.load(Relaxed));
             c.unwrap().complete("zomg");
         });
@@ -596,8 +594,8 @@ mod test {
         let (tx, rx) = channel();
         w1.store(true, Relaxed);
 
-        f.receive(move |:msg| {
-            assert_eq!("zomg", msg);
+        f.receive(move |:msg: FutureResult<&'static str>| {
+            assert_eq!("zomg", msg.unwrap());
             tx.send("hi2u");
         });
 
@@ -613,7 +611,7 @@ mod test {
         spawn(proc() {
             sleep(Duration::milliseconds(50));
 
-            c.receive(move |:c: ConsumerState<&'static str>| {
+            c.receive(move |:c: FutureResult<Producer<&'static str>>| {
                 assert!(w2.load(Relaxed));
                 c.unwrap().complete("zomg");
             });
@@ -622,8 +620,8 @@ mod test {
         let (tx, rx) = channel();
         w1.store(true, Relaxed);
 
-        f.receive(move |:msg| {
-            assert_eq!("zomg", msg);
+        f.receive(move |:msg: FutureResult<&'static str>| {
+            assert_eq!("zomg", msg.unwrap());
             tx.send("hi2u");
         });
 
@@ -639,7 +637,7 @@ mod test {
         });
 
         sleep(Duration::milliseconds(50));
-        assert_eq!("zomg", f.take());
+        assert_eq!("zomg", f.take().unwrap());
     }
 
     #[test]
@@ -651,7 +649,7 @@ mod test {
             c.take().unwrap().complete("zomg");
         });
 
-        assert_eq!("zomg", f.take());
+        assert_eq!("zomg", f.take().unwrap());
     }
 
     #[test]
@@ -664,7 +662,9 @@ mod test {
         });
 
         sleep(Duration::milliseconds(50));
-        f.receive(move |:v| tx.send(v));
+        f.receive(move |:v: FutureResult<&'static str>| {
+            tx.send(v.unwrap())
+        });
         assert_eq!(rx.recv(), "zomg");
     }
 
@@ -678,12 +678,14 @@ mod test {
             c.take().unwrap().complete("zomg");
         });
 
-        f.receive(move |:v| tx.send(v));
+        f.receive(move |:v: FutureResult<&'static str>| {
+            tx.send(v.unwrap())
+        });
         assert_eq!(rx.recv(), "zomg");
     }
 
     // Utility method used below
-    fn waiting(count: uint, d: Arc<AtomicUint>, c: Completer<&'static str>) {
+    fn waiting(count: uint, d: Arc<AtomicUint>, c: Producer<&'static str>) {
         // Assert that the callback is not invoked recursively
         assert_eq!(0, d.fetch_add(1, Relaxed));
 
@@ -691,7 +693,7 @@ mod test {
             c.complete("done");
         } else {
             let d2 = d.clone();
-            c.receive(move |:c: ConsumerState<&'static str>| {
+            c.receive(move |:c: FutureResult<Producer<&'static str>>| {
                 waiting(count + 1, d2, c.unwrap())
             });
         }
@@ -707,7 +709,10 @@ mod test {
 
         waiting(0, depth, c);
 
-        f.receive(move |:v| tx.send(v));
+        f.receive(move |:v: FutureResult<&'static str>| {
+            tx.send(v.unwrap())
+        });
+
         assert_eq!(rx.recv(), "done");
     }
 
@@ -719,7 +724,7 @@ mod test {
         waiting(0, depth, c);
 
         sleep(Duration::milliseconds(50));
-        assert_eq!(f.take(), "done");
+        assert_eq!(f.take().unwrap(), "done");
     }
 
     #[test]
@@ -734,7 +739,11 @@ mod test {
         });
 
         sleep(Duration::milliseconds(50));
-        f.receive(move |:v| tx.send(v));
+
+        f.receive(move |:v: FutureResult<&'static str>| {
+            tx.send(v.unwrap())
+        });
+
         assert_eq!(rx.recv(), "zomg");
     }
 
@@ -749,7 +758,7 @@ mod test {
         });
 
         sleep(Duration::milliseconds(50));
-        assert_eq!(f.take(), "zomg");
+        assert_eq!(f.take().unwrap(), "zomg");
     }
 
     #[test]
@@ -759,8 +768,8 @@ mod test {
 
         f.cancel();
 
-        c.receive(move |:s: ConsumerState<&'static str>| {
-            assert!(s.is_canceled())
+        c.receive(move |:s: FutureResult<Producer<&'static str>>| {
+            assert!(s.is_err())
             tx.send("done");
         });
 
@@ -773,7 +782,7 @@ mod test {
 
         f.cancel();
 
-        assert!(c.take().is_canceled());
+        assert!(c.take().is_err());
     }
 
     #[test]
@@ -781,8 +790,8 @@ mod test {
         let (f, c) = future();
         let (tx, rx) = channel();
 
-        c.receive(move |:s: ConsumerState<&'static str>| {
-            assert!(s.is_canceled());
+        c.receive(move |:s: FutureResult<Producer<&'static str>>| {
+            assert!(s.is_err());
             tx.send("done");
         });
 
@@ -796,7 +805,7 @@ mod test {
         let (tx, rx) = channel();
 
         spawn(proc() {
-            assert!(c.take().is_canceled());
+            assert!(c.take().is_err());
             tx.send("done");
         });
 
@@ -812,11 +821,61 @@ mod test {
         let (tx, rx) = channel();
 
         spawn(proc() {
-            assert!(c.take().is_canceled());
+            assert!(c.take().is_err());
             tx.send("done");
         });
 
         drop(f);
         assert_eq!(rx.recv(), "done");
+    }
+
+    #[test]
+    pub fn test_producer_fail_before_consumer_take() {
+        let (f, c) = future::<uint>();
+
+        c.fail("nope");
+
+        let err = f.take().unwrap_err();
+        assert_eq!(err.desc, "nope");
+        assert!(err.is_execution_error());
+    }
+
+    #[test]
+    pub fn test_producer_fail_consumer_receive() {
+        let (f, c) = future::<uint>();
+
+        spawn(proc() {
+            sleep(Duration::milliseconds(50));
+            c.fail("nope");
+        });
+
+        let err = f.take().unwrap_err();
+        assert_eq!(err.desc, "nope");
+        assert!(err.is_execution_error());
+    }
+
+    #[test]
+    pub fn test_producer_drops_before_consumer_take() {
+        let (f, c) = future::<uint>();
+
+        drop(c);
+
+        let err = f.take().unwrap_err();
+        assert_eq!(err.desc, "producer dropped out of scope without completing");
+        assert!(err.is_execution_error());
+    }
+
+    #[test]
+    pub fn test_producer_drops_after_consumer_take() {
+        let (f, c) = future::<uint>();
+
+        spawn(proc() {
+            sleep(Duration::milliseconds(50));
+            drop(c);
+        });
+
+        let err = f.take().unwrap_err();
+        assert_eq!(err.desc, "producer dropped out of scope without completing");
+        assert!(err.is_execution_error());
     }
 }
