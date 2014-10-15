@@ -1,4 +1,4 @@
-#![crate_name = "pythia"]
+#![crate_name = "syncbox"]
 
 // Enable some features
 #![feature(phase)]
