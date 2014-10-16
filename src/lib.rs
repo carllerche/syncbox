@@ -12,7 +12,9 @@ extern crate alloc;
 extern crate core;
 extern crate libc;
 extern crate time;
-extern crate "sync" as stdsync;
+extern crate sync;
+
+pub use sync::atomic;
 
 pub mod future;
-pub mod sync;
+pub mod locks;

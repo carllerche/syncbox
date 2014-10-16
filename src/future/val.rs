@@ -5,7 +5,8 @@
 //! re-implemented using lock free strategies once the API stabalizes.
 
 use std::{fmt, mem};
-use sync::{Arc, MutexCell, MutexCellGuard, CondVar};
+use locks::{MutexCell, MutexCellGuard, CondVar};
+use sync::Arc;
 use super::{
     Future,
     SyncFuture,
