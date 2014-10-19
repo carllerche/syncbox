@@ -1,9 +1,9 @@
 use std::{mem, ptr, uint};
 use std::time::Duration;
+use time::precise_time_ns;
 use sync::Arc;
 use locks::{MutexCell, CondVar};
-use queue::{Consume, Produce};
-use time::precise_time_ns;
+use {Consume, Produce};
 
 /// A queue in which values are contained by a linked list.
 ///
