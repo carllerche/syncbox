@@ -1,4 +1,5 @@
 pub use self::future::{
+    Cancel,
     Future,
     SyncFuture,
     FutureResult,

@@ -1,13 +1,24 @@
 //! A basic implementation of Future.
 //!
-//! As of now, the implementation is fairly naive, using a mutex to
-//! handle synchronization. However, this will eventually be
-//! re-implemented using lock free strategies once the API stabalizes.
+//! As of now, the implementation is fairly naive. A single mutex is used to
+//! handle synchronization and the implementation generally doesn't worry that
+//! much about performance at the moment. The goal currently is to figure out
+//! the API and then worry about performance. Eventually FutureVal will be
+//! re-implementing using lock-free strategies and focus on performance.
+
+// TODO:
+// - FutureVal::take_timed()
+// - Interest::cancel()
+// - Deref
+// - clone & producer take / receive
 
 use std::{fmt, mem};
-use locks::{MutexCell, MutexCellGuard, CondVar};
+use std::time::Duration;
+use locks::{MutexCell, MutexCellGuard, Unparker, unparker, park};
 use sync::Arc;
+use sync::atomic::Relaxed;
 use super::{
+    Cancel,
     Future,
     SyncFuture,
     FutureResult,
@@ -37,15 +48,11 @@ impl<T: Send> FutureVal<T> {
     }
 }
 
-impl<T: Send> Future<T> for FutureVal<T> {
+impl<T: Send> Future<T, Interest> for FutureVal<T> {
     #[inline]
-    fn receive<F: FnOnce(FutureResult<T>) + Send>(mut self, cb: F) {
+    fn receive<F: FnOnce(FutureResult<T>) + Send>(mut self, cb: F) -> Interest {
         self.inner.take().unwrap().receive(cb);
-    }
-
-    #[inline]
-    fn cancel(mut self) {
-        self.inner.take().unwrap().cancel();
+        Interest
     }
 }
 
@@ -53,6 +60,37 @@ impl<T: Send> SyncFuture<T> for FutureVal<T> {
     #[inline]
     fn take(mut self) -> FutureResult<T> {
         self.inner.take().unwrap().take()
+    }
+
+    fn take_timed(self, _timeout: Duration) -> FutureResult<T> {
+        unimplemented!();
+    }
+}
+
+impl<T: Send> Cancel for FutureVal<T> {
+    #[inline]
+    fn cancel(mut self) {
+        self.inner.take().unwrap().cancel();
+    }
+}
+
+impl<T: Send + Clone> Clone for FutureVal<T> {
+    fn clone(&self) -> FutureVal<T> {
+        // Used to clone the value
+        fn cloner<T: Clone>(val: &FutureResult<T>) -> FutureResult<T> {
+            match *val {
+                Ok(ref v) => Ok(v.clone()),
+                Err(e) => Err(e),
+            }
+        }
+
+        if let Some(ref inner) = self.inner {
+            inner.consumer_clone(cloner);
+
+            return FutureVal { inner: Some(inner.clone()) };
+        }
+
+        fail!("[BUG] attempting to clone a consumed future value");
     }
 }
 
@@ -70,6 +108,14 @@ impl<T: fmt::Show> fmt::Show for FutureVal<T> {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         try!(write!(fmt, "FutureVal"));
         Ok(())
+    }
+}
+
+pub struct Interest;
+
+impl Cancel for Interest {
+    fn cancel(self) {
+        unimplemented!()
     }
 }
 
@@ -120,23 +166,38 @@ impl<T: Send> Drop for Producer<T> {
  *
  */
 
-impl<T: Send> Future<Producer<T>> for Producer<T> {
+impl<T: Send> Future<Producer<T>, ProducerInterest> for Producer<T> {
     #[inline]
-    fn receive<F: FnOnce(FutureResult<Producer<T>>) + Send>(mut self, cb: F) {
+    fn receive<F: FnOnce(FutureResult<Producer<T>>) + Send>(mut self, cb: F) -> ProducerInterest {
         let inner = self.inner.take().unwrap();
-        inner.completer_receive(cb);
-    }
-
-    #[inline]
-    fn cancel(self) {
-        self.fail("canceled by producer");
+        inner.producer_receive(cb);
+        ProducerInterest
     }
 }
 
 impl<T: Send> SyncFuture<Producer<T>> for Producer<T> {
     fn take(mut self) -> FutureResult<Producer<T>> {
         let inner = self.inner.take().unwrap();
-        inner.completer_take()
+        inner.producer_take()
+    }
+
+    fn take_timed(self, _timeout: Duration) -> FutureResult<Producer<T>> {
+        unimplemented!()
+    }
+}
+
+impl<T: Send> Cancel for Producer<T> {
+    #[inline]
+    fn cancel(self) {
+        self.fail("canceled by producer");
+    }
+}
+
+pub struct ProducerInterest;
+
+impl Cancel for ProducerInterest {
+    fn cancel(self) {
+        unimplemented!()
     }
 }
 
@@ -145,6 +206,50 @@ impl<T: Send> SyncFuture<Producer<T>> for Producer<T> {
  * ===== Implementation details =====
  *
  */
+
+// == Implementation details ==
+//
+// FutureImpl handles the implementation of FutureVal & Producer. It manages
+// completing the value for the primary FutureVal instance as well as any
+// clones.
+//
+// FutureImpl consists of a state machine that manages the internal state of
+// the future. State transitions are a DAG, aka there are no possible cycles.
+// The state transitions are as follows:
+//
+// * Pending
+//      -> ConsumerWait: The consumer expressed interest in the value.
+//      -> ProducerWait: The producer is waiting for consumer interest.
+//      -> Complete:     The producer has completed the future
+//      -> Canceled:     The consumer has canceled the future
+//
+// * ConsumerWait
+//      -> Complete: The future has been completed, notify waiting consumers
+//      -> Canceled: The consumer has canceled interest in the future
+//
+// * ProducerWait
+//      -> ConsumerWait: The consumer has expressed interest in the value
+//      -> Canceled:     The consumer has canceled the future
+//
+// Other states are final.
+//
+// # Notes on transitions:
+//
+// - It's possible to go from ConsumerWait -> Canceled if the consumer does
+//   take_timed then cancels or does a receive() followed by a cancelation.
+//
+// # Cloning
+//
+// If type T implements Clone then FutureVal can be cloned. FutureImpl will
+// track the number of interested consumers. Then, once the future has been
+// realized and consumers start taking the result, FutureImpl will clone the
+// value then. For the last consumer, the value will be moved out.
+//
+// The future will transition to complete only once all the interested
+// consumers have received the value.
+//
+// The future will transition to canceled only once all the interested
+// consumers have issued a cancel.
 
 struct FutureImpl<T> {
     core: Arc<MutexCell<Core<T>>>,
@@ -163,7 +268,7 @@ impl<T: Send> FutureImpl<T> {
 
         // If the producer is currently waiting, notify it that the
         // consumer has indicated interest in the result.
-        core = self.notify_completer(core, true);
+        core = self.producer_notify(core, true);
 
         // If the future has already been realized, move the value out
         // of the core so that it can be sent to the supplied callback.
@@ -178,7 +283,7 @@ impl<T: Send> FutureImpl<T> {
         // The future's value has not yet been realized. Save off the
         // callback and mark the consumer as waiting for the value. When
         // the value is available, the calback will be invoked with it.
-        core.state = ConsumerWait(Callback(box cb));
+        core.push_consumer_wait(Callback(box cb));
     }
 
     fn take(&self) -> FutureResult<T> {
@@ -187,10 +292,10 @@ impl<T: Send> FutureImpl<T> {
 
         // If the producer is currently waiting, notify it that the
         // consumer has indicated interest in the result.
-        core = self.notify_completer(core, true);
+        core = self.producer_notify(core, true);
 
         // Before the thread blocks, track that the consumer is waiting
-        core.state = ConsumerWait(Sync);
+        core.push_consumer_wait(Park(unparker()));
 
         // Checking the value and waiting happens in a loop to handle
         // cases where the condition variable unblocks early for an
@@ -201,8 +306,9 @@ impl<T: Send> FutureImpl<T> {
                 return val;
             }
 
-            // Wait on the condition variable
-            core.wait(&core.condvar);
+            drop(core);
+            park(Relaxed);
+            core = self.lock();
         }
     }
 
@@ -210,13 +316,13 @@ impl<T: Send> FutureImpl<T> {
         // Acquire the lock
         let mut core = self.lock();
 
-        if core.state.is_pending() || core.state.is_completer_wait() {
+        if core.state.is_pending() || core.state.is_producer_wait() {
             // If the producer is currently waiting, notify it that the
             // consumer has canceled the future.
-            core = self.notify_completer(core, false);
+            core = self.producer_notify(core, false);
 
             // Set the state to canceled
-            core.state = ConsumerCanceled;
+            core.state = Canceled;
         }
     }
 
@@ -224,32 +330,54 @@ impl<T: Send> FutureImpl<T> {
         // Acquire the lock
         let mut core = self.lock();
 
+        // Store off the value
+        core.put(val);
+
         // Check if the consumer is waiting on the value, if so, it will
         // be notified that value is ready.
-        if let ConsumerWait(strategy) = core.take_consumer_wait() {
-            // Check the consumer wait strategy
-            match strategy {
-                // If the consumer is waiting with a callback, release
-                // the lock and invoke the callback with the value.
-                Callback(cb) => {
-                    drop(core);
-                    cb.call_once((val,));
-                }
-                // Otherwise, store the value on the future and signal
-                // the consumer that the value is ready.
-                Sync => {
-                    core.put(val);
-                    core.condvar.signal();
+        if let ConsumerWait(waiters) = core.take_consumer_wait() {
+            for waiter in waiters.into_iter() {
+                // Check the consumer wait strategy
+                match waiter {
+                    // If the consumer is waiting with a callback, release
+                    // the lock and invoke the callback with the value.
+                    Some(Callback(cb)) => {
+                        // Grab the value (or a clone)
+                        let val = core.take_value().expect("[BUG] WAT the value was just set!");
+                        // Relase the lock
+                        drop(core);
+                        // Invoke the callback
+                        cb.call_once((val,));
+                        // Reacquire the lock in case there is another iteration
+                        core = self.lock();
+                    }
+                    // Otherwise, store the value on the future and signal
+                    // the consumer that the value is ready.
+                    Some(Park(unparker)) => {
+                        // Signal that the future is complete
+                        unparker.unpark(Relaxed);
+                    }
+                    None => {}
                 }
             }
 
             return;
         }
 
-        core.put(val);
+        core.state = Complete;
     }
 
-    fn completer_receive<F: FnOnce(FutureResult<Producer<T>>) + Send>(self, cb: F) {
+    fn consumer_clone(&self, cloner: Cloner<T>) {
+        let mut core = self.lock();
+
+        core.clones += 1;
+
+        if core.cloner.is_none() {
+            core.cloner = Some(cloner);
+        }
+    }
+
+    fn producer_receive<F: FnOnce(FutureResult<Producer<T>>) + Send>(self, cb: F) {
         let mut canceled;
 
         // Run the synchronized logic within a scope such that the lock
@@ -261,7 +389,7 @@ impl<T: Send> FutureImpl<T> {
             // If the consumer has not registered an interest yet, save off
             // the callback for when it does and return;
             if core.state.is_pending() {
-                core.state = CompleterWait(Callback(box cb));
+                core.state = ProducerWait(Callback(box cb));
                 return;
             }
 
@@ -278,13 +406,13 @@ impl<T: Send> FutureImpl<T> {
             // Invoke the callback with the canceled state
             cb(Err(cancelation()));
         } else {
-            // Invoke the callback with the completer (simply wrap the
+            // Invoke the callback with the producer (simply wrap the
             // FutureImpl instance)
             cb(Ok(Producer::new(self)));
         }
     }
 
-    fn completer_take(self) -> FutureResult<Producer<T>> {
+    fn producer_take(self) -> FutureResult<Producer<T>> {
         let mut canceled;
 
         // Run the synchronized logic within a scope such that the lock
@@ -294,20 +422,21 @@ impl<T: Send> FutureImpl<T> {
             let mut core = self.lock();
 
             // If the consumer has not registered an interest yet, track
-            // that the completer is about to block, then wait for the
+            // that the producer is about to block, then wait for the
             // signal.
             if core.state.is_pending() {
-                core.state = CompleterWait(Sync);
+                core.state = ProducerWait(Park(unparker()));
 
-                // Loop as long as the future remains in the completer wait
+                // Loop as long as the future remains in the producer wait
                 // state.
                 loop {
-                    // Wait on the cond var
-                    core.wait(&core.condvar);
+                    drop(core);
+                    park(Relaxed);
+                    core = self.lock();
 
                     // If the future state has changed, break out fo the
                     // loop.
-                    if !core.state.is_completer_wait() {
+                    if !core.state.is_producer_wait() {
                         canceled = core.state.is_canceled();
                         break;
                     }
@@ -322,19 +451,19 @@ impl<T: Send> FutureImpl<T> {
             // for the future
             Err(cancelation())
         } else {
-            // Return the completer (simply wrap the FutureImpl instance)
+            // Return the producer (simply wrap the FutureImpl instance)
             Ok(Producer::new(self))
         }
     }
 
-    fn notify_completer<'a>(&'a self, mut core: LockedCore<'a, T>, interest: bool)
+    fn producer_notify<'a>(&'a self, mut core: LockedCore<'a, T>, interest: bool)
             -> LockedCore<'a, T> {
 
         // Run notification in a loop, the callback has the option to
         // re-register another receive callback, in which case it should
         // be immediately invoked.
         loop {
-            if let CompleterWait(strategy) = core.take_completer_wait() {
+            if let ProducerWait(strategy) = core.take_producer_wait() {
                 match strategy {
                     Callback(cb) => {
                         drop(core);
@@ -347,7 +476,7 @@ impl<T: Send> FutureImpl<T> {
 
                         core = self.lock();
                     }
-                    Sync => core.condvar.signal(),
+                    Park(unparker) => unparker.unpark(Relaxed),
                 }
             } else {
                 break;
@@ -370,43 +499,77 @@ impl<T: Send> Clone for FutureImpl<T> {
 }
 
 struct Core<T> {
+    // The realized value
     val: Option<FutureResult<T>>,
-    condvar: CondVar,
+    // State of the future
     state: State<T>,
+    // Number of clones
+    clones: uint,
+    // Clone function
+    cloner: Option<Cloner<T>>,
 }
 
 type LockedCore<'a, T> = MutexCellGuard<'a, Core<T>>;
+type Cloner<T> = fn(&FutureResult<T>) -> FutureResult<T>;
 
 impl<T: Send> Core<T> {
     fn new() -> Core<T> {
         Core {
             val: None,
-            condvar: CondVar::new(),
             state: Pending,
+            // There always is one consumer at creation
+            clones: 1,
+            // Gets set when clone is invoked
+            cloner: None,
         }
     }
 
     fn put(&mut self, val: FutureResult<T>) {
         assert!(self.val.is_none(), "future already completed");
-
-        self.state = Complete;
         self.val = Some(val);
     }
 
     fn take_value(&mut self) -> Option<FutureResult<T>> {
-        mem::replace(&mut self.val, None)
+        if self.val.is_none() {
+            return None;
+        }
+
+        assert!(self.clones > 0, "future has been consumed");
+        self.clones -= 1;
+
+        if self.clones == 0 {
+            mem::replace(&mut self.val, None)
+        } else {
+            if let Some(cloner) = self.cloner {
+                // Clone the value
+                Some(cloner(self.val.as_ref().unwrap()))
+            } else {
+                fail!("[BUG] multiple clones tracked but no cloner function present");
+            }
+        }
     }
 
     fn take_consumer_wait(&mut self) -> State<T> {
         if self.state.is_consumer_wait() {
-            mem::replace(&mut self.state, Pending)
+            mem::replace(&mut self.state, Complete)
         } else {
-            Pending
+            Complete
         }
     }
 
-    fn take_completer_wait(&mut self) -> State<T> {
-        if self.state.is_completer_wait() {
+    fn push_consumer_wait(&mut self, strategy: WaitStrategy<T>) -> uint {
+        if let ConsumerWait(ref mut vec) = self.state {
+            let ret = vec.len();
+            vec.push(Some(strategy));
+            ret
+        } else {
+            self.state = ConsumerWait(vec![Some(strategy)]);
+            0
+        }
+    }
+
+    fn take_producer_wait(&mut self) -> State<T> {
+        if self.state.is_producer_wait() {
             mem::replace(&mut self.state, Pending)
         } else {
             Pending
@@ -416,10 +579,10 @@ impl<T: Send> Core<T> {
 
 enum State<T> {
     Pending,
+    ConsumerWait(Vec<Option<WaitStrategy<T>>>),
+    ProducerWait(WaitStrategy<Producer<T>>),
     Complete,
-    ConsumerCanceled,
-    ConsumerWait(WaitStrategy<T>),
-    CompleterWait(WaitStrategy<Producer<T>>),
+    Canceled,
 }
 
 impl<T: Send> State<T> {
@@ -432,7 +595,7 @@ impl<T: Send> State<T> {
 
     fn is_canceled(&self) -> bool {
         match *self {
-            ConsumerCanceled => true,
+            Canceled => true,
             _ => false,
         }
     }
@@ -444,9 +607,9 @@ impl<T: Send> State<T> {
         }
     }
 
-    fn is_completer_wait(&self) -> bool {
+    fn is_producer_wait(&self) -> bool {
         match *self {
-            CompleterWait(..) => true,
+            ProducerWait(..) => true,
             _ => false,
         }
     }
@@ -457,17 +620,12 @@ impl<T> fmt::Show for State<T> {
         write!(fmt, "{}", match *self {
             Pending => "Pending",
             Complete => "Complete",
-            ConsumerCanceled => "ConsumerCanceled",
-            ConsumerWait(ref strategy) => {
+            Canceled => "Canceled",
+            ConsumerWait(..) => "ConsumerWait",
+            ProducerWait(ref strategy) => {
                 match *strategy {
-                    Sync => "ConsumerWait(Sync)",
-                    Callback(..) => "ConsumerWait(Callback)",
-                }
-            }
-            CompleterWait(ref strategy) => {
-                match *strategy {
-                    Sync => "CompleterWait(Sync)",
-                    Callback(..) => "CompleterWait(Callback)",
+                    Park(..) => "ProducerWait(Park)",
+                    Callback(..) => "ProducerWait(Callback)",
                 }
             }
         })
@@ -476,7 +634,7 @@ impl<T> fmt::Show for State<T> {
 
 enum WaitStrategy<T> {
     Callback(Box<FnOnce<(FutureResult<T>,), ()> + Send>),
-    Sync,
+    Park(Unparker),
 }
 
 fn cancelation() -> FutureError {
@@ -492,7 +650,7 @@ mod test {
     use std::time::Duration;
     use sync::Arc;
     use sync::atomic::{AtomicBool, AtomicUint, Relaxed};
-    use future::{Future, SyncFuture, FutureResult};
+    use future::{Future, SyncFuture, Cancel, FutureResult};
     use super::*;
 
     #[test]
@@ -503,7 +661,7 @@ mod test {
             c.complete("zomg");
         });
 
-        sleep(Duration::milliseconds(50));
+        sleep(millis(50));
         assert_eq!(f.take().unwrap(), "zomg");
     }
 
@@ -512,7 +670,7 @@ mod test {
         let (f, c) = future();
 
         spawn(proc() {
-            sleep(Duration::milliseconds(50));
+            sleep(millis(50));
             c.complete("zomg");
         });
 
@@ -528,7 +686,7 @@ mod test {
             c.complete("zomg");
         });
 
-        sleep(Duration::milliseconds(50));
+        sleep(millis(50));
         f.receive(move |:v: FutureResult<&'static str>| tx.send(v.unwrap()));
         assert_eq!(rx.recv(), "zomg");
     }
@@ -539,7 +697,7 @@ mod test {
         let (tx, rx) = channel::<&'static str>();
 
         spawn(proc() {
-            sleep(Duration::milliseconds(50));
+            sleep(millis(50));
             c.complete("zomg");
         });
 
@@ -569,7 +727,7 @@ mod test {
         let w2 = w1.clone();
 
         spawn(proc() {
-            sleep(Duration::milliseconds(50));
+            sleep(millis(50));
 
             c.receive(move |:c: FutureResult<Producer<&'static str>>| {
                 assert!(w2.load(Relaxed));
@@ -610,7 +768,7 @@ mod test {
         let w2 = w1.clone();
 
         spawn(proc() {
-            sleep(Duration::milliseconds(50));
+            sleep(millis(50));
 
             c.receive(move |:c: FutureResult<Producer<&'static str>>| {
                 assert!(w2.load(Relaxed));
@@ -637,7 +795,7 @@ mod test {
             c.take().unwrap().complete("zomg");
         });
 
-        sleep(Duration::milliseconds(50));
+        sleep(millis(50));
         assert_eq!("zomg", f.take().unwrap());
     }
 
@@ -646,7 +804,7 @@ mod test {
         let (f, c) = future();
 
         spawn(proc() {
-            sleep(Duration::milliseconds(50));
+            sleep(millis(50));
             c.take().unwrap().complete("zomg");
         });
 
@@ -662,7 +820,7 @@ mod test {
             c.take().unwrap().complete("zomg");
         });
 
-        sleep(Duration::milliseconds(50));
+        sleep(millis(50));
         f.receive(move |:v: FutureResult<&'static str>| {
             tx.send(v.unwrap())
         });
@@ -675,7 +833,7 @@ mod test {
         let (tx, rx) = channel::<&'static str>();
 
         spawn(proc() {
-            sleep(Duration::milliseconds(50));
+            sleep(millis(50));
             c.take().unwrap().complete("zomg");
         });
 
@@ -703,7 +861,7 @@ mod test {
     }
 
     #[test]
-    pub fn test_completer_receive_when_consumer_cb_set() {
+    pub fn test_producer_receive_when_consumer_cb_set() {
         let (f, c) = future();
         let (tx, rx) = channel::<&'static str>();
         let depth = Arc::new(AtomicUint::new(0));
@@ -718,18 +876,18 @@ mod test {
     }
 
     #[test]
-    pub fn test_completer_receive_when_consumer_waiting() {
+    pub fn test_producer_receive_when_consumer_waiting() {
         let (f, c) = future();
         let depth = Arc::new(AtomicUint::new(0));
 
         waiting(0, depth, c);
 
-        sleep(Duration::milliseconds(50));
+        sleep(millis(50));
         assert_eq!(f.take().unwrap(), "done");
     }
 
     #[test]
-    pub fn test_completer_take_when_consumer_cb_set() {
+    pub fn test_producer_take_when_consumer_cb_set() {
         let (f, c) = future();
         let (tx, rx) = channel::<&'static str>();
 
@@ -739,7 +897,7 @@ mod test {
                 .take().unwrap().complete("zomg");
         });
 
-        sleep(Duration::milliseconds(50));
+        sleep(millis(50));
 
         f.receive(move |:v: FutureResult<&'static str>| {
             tx.send(v.unwrap())
@@ -749,7 +907,7 @@ mod test {
     }
 
     #[test]
-    pub fn test_completer_take_when_consumer_waiting() {
+    pub fn test_producer_take_when_consumer_waiting() {
         let (f, c) = future();
 
         spawn(proc() {
@@ -758,7 +916,7 @@ mod test {
                 .take().unwrap().complete("zomg");
         });
 
-        sleep(Duration::milliseconds(50));
+        sleep(millis(50));
         assert_eq!(f.take().unwrap(), "zomg");
     }
 
@@ -810,7 +968,7 @@ mod test {
             tx.send("done");
         });
 
-        sleep(Duration::milliseconds(50));
+        sleep(millis(50));
         f.cancel();
 
         assert_eq!(rx.recv(), "done");
@@ -846,7 +1004,7 @@ mod test {
         let (f, c) = future::<uint>();
 
         spawn(proc() {
-            sleep(Duration::milliseconds(50));
+            sleep(millis(50));
             c.fail("nope");
         });
 
@@ -871,12 +1029,113 @@ mod test {
         let (f, c) = future::<uint>();
 
         spawn(proc() {
-            sleep(Duration::milliseconds(50));
+            sleep(millis(50));
             drop(c);
         });
 
         let err = f.take().unwrap_err();
         assert_eq!(err.desc, "producer dropped out of scope without completing");
         assert!(err.is_execution_error());
+    }
+
+    // ======= Cloning futures =======
+
+    #[test]
+    pub fn test_cloning_clone_complete_take_both() {
+        let (f1, c) = future();
+        let f2 = f1.clone();
+
+        c.complete("zomg");
+
+        assert_eq!(f1.take().unwrap(), "zomg");
+        assert_eq!(f2.take().unwrap(), "zomg");
+    }
+
+    #[test]
+    pub fn test_cloning_clone_take_both_complete() {
+        let (f1, c) = future();
+        let f2 = f1.clone();
+
+        let (tx, rx) = channel();
+
+        spawn(proc() tx.send(f2.take().unwrap()));
+        spawn(proc() {
+            sleep(millis(50));
+            c.complete("zomg");
+        });
+
+        assert_eq!(f1.take().unwrap(), "zomg");
+        assert_eq!(rx.recv(), "zomg");
+    }
+
+    #[test]
+    pub fn test_cloning_clone_take_complete_take() {
+        let (f1, c) = future();
+        let f2 = f1.clone();
+
+        spawn(proc() {
+            sleep(millis(50));
+            c.complete("zomg");
+        });
+
+        assert_eq!(f1.take().unwrap(), "zomg");
+        assert_eq!(f2.take().unwrap(), "zomg");
+    }
+
+    #[test]
+    pub fn test_cloning_clone_complete_receive_both() {
+        let (f1, c) = future();
+        let f2 = f1.clone();
+
+        c.complete("zomg");
+
+        let (tx1, rx1) = channel();
+        let (tx2, rx2) = channel();
+
+        f1.receive(move |:v: FutureResult<&'static str>| tx1.send(v.unwrap()));
+        f2.receive(move |:v: FutureResult<&'static str>| tx2.send(v.unwrap()));
+
+        assert_eq!(rx1.recv(), "zomg");
+        assert_eq!(rx2.recv(), "zomg");
+    }
+
+    #[test]
+    pub fn test_cloning_receive_both_complete() {
+        let (f1, c) = future();
+        let f2 = f1.clone();
+
+        let (tx1, rx1) = channel();
+        let (tx2, rx2) = channel();
+
+        f1.receive(move |:v: FutureResult<&'static str>| tx1.send(v.unwrap()));
+        f2.receive(move |:v: FutureResult<&'static str>| tx2.send(v.unwrap()));
+
+        c.complete("zomg");
+
+        assert_eq!(rx1.recv(), "zomg");
+        assert_eq!(rx2.recv(), "zomg");
+    }
+
+    #[test]
+    pub fn test_cloning_receive_complete_receive() {
+        let (f1, c) = future();
+        let f2 = f1.clone();
+
+        let (tx1, rx1) = channel();
+        let (tx2, rx2) = channel();
+
+        f1.receive(move |:v: FutureResult<&'static str>| tx1.send(v.unwrap()));
+        c.complete("zomg");
+        f2.receive(move |:v: FutureResult<&'static str>| tx2.send(v.unwrap()));
+
+
+        assert_eq!(rx1.recv(), "zomg");
+        assert_eq!(rx2.recv(), "zomg");
+    }
+
+    // ======= Util fns =======
+
+    fn millis(ms: uint) -> Duration {
+        Duration::milliseconds(ms as i64)
     }
 }
