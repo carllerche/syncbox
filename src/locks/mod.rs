@@ -3,8 +3,14 @@ pub use self::mutex::{
     MutexCellGuard,
     Mutex,
     MutexGuard,
-    CondVar
+    CondVar,
 };
 
-mod ffi;
+pub use self::park::{
+    Unparker,
+    park,
+    unparker,
+};
+
 mod mutex;
+mod park;

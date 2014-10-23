@@ -22,6 +22,7 @@ pub use queues::LinkedQueue;
 pub use executors::ThreadPool;
 
 mod executors;
+mod ffi;
 mod queues;
 
 pub mod future;

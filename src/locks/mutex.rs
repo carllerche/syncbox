@@ -3,7 +3,7 @@
 
 use core::cell::UnsafeCell;
 use time::get_time;
-use super::ffi;
+use ffi;
 
 /// A wrapper type which provides synchronized access to the underlying data, of
 /// type `T`. A mutex always provides exclusive access, and concurrent requests
