@@ -2,6 +2,7 @@
 //!
 //! This is a placeholder implementation until something (hopefully better)
 //! lands in Rust's stdlib.
+use std::time::Duration;
 use ffi;
 use locks::{Mutex, CondVar};
 use sync::Arc;
@@ -13,6 +14,16 @@ pub fn unparker() -> Unparker {
 
 pub fn park(order: Ordering) {
     with_parker(|p| p.park_ms(0, order));
+}
+
+pub fn park_timed(timeout: Duration, order: Ordering) {
+    use std::uint;
+    use std::num::NumCast;
+
+    with_parker(|p| {
+        let ms = NumCast::from(timeout.num_milliseconds());
+        p.park_ms(ms.unwrap_or(uint::MAX), order)
+    });
 }
 
 /// Handle to a thread's parker

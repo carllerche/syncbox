@@ -9,6 +9,7 @@ pub use self::mutex::{
 pub use self::park::{
     Unparker,
     park,
+    park_timed,
     unparker,
 };
 
