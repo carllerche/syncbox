@@ -93,7 +93,7 @@ impl Mutex {
                 &self.native as *const ffi::pthread_mutex_t);
 
             if res < 0 {
-                fail!("unexpected internal mutex state");
+                panic!("unexpected internal mutex state");
             }
         }
 
@@ -110,7 +110,7 @@ impl Mutex {
             } else if res == ffi::EBUSY {
                 return None
             } else {
-                fail!("unexpected internal mutex state");
+                panic!("unexpected internal mutex state");
             }
         }
     }
@@ -123,7 +123,7 @@ impl Drop for Mutex {
                 &self.native as *const ffi::pthread_mutex_t);
 
             if res < 0 {
-                fail!("unexpected internal mutex state");
+                panic!("unexpected internal mutex state");
             }
         }
     }
@@ -151,7 +151,7 @@ impl<'a> Drop for MutexGuard<'a> {
                 self.native as *const ffi::pthread_mutex_t);
 
             if res < 0 {
-                fail!("unexpected internal mutex state");
+                panic!("unexpected internal mutex state");
             }
         }
     }
@@ -172,7 +172,7 @@ impl CondVar {
                 &self.native as *const ffi::pthread_cond_t);
 
             if res < 0 {
-                fail!("unexpected internal condition variable state");
+                panic!("unexpected internal condition variable state");
             }
         }
     }
@@ -184,7 +184,7 @@ impl CondVar {
                 lock as *const ffi::pthread_mutex_t);
 
             if res < 0 {
-                fail!("unexpected internal condition variable state");
+                panic!("unexpected internal condition variable state");
             }
         }
     }
@@ -202,7 +202,7 @@ impl CondVar {
                 return;
             }
 
-            fail!("unexpected internal condition variable state");
+            panic!("unexpected internal condition variable state");
         }
     }
 }
@@ -214,7 +214,7 @@ impl Drop for CondVar {
                 &self.native as *const ffi::pthread_cond_t);
 
             if res < 0 {
-                fail!("unexpected internal condition variable state");
+                panic!("unexpected internal condition variable state");
             }
         }
     }

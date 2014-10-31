@@ -394,7 +394,7 @@ mod test {
                         all_vals.push(v);
                     }
                 }
-                None => fail!("only receives `{}` result batches", all_vals.len()),
+                None => panic!("only receives `{}` result batches", all_vals.len()),
             }
         }
 

@@ -90,7 +90,7 @@ impl<T: Send + Clone> Clone for FutureVal<T> {
             return FutureVal { inner: Some(inner.clone()) };
         }
 
-        fail!("[BUG] attempting to clone a consumed future value");
+        panic!("[BUG] attempting to clone a consumed future value");
     }
 }
 
@@ -544,7 +544,7 @@ impl<T: Send> Core<T> {
                 // Clone the value
                 Some(cloner(self.val.as_ref().unwrap()))
             } else {
-                fail!("[BUG] multiple clones tracked but no cloner function present");
+                panic!("[BUG] multiple clones tracked but no cloner function present");
             }
         }
     }
