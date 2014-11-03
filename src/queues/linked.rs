@@ -24,6 +24,10 @@ impl<T: Send> LinkedQueue<T> {
             inner: Arc::new(QueueInner::new(capacity))
         }
     }
+
+    pub fn len(&self) -> uint {
+        self.inner.size()
+    }
 }
 
 impl<T: Send> Consume<T> for LinkedQueue<T> {
@@ -41,12 +45,6 @@ impl<T: Send> Produce<T> for LinkedQueue<T> {
 impl<T: Send> Clone for LinkedQueue<T> {
     fn clone(&self) -> LinkedQueue<T> {
         LinkedQueue { inner: self.inner.clone() }
-    }
-}
-
-impl<T: Send> Collection for LinkedQueue<T> {
-    fn len(&self) -> uint {
-        self.inner.size()
     }
 }
 
