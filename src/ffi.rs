@@ -62,6 +62,39 @@ mod os {
     }
 }
 
+#[cfg(target_os = "linux")]
+mod os {
+    use libc::{c_int, c_uint};
+
+    pub type pthread_once_t = c_int;
+    pub type pthread_key_t = c_uint;
+
+    pub const PTHREAD_ONCE_INIT: pthread_once_t = 0;
+
+    #[cfg(target_arch = "x86_64")]
+    pub mod arch {
+        #[repr(C)]
+        pub struct pthread_mutex_t {
+            _data: [u64, ..5u],
+        }
+
+        pub const PTHREAD_MUTEX_INITIALIZER: pthread_mutex_t =
+            pthread_mutex_t {
+                _data: [0, 0, 0, 0, 0],
+            };
+
+        #[repr(C)]
+        pub struct pthread_cond_t {
+            _data: [u64, ..6u],
+        }
+
+        pub const PTHREAD_COND_INITIALIZER: pthread_cond_t =
+            pthread_cond_t {
+                _data: [0, 0, 0, 0, 0, 0],
+            };
+    }
+}
+
 #[link(name = "pthread")]
 extern {
 
