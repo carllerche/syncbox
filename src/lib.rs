@@ -3,7 +3,6 @@
 // Enable some features
 #![feature(phase)]
 #![feature(unboxed_closures)]
-#![feature(overloaded_calls)]
 #![feature(unsafe_destructor)]
 #![feature(if_let)]
 #![feature(while_let)]

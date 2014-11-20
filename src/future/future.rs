@@ -1,4 +1,5 @@
 use std::time::Duration;
+use self::FutureErrorKind::*;
 
 pub trait Cancel {
     /// If not already completed, signals that the consumer is no longer

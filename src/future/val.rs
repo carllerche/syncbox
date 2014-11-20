@@ -23,9 +23,10 @@ use super::{
     SyncFuture,
     FutureResult,
     FutureError,
-    CancelationError,
-    ExecutionError,
 };
+use super::FutureErrorKind::*;
+use self::State::*;
+use self::WaitStrategy::*;
 
 pub fn future<T: Send>() -> (FutureVal<T>, Producer<T>) {
     let inner = FutureImpl::new();

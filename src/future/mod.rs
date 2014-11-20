@@ -5,8 +5,6 @@ pub use self::future::{
     FutureResult,
     FutureError,
     FutureErrorKind,
-    ExecutionError,
-    CancelationError,
 };
 pub use self::val::{
     FutureVal,
