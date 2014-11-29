@@ -1,7 +1,7 @@
 use std::{mem, ptr, uint};
 use std::time::Duration;
 use time::precise_time_ns;
-use sync::Arc;
+use std::sync::Arc;
 use locks::{MutexCell, CondVar};
 use {Consume, Produce};
 

@@ -12,11 +12,10 @@ extern crate alloc;
 extern crate core;
 extern crate libc;
 extern crate time;
-extern crate sync;
 
 use std::time::Duration;
 
-pub use sync::atomic;
+pub use std::sync::atomic;
 pub use queues::LinkedQueue;
 pub use executors::ThreadPool;
 

@@ -15,8 +15,8 @@
 use std::{fmt, mem};
 use std::time::Duration;
 use locks::{MutexCell, MutexCellGuard, Unparker, unparker, park};
-use sync::Arc;
-use sync::atomic::Relaxed;
+use std::sync::Arc;
+use std::sync::atomic::Relaxed;
 use super::{
     Cancel,
     Future,
@@ -649,8 +649,8 @@ fn cancelation() -> FutureError {
 mod test {
     use std::io::timer::sleep;
     use std::time::Duration;
-    use sync::Arc;
-    use sync::atomic::{AtomicBool, AtomicUint, Relaxed};
+    use std::sync::Arc;
+    use std::sync::atomic::{AtomicBool, AtomicUint, Relaxed};
     use future::{Future, SyncFuture, Cancel, FutureResult};
     use super::*;
 

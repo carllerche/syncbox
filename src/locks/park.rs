@@ -5,8 +5,8 @@
 use std::time::Duration;
 use ffi;
 use locks::{Mutex, CondVar};
-use sync::Arc;
-use sync::atomic::{AtomicUint, Ordering, Relaxed};
+use std::sync::Arc;
+use std::sync::atomic::{AtomicUint, Ordering, Relaxed};
 
 pub fn unparker() -> Unparker {
     with_parker(|p| Unparker { parker: p.clone() })
