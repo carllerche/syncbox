@@ -25,7 +25,7 @@ pub trait SyncFuture<T> {
 
 pub type FutureResult<T> = Result<T, FutureError>;
 
-#[deriving(Show)]
+#[deriving(Copy, Show)]
 pub struct FutureError {
     pub kind: FutureErrorKind,
     pub desc: &'static str,
@@ -47,7 +47,7 @@ impl FutureError {
     }
 }
 
-#[deriving(Show)]
+#[deriving(Copy, Show)]
 pub enum FutureErrorKind {
     ExecutionError,
     CancelationError,

@@ -4,8 +4,6 @@
 #![feature(phase)]
 #![feature(unboxed_closures)]
 #![feature(unsafe_destructor)]
-#![feature(if_let)]
-#![feature(while_let)]
 #![feature(globs)]
 
 extern crate alloc;
