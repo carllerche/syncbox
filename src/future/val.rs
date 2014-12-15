@@ -12,11 +12,6 @@
 // - Deref
 // - clone & producer take / receive
 
-use std::{fmt, mem};
-use std::time::Duration;
-use locks::{MutexCell, MutexCellGuard, Unparker, unparker, park};
-use std::sync::Arc;
-use std::sync::atomic::Relaxed;
 use super::{
     Cancel,
     Future,
@@ -27,6 +22,12 @@ use super::{
 use super::FutureErrorKind::*;
 use self::State::*;
 use self::WaitStrategy::*;
+
+use std::{fmt, mem};
+use std::time::Duration;
+use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::atomic::Relaxed;
+use std::thread::Thread;
 
 pub fn future<T: Send>() -> (FutureVal<T>, Producer<T>) {
     let inner = FutureImpl::new();
@@ -112,6 +113,7 @@ impl<T: fmt::Show> fmt::Show for FutureVal<T> {
     }
 }
 
+#[deriving(Copy)]
 pub struct Interest;
 
 impl Cancel for Interest {
@@ -194,6 +196,7 @@ impl<T: Send> Cancel for Producer<T> {
     }
 }
 
+#[deriving(Copy)]
 pub struct ProducerInterest;
 
 impl Cancel for ProducerInterest {
@@ -253,13 +256,13 @@ impl Cancel for ProducerInterest {
 // consumers have issued a cancel.
 
 struct FutureImpl<T> {
-    core: Arc<MutexCell<Core<T>>>,
+    core: Arc<Mutex<Core<T>>>,
 }
 
 impl<T: Send> FutureImpl<T> {
     fn new() -> FutureImpl<T> {
         FutureImpl {
-            core: Arc::new(MutexCell::new(Core::new()))
+            core: Arc::new(Mutex::new(Core::new()))
         }
     }
 
@@ -284,7 +287,8 @@ impl<T: Send> FutureImpl<T> {
         // The future's value has not yet been realized. Save off the
         // callback and mark the consumer as waiting for the value. When
         // the value is available, the calback will be invoked with it.
-        core.push_consumer_wait(Callback(box cb));
+        let i: Box<Invoke<(FutureResult<T>,), ()> + Send> = box cb;
+        core.push_consumer_wait(Callback(i));
     }
 
     fn take(&self) -> FutureResult<T> {
@@ -296,7 +300,7 @@ impl<T: Send> FutureImpl<T> {
         core = self.producer_notify(core, true);
 
         // Before the thread blocks, track that the consumer is waiting
-        core.push_consumer_wait(Park(unparker()));
+        core.push_consumer_wait(Park(Thread::current()));
 
         // Checking the value and waiting happens in a loop to handle
         // cases where the condition variable unblocks early for an
@@ -308,7 +312,7 @@ impl<T: Send> FutureImpl<T> {
             }
 
             drop(core);
-            park(Relaxed);
+            Thread::park();
             core = self.lock();
         }
     }
@@ -348,15 +352,15 @@ impl<T: Send> FutureImpl<T> {
                         // Relase the lock
                         drop(core);
                         // Invoke the callback
-                        cb.call_once((val,));
+                        cb.invoke((val,));
                         // Reacquire the lock in case there is another iteration
                         core = self.lock();
                     }
                     // Otherwise, store the value on the future and signal
                     // the consumer that the value is ready.
-                    Some(Park(unparker)) => {
+                    Some(Park(thread)) => {
                         // Signal that the future is complete
-                        unparker.unpark(Relaxed);
+                        thread.unpark();
                     }
                     None => {}
                 }
@@ -426,13 +430,13 @@ impl<T: Send> FutureImpl<T> {
             // that the producer is about to block, then wait for the
             // signal.
             if core.state.is_pending() {
-                core.state = ProducerWait(Park(unparker()));
+                core.state = ProducerWait(Park(Thread::current()));
 
                 // Loop as long as the future remains in the producer wait
                 // state.
                 loop {
                     drop(core);
-                    park(Relaxed);
+                    Thread::park();
                     core = self.lock();
 
                     // If the future state has changed, break out fo the
@@ -470,14 +474,14 @@ impl<T: Send> FutureImpl<T> {
                         drop(core);
 
                         if interest {
-                            cb.call_once((Ok(Producer::new(self.clone())),));
+                            cb.invoke((Ok(Producer::new(self.clone())),));
                         } else {
-                            cb.call_once((Err(cancelation()),));
+                            cb.invoke((Err(cancelation()),));
                         }
 
                         core = self.lock();
                     }
-                    Park(unparker) => unparker.unpark(Relaxed),
+                    Park(thread) => thread.unpark(),
                 }
             } else {
                 break;
@@ -488,7 +492,7 @@ impl<T: Send> FutureImpl<T> {
     }
 
     #[inline]
-    fn lock(&self) -> MutexCellGuard<Core<T>> {
+    fn lock<'a>(&'a self) -> MutexGuard<'a, Core<T>> {
         self.core.lock()
     }
 }
@@ -510,7 +514,7 @@ struct Core<T> {
     cloner: Option<Cloner<T>>,
 }
 
-type LockedCore<'a, T> = MutexCellGuard<'a, Core<T>>;
+type LockedCore<'a, T> = MutexGuard<'a, Core<T>>;
 type Cloner<T> = fn(&FutureResult<T>) -> FutureResult<T>;
 
 impl<T: Send> Core<T> {
@@ -634,8 +638,19 @@ impl<T> fmt::Show for State<T> {
 }
 
 enum WaitStrategy<T> {
-    Callback(Box<FnOnce<(FutureResult<T>,), ()> + Send>),
-    Park(Unparker),
+    Callback(Box<Invoke<(FutureResult<T>,), ()> + Send>),
+    Park(Thread),
+}
+
+trait Invoke<A, R> {
+    fn invoke(self: Box<Self>, arg: A) -> R;
+}
+
+impl<A, R, F> Invoke<A,R> for F where F : FnOnce<A, R> {
+    fn invoke(self: Box<F>, arg: A) -> R {
+        let f = *self;
+        f.call_once(arg)
+    }
 }
 
 fn cancelation() -> FutureError {
@@ -647,20 +662,21 @@ fn cancelation() -> FutureError {
 
 #[cfg(test)]
 mod test {
+    use super::*;
+    use future::{Future, SyncFuture, Cancel, FutureResult};
     use std::io::timer::sleep;
     use std::time::Duration;
     use std::sync::Arc;
     use std::sync::atomic::{AtomicBool, AtomicUint, Relaxed};
-    use future::{Future, SyncFuture, Cancel, FutureResult};
-    use super::*;
+    use std::thread::Thread;
 
     #[test]
     pub fn test_complete_before_take() {
         let (f, c) = future();
 
-        spawn(proc() {
+        Thread::spawn(move || {
             c.complete("zomg");
-        });
+        }).detach();
 
         sleep(millis(50));
         assert_eq!(f.take().unwrap(), "zomg");
@@ -670,10 +686,10 @@ mod test {
     pub fn test_complete_after_take() {
         let (f, c) = future();
 
-        spawn(proc() {
+        Thread::spawn(move || {
             sleep(millis(50));
             c.complete("zomg");
-        });
+        }).detach();
 
         assert_eq!(f.take().unwrap(), "zomg");
     }
@@ -683,9 +699,9 @@ mod test {
         let (f, c) = future();
         let (tx, rx) = channel::<&'static str>();
 
-        spawn(proc() {
+        Thread::spawn(move || {
             c.complete("zomg");
-        });
+        }).detach();
 
         sleep(millis(50));
         f.receive(move |:v: FutureResult<&'static str>| tx.send(v.unwrap()));
@@ -697,10 +713,10 @@ mod test {
         let (f, c) = future();
         let (tx, rx) = channel::<&'static str>();
 
-        spawn(proc() {
+        Thread::spawn(move || {
             sleep(millis(50));
             c.complete("zomg");
-        });
+        }).detach();
 
         f.receive(move |:v: FutureResult<&'static str>| tx.send(v.unwrap()));
         assert_eq!(rx.recv(), "zomg");
@@ -727,14 +743,14 @@ mod test {
         let w1 = Arc::new(AtomicBool::new(false));
         let w2 = w1.clone();
 
-        spawn(proc() {
+        Thread::spawn(move || {
             sleep(millis(50));
 
             c.receive(move |:c: FutureResult<Producer<&'static str>>| {
                 assert!(w2.load(Relaxed));
                 c.unwrap().complete("zomg");
             });
-        });
+        }).detach();
 
         w1.store(true, Relaxed);
         assert_eq!(f.take().unwrap(), "zomg");
@@ -768,14 +784,14 @@ mod test {
         let w1 = Arc::new(AtomicBool::new(false));
         let w2 = w1.clone();
 
-        spawn(proc() {
+        Thread::spawn(move || {
             sleep(millis(50));
 
             c.receive(move |:c: FutureResult<Producer<&'static str>>| {
                 assert!(w2.load(Relaxed));
                 c.unwrap().complete("zomg");
             });
-        });
+        }).detach();
 
         let (tx, rx) = channel();
         w1.store(true, Relaxed);
@@ -792,9 +808,9 @@ mod test {
     pub fn test_take_complete_before_consumer_take() {
         let (f, c) = future();
 
-        spawn(proc() {
+        Thread::spawn(move || {
             c.take().unwrap().complete("zomg");
-        });
+        }).detach();
 
         sleep(millis(50));
         assert_eq!("zomg", f.take().unwrap());
@@ -804,10 +820,10 @@ mod test {
     pub fn test_take_complete_after_consumer_take() {
         let (f, c) = future();
 
-        spawn(proc() {
+        Thread::spawn(move || {
             sleep(millis(50));
             c.take().unwrap().complete("zomg");
-        });
+        }).detach();
 
         assert_eq!("zomg", f.take().unwrap());
     }
@@ -817,9 +833,9 @@ mod test {
         let (f, c) = future();
         let (tx, rx) = channel::<&'static str>();
 
-        spawn(proc() {
+        Thread::spawn(move || {
             c.take().unwrap().complete("zomg");
-        });
+        }).detach();
 
         sleep(millis(50));
         f.receive(move |:v: FutureResult<&'static str>| {
@@ -833,10 +849,10 @@ mod test {
         let (f, c) = future();
         let (tx, rx) = channel::<&'static str>();
 
-        spawn(proc() {
+        Thread::spawn(move || {
             sleep(millis(50));
             c.take().unwrap().complete("zomg");
-        });
+        }).detach();
 
         f.receive(move |:v: FutureResult<&'static str>| {
             tx.send(v.unwrap())
@@ -892,11 +908,11 @@ mod test {
         let (f, c) = future();
         let (tx, rx) = channel::<&'static str>();
 
-        spawn(proc() {
+        Thread::spawn(move || {
             c.take().unwrap()
                 .take().unwrap()
                 .take().unwrap().complete("zomg");
-        });
+        }).detach();
 
         sleep(millis(50));
 
@@ -911,11 +927,11 @@ mod test {
     pub fn test_producer_take_when_consumer_waiting() {
         let (f, c) = future();
 
-        spawn(proc() {
+        Thread::spawn(move || {
             c.take().unwrap()
                 .take().unwrap()
                 .take().unwrap().complete("zomg");
-        });
+        }).detach();
 
         sleep(millis(50));
         assert_eq!(f.take().unwrap(), "zomg");
@@ -929,7 +945,7 @@ mod test {
         f.cancel();
 
         c.receive(move |:s: FutureResult<Producer<&'static str>>| {
-            assert!(s.is_err())
+            assert!(s.is_err());
             tx.send("done");
         });
 
@@ -964,10 +980,10 @@ mod test {
         let (f, c) = future::<uint>();
         let (tx, rx) = channel();
 
-        spawn(proc() {
+        Thread::spawn(move || {
             assert!(c.take().is_err());
             tx.send("done");
-        });
+        }).detach();
 
         sleep(millis(50));
         f.cancel();
@@ -980,10 +996,10 @@ mod test {
         let (f, c) = future::<uint>();
         let (tx, rx) = channel();
 
-        spawn(proc() {
+        Thread::spawn(move || {
             assert!(c.take().is_err());
             tx.send("done");
-        });
+        }).detach();
 
         drop(f);
         assert_eq!(rx.recv(), "done");
@@ -1004,10 +1020,10 @@ mod test {
     pub fn test_producer_fail_consumer_receive() {
         let (f, c) = future::<uint>();
 
-        spawn(proc() {
+        Thread::spawn(move || {
             sleep(millis(50));
             c.fail("nope");
-        });
+        }).detach();
 
         let err = f.take().unwrap_err();
         assert_eq!(err.desc, "nope");
@@ -1029,10 +1045,10 @@ mod test {
     pub fn test_producer_drops_after_consumer_take() {
         let (f, c) = future::<uint>();
 
-        spawn(proc() {
+        Thread::spawn(move || {
             sleep(millis(50));
             drop(c);
-        });
+        }).detach();
 
         let err = f.take().unwrap_err();
         assert_eq!(err.desc, "producer dropped out of scope without completing");
@@ -1059,11 +1075,11 @@ mod test {
 
         let (tx, rx) = channel();
 
-        spawn(proc() tx.send(f2.take().unwrap()));
-        spawn(proc() {
+        Thread::spawn(move || tx.send(f2.take().unwrap())).detach();
+        Thread::spawn(move || {
             sleep(millis(50));
             c.complete("zomg");
-        });
+        }).detach();
 
         assert_eq!(f1.take().unwrap(), "zomg");
         assert_eq!(rx.recv(), "zomg");
@@ -1074,10 +1090,10 @@ mod test {
         let (f1, c) = future();
         let f2 = f1.clone();
 
-        spawn(proc() {
+        Thread::spawn(move || {
             sleep(millis(50));
             c.complete("zomg");
-        });
+        }).detach();
 
         assert_eq!(f1.take().unwrap(), "zomg");
         assert_eq!(f2.take().unwrap(), "zomg");

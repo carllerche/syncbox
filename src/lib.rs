@@ -9,7 +9,6 @@
 extern crate alloc;
 extern crate core;
 extern crate libc;
-extern crate time;
 
 use std::time::Duration;
 
@@ -18,11 +17,9 @@ pub use queues::LinkedQueue;
 pub use executors::ThreadPool;
 
 mod executors;
-mod ffi;
 mod queues;
 
 pub mod future;
-pub mod locks;
 
 // ===== Various traits =====
 

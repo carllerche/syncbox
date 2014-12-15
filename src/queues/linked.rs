@@ -1,9 +1,5 @@
 use std::{mem, ptr, uint};
-use std::time::Duration;
-use time::precise_time_ns;
-use std::sync::Arc;
-use locks::{MutexCell, CondVar};
-use {Consume, Produce};
+use std::sync::{Arc, Mutex, Condvar};
 
 /// A queue in which values are contained by a linked list.
 ///
@@ -28,17 +24,23 @@ impl<T: Send> LinkedQueue<T> {
     pub fn len(&self) -> uint {
         self.inner.size()
     }
-}
 
-impl<T: Send> Consume<T> for LinkedQueue<T> {
-    fn take_wait(&self, timeout: Duration) -> Option<T> {
-        self.inner.take(Timeout::new(timeout))
+    /// Takes from the queue, blocking until there is an element available.
+    pub fn take(&self) -> T {
+        self.inner.take(true).unwrap()
     }
-}
 
-impl<T: Send> Produce<T> for LinkedQueue<T> {
-    fn put_wait(&self, val: T, timeout: Duration) -> Result<(), T> {
-        self.inner.put(val, Timeout::new(timeout))
+    pub fn take_opt(&self) -> Option<T> {
+        self.inner.take(false)
+    }
+
+    /// Put an element into the queue, blocking until there is capacity.
+    pub fn put(&self, val: T) {
+        let _ = self.inner.put(val, true);
+    }
+
+    pub fn put_opt(&self, val: T) -> Result<(), T> {
+        self.inner.put(val, false)
     }
 }
 
@@ -48,22 +50,52 @@ impl<T: Send> Clone for LinkedQueue<T> {
     }
 }
 
-const NANOS_PER_MS: u64 = 1_000_000;
-
+//  A variant of the "two lock queue" algorithm.  The putLock gates
+//  entry to put (and offer), and has an associated condition for
+//  waiting puts.  Similarly for the takeLock.  The "count" field
+//  that they both rely on is maintained as an atomic to avoid
+//  needing to get both locks in most cases. Also, to minimize need
+//  for puts to get takeLock and vice-versa, cascading notifies are
+//  used. When a put notices that it has enabled at least one take,
+//  it signals taker. That taker in turn signals others if more
+//  items have been entered since the signal. And symmetrically for
+//  takes signalling puts. Operations such as remove(Object) and
+//  iterators acquire both locks.
+//
+//  Visibility between writers and readers is provided as follows:
+//
+//  Whenever an element is enqueued, the putLock is acquired and
+//  count updated.  A subsequent reader guarantees visibility to the
+//  enqueued Node by either acquiring the putLock (via fullyLock)
+//  or by acquiring the takeLock, and then reading n = count.get();
+//  this gives visibility to the first n items.
+//
+//  To implement weakly consistent iterators, it appears we need to
+//  keep all Nodes GC-reachable from a predecessor dequeued Node.
+//  That would cause two problems:
+//  - allow a rogue Iterator to cause unbounded memory retention
+//  - cause cross-generational linking of old Nodes to new Nodes if
+//    a Node was tenured while live, which generational GCs have a
+//    hard time dealing with, causing repeated major collections.
+//  However, only non-deleted Nodes need to be reachable from
+//  dequeued Nodes, and reachability does not necessarily have to
+//  be of the kind understood by the GC.  We use the trick of
+//  linking a Node that has just been dequeued to itself.  Such a
+//  self-link implicitly means to advance to head.next.
 struct QueueInner<T> {
-    core: MutexCell<Core<T>>,
+    core: Mutex<Core<T>>,
     capacity: uint,
 }
 
 impl<T: Send> QueueInner<T> {
     fn new(capacity: uint) -> QueueInner<T> {
         QueueInner {
-            core: MutexCell::new(Core::new()),
+            core: Mutex::new(Core::new()),
             capacity: capacity,
         }
     }
 
-    fn take(&self, mut timeout: Timeout) -> Option<T> {
+    fn take(&self, block: bool) -> Option<T> {
         let mut core = self.core.lock();
 
         loop {
@@ -76,23 +108,19 @@ impl<T: Send> QueueInner<T> {
                     return Some(link.val)
                 }
                 None => {
-                    // If there is no more waiting, return None
-                    if timeout.is_elapsed() {
-                        return None;
-                    }
+                    if !block { return None; }
 
                     // Wait for data
                     core.consumer_waiting += 1;
-                    core.timed_wait(&core.consumer_condvar, timeout.remaining_ms());
+                    // TODO: Respect timeout once Rust exposes timeouts
+                    core.consumer_condvar.wait(&core);
                     core.consumer_waiting -= 1;
-
-                    timeout.update();
                 }
             }
         }
     }
 
-    fn put(&self, mut val: T, mut timeout: Timeout) -> Result<(), T> {
+    fn put(&self, mut val: T, block: bool) -> Result<(), T> {
         let mut core = self.core.lock();
 
         loop {
@@ -102,18 +130,15 @@ impl<T: Send> QueueInner<T> {
                     return Ok(());
                 }
                 Err(v) => {
-                    if timeout.is_elapsed() {
-                        return Err(v);
-                    }
+                    if !block { return Err(v) };
 
                     val = v;
 
                     // Wait for availability
                     core.producer_waiting += 1;
-                    core.timed_wait(&core.producer_condvar, timeout.remaining_ms());
+                    // TODO: Respect timeout once Rust exposes timeouts
+                    core.producer_condvar.wait(&core);
                     core.consumer_waiting -= 1;
-
-                    timeout.update();
                 }
             }
         }
@@ -131,9 +156,9 @@ struct Core<T> {
     tail: *mut Link<T>,
     // Synchronization
     consumer_waiting: uint,
-    consumer_condvar: CondVar,
+    consumer_condvar: Condvar,
     producer_waiting: uint,
-    producer_condvar: CondVar,
+    producer_condvar: Condvar,
 }
 
 impl<T: Send> Core<T> {
@@ -144,9 +169,9 @@ impl<T: Send> Core<T> {
             tail: ptr::null_mut(),
             // Synchronization
             consumer_waiting: 0,
-            consumer_condvar: CondVar::new(),
+            consumer_condvar: Condvar::new(),
             producer_waiting: 0,
-            producer_condvar: CondVar::new(),
+            producer_condvar: Condvar::new(),
         }
     }
 
@@ -201,13 +226,13 @@ impl<T: Send> Core<T> {
 
     fn producer_notify(&self) {
         if self.producer_waiting > 0 {
-            self.producer_condvar.signal();
+            self.producer_condvar.notify_one();
         }
     }
 
     fn consumer_notify(&self) {
         if self.consumer_waiting > 0 {
-            self.consumer_condvar.signal();
+            self.consumer_condvar.notify_one();
         }
     }
 }
@@ -228,46 +253,12 @@ impl<T: Send> Link<T> {
     }
 }
 
-struct Timeout {
-    remaining_ms: uint,
-    time: u64,
-}
-
-impl Timeout {
-    fn new(remaining: Duration) -> Timeout {
-        Timeout {
-            remaining_ms: remaining.num_milliseconds() as uint,
-            time: precise_time_ns(),
-        }
-    }
-
-    fn is_elapsed(&self) -> bool {
-        self.remaining_ms == 0
-    }
-
-    fn remaining_ms(&self) -> uint {
-        self.remaining_ms
-    }
-
-    fn update(&mut self) {
-        let now = precise_time_ns();
-        let elapsed = ((now - self.time) / NANOS_PER_MS) as uint;
-
-        if elapsed > self.remaining_ms {
-            self.remaining_ms = 0;
-        } else {
-            self.remaining_ms -= elapsed;
-        }
-
-        self.time = now;
-    }
-}
-
 #[cfg(test)]
 mod test {
+    use super::LinkedQueue;
     use std::io::timer::sleep;
     use std::time::Duration;
-    use {LinkedQueue, Consume, Produce};
+    use std::thread::Thread;
 
     #[test]
     pub fn test_single_threaded_put_take() {
@@ -277,19 +268,19 @@ mod test {
         assert_eq!(0, q.len());
 
         // Put a value
-        assert!(q.put(1u).is_ok());
+        q.put(1u);
 
         // Check the length again
         assert_eq!(1, q.len());
 
         // Remove the value
-        assert_eq!(1u, q.take().unwrap());
+        assert_eq!(1u, q.take());
 
         // Check the length
         assert_eq!(0, q.len());
 
         // Try taking on an empty queue
-        assert!(q.take().is_none());
+        assert!(q.take_opt().is_none());
     }
 
     #[test]
@@ -297,22 +288,19 @@ mod test {
         let c = LinkedQueue::new();
         let p = c.clone();
 
-        spawn(proc() {
+        Thread::spawn(move || {
             sleep(millis(10));
 
             for i in range(0, 10_000u) {
-                p.put(i).unwrap();
+                p.put(i);
             }
-        });
+        }).detach();
 
-        let mut i = 0;
-
-        while let Some(v) = c.take_wait(millis(50)) {
-            assert_eq!(i, v);
-            i += 1;
+        for i in range(0, 10_000) {
+            assert_eq!(i, c.take());
         }
 
-        assert_eq!(10_000, i);
+        assert!(c.take_opt().is_none());
     }
 
     #[test]
@@ -322,24 +310,21 @@ mod test {
         for t in range(0, 10u) {
             let p = c.clone();
 
-            spawn(proc() {
+            Thread::spawn(move || {
                 sleep(millis(10));
 
                 for i in range(0, 10_000u) {
-                    p.put((t, i)).unwrap();
+                    p.put((t, i));
                 }
-            });
+            }).detach();
         }
 
         let mut vals = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 
-        while let Some((t, v)) = c.take_wait(millis(50)) {
+        for _ in range(0, 10 * 10_000u) {
+            let (t, v) = c.take();
             assert_eq!(vals[t], v);
             vals[t] += 1;
-        }
-
-        for &v in vals.iter() {
-            assert_eq!(10_000, v);
         }
     }
 
@@ -352,13 +337,16 @@ mod test {
         for t in range(0, 10u) {
             let producer = queue.clone();
 
-            spawn(proc() {
+            Thread::spawn(move || {
                 sleep(Duration::milliseconds(10));
 
                 for i in range(1, 10_000u) {
-                    producer.put((t, i)).unwrap();
+                    producer.put((t, i));
                 }
-            });
+
+                // Put an extra val to signal consumers to exit
+                producer.put((t, 1_000_000));
+            }).detach();
         }
 
         // Consumers
@@ -366,33 +354,36 @@ mod test {
             let consumer = queue.clone();
             let results = results.clone();
 
-            spawn(proc() {
+            Thread::spawn(move || {
                 let mut vals = vec![];
                 let mut per_producer = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 
-                while let Some((t, v)) = consumer.take_wait(millis(50)) {
+                loop {
+                    let (t, v) = consumer.take();
+
+                    if v > 10_000u {
+                        break;
+                    }
+
                     assert!(per_producer[t] < v);
                     per_producer[t] = v;
 
                     vals.push((t, v));
                 }
 
-                results.put(vals).unwrap();
-            });
+                results.put(vals);
+            }).detach();
         }
 
         let mut all_vals = vec![];
 
         for _ in range(0, 10u) {
-            match results.take_wait(millis(5_000)) {
-                Some(vals) => {
-                    // Probably too strict
-                    assert!(vals.len() >= 9_000 && vals.len() <= 11_000, "uneven batch size {}", vals.len());
-                    for &v in vals.iter() {
-                        all_vals.push(v);
-                    }
-                }
-                None => panic!("only receives `{}` result batches", all_vals.len()),
+            let vals = results.take();
+
+            // Probably too strict
+            assert!(vals.len() >= 9_000 && vals.len() <= 11_000, "uneven batch size {}", vals.len());
+            for &v in vals.iter() {
+                all_vals.push(v);
             }
         }
 
@@ -415,16 +406,16 @@ mod test {
         let queue = LinkedQueue::with_capacity(8);
 
         for i in range(0, 8u) {
-            assert!(queue.put(i).is_ok());
+            assert!(queue.put_opt(i).is_ok());
         }
 
-        assert_eq!(Err(8), queue.put(8));
-        assert_eq!(Some(0), queue.take());
+        assert_eq!(Err(8), queue.put_opt(8));
+        assert_eq!(Some(0), queue.take_opt());
 
-        assert!(queue.put(8).is_ok());
+        assert!(queue.put_opt(8).is_ok());
 
         for i in range(1, 9u) {
-            assert_eq!(Some(i), queue.take());
+            assert_eq!(Some(i), queue.take_opt());
         }
     }
 
@@ -435,21 +426,16 @@ mod test {
         for _ in range(0, 8u) {
             let queue = queue.clone();
 
-            spawn(proc() {
+            Thread::spawn(move || {
                 for i in range(0, 30_000u) {
-                    assert!(queue.put_wait(i, millis(1000)).is_ok());
+                    queue.put(i);
                 }
-            });
+            }).detach();
         }
 
-        let mut n = 0;
-
-        while n < 8 * 30_000u {
-            assert!(queue.take_wait(millis(5000)).is_some());
-            n += 1;
+        for _ in range(0, 8 * 30_000u) {
+            queue.take();
         }
-
-        assert_eq!(8 * 30_000u, n);
     }
 
     fn millis(num: uint) -> Duration {
