@@ -1,85 +1,84 @@
-//! A basic implementation of Future.
+//! A basic implementation of futures.
 //!
 //! As of now, the implementation is fairly naive. A single mutex is used to
 //! handle synchronization and the implementation generally doesn't worry that
 //! much about performance at the moment. The goal currently is to figure out
-//! the API and then worry about performance. Eventually FutureVal will be
+//! the API and then worry about performance. Eventually Future will be
 //! re-implementing using lock-free strategies and focus on performance.
 
 // TODO:
-// - FutureVal::take_timed()
 // - Interest::cancel()
 // - Deref
 // - clone & producer take / receive
+// - Future cancelation -> producer error
 
 use super::{
     Cancel,
-    Future,
-    SyncFuture,
-    FutureResult,
-    FutureError,
+    Async,
+    AsyncResult,
+    AsyncError,
 };
-use super::FutureErrorKind::*;
+use super::AsyncErrorKind::*;
 use self::State::*;
 use self::WaitStrategy::*;
 
 use std::{fmt, mem};
-use std::time::Duration;
 use std::sync::{Arc, Mutex, MutexGuard};
-use std::sync::atomic::Relaxed;
 use std::thread::Thread;
 
-pub fn future<T: Send>() -> (FutureVal<T>, Producer<T>) {
-    let inner = FutureImpl::new();
-
-    let f = FutureVal::new(inner.clone());
-    let c = Producer::new(inner);
-
-    (f, c)
+pub struct Future<T> {
+    inner: Option<FutureInner<T>>,
 }
 
-pub struct FutureVal<T> {
-    inner: Option<FutureImpl<T>>,
-}
+impl<T: Send> Future<T> {
+    pub fn pair() -> (Future<T>, Producer<T>) {
+        let inner = FutureInner::new();
 
-impl<T: Send> FutureVal<T> {
-    /// Creates a new FutureVal with the given core
+        let f = Future::new(inner.clone());
+        let c = Producer::new(inner);
+
+        (f, c)
+    }
+
+    /// Creates a new Future with the given core
     #[inline]
-    fn new(inner: FutureImpl<T>) -> FutureVal<T> {
-        FutureVal { inner: Some(inner) }
+    fn new(inner: FutureInner<T>) -> Future<T> {
+        Future { inner: Some(inner) }
+    }
+
+    #[inline]
+    pub fn await(mut self) -> AsyncResult<T> {
+        self.inner.take().unwrap().await()
+    }
+
+    pub fn is_ready(&self) -> bool {
+        self.inner.as_ref().unwrap()
+            .is_ready()
+    }
+
+    pub fn is_err(&self) -> bool {
+        self.inner.as_ref().unwrap()
+            .is_err()
+    }
+
+    #[inline]
+    pub fn unwrap(self) -> T {
+        self.await().unwrap()
     }
 }
 
-impl<T: Send> Future<T, Interest> for FutureVal<T> {
+impl<T: Send> Async<Interest> for Future<T> {
     #[inline]
-    fn receive<F: FnOnce(FutureResult<T>) + Send>(mut self, cb: F) -> Interest {
-        self.inner.take().unwrap().receive(cb);
+    fn ready<F: FnOnce(Future<T>) + Send>(mut self, cb: F) -> Interest {
+        self.inner.take().unwrap().ready(cb);
         Interest
     }
 }
 
-impl<T: Send> SyncFuture<T> for FutureVal<T> {
-    #[inline]
-    fn take(mut self) -> FutureResult<T> {
-        self.inner.take().unwrap().take()
-    }
-
-    fn take_timed(self, _timeout: Duration) -> FutureResult<T> {
-        unimplemented!();
-    }
-}
-
-impl<T: Send> Cancel for FutureVal<T> {
-    #[inline]
-    fn cancel(mut self) {
-        self.inner.take().unwrap().cancel();
-    }
-}
-
-impl<T: Send + Clone> Clone for FutureVal<T> {
-    fn clone(&self) -> FutureVal<T> {
+impl<T: Send + Clone> Clone for Future<T> {
+    fn clone(&self) -> Future<T> {
         // Used to clone the value
-        fn cloner<T: Clone>(val: &FutureResult<T>) -> FutureResult<T> {
+        fn cloner<T: Clone>(val: &AsyncResult<T>) -> AsyncResult<T> {
             match *val {
                 Ok(ref v) => Ok(v.clone()),
                 Err(e) => Err(e),
@@ -88,8 +87,7 @@ impl<T: Send + Clone> Clone for FutureVal<T> {
 
         if let Some(ref inner) = self.inner {
             inner.consumer_clone(cloner);
-
-            return FutureVal { inner: Some(inner.clone()) };
+            return Future::new(inner.clone())
         }
 
         panic!("[BUG] attempting to clone a consumed future value");
@@ -97,7 +95,7 @@ impl<T: Send + Clone> Clone for FutureVal<T> {
 }
 
 #[unsafe_destructor]
-impl<T: Send> Drop for FutureVal<T> {
+impl<T: Send> Drop for Future<T> {
     fn drop(&mut self) {
         match self.inner.take() {
             Some(inner) => inner.cancel(),
@@ -106,9 +104,9 @@ impl<T: Send> Drop for FutureVal<T> {
     }
 }
 
-impl<T: fmt::Show> fmt::Show for FutureVal<T> {
+impl<T: fmt::Show> fmt::Show for Future<T> {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        try!(write!(fmt, "FutureVal"));
+        try!(write!(fmt, "Future"));
         Ok(())
     }
 }
@@ -123,13 +121,13 @@ impl Cancel for Interest {
 }
 
 pub struct Producer<T> {
-    inner: Option<FutureImpl<T>>,
+    inner: Option<FutureInner<T>>,
 }
 
 impl<T: Send> Producer<T> {
     /// Creates a new Producer with the given core
     #[inline]
-    fn new(inner: FutureImpl<T>) -> Producer<T> {
+    fn new(inner: FutureInner<T>) -> Producer<T> {
         Producer { inner: Some(inner) }
     }
 
@@ -141,10 +139,27 @@ impl<T: Send> Producer<T> {
     #[inline]
     pub fn fail(mut self, desc: &'static str) {
         let inner = self.inner.take().unwrap();
-        inner.complete(Err(FutureError {
+        inner.complete(Err(AsyncError {
             kind: ExecutionError,
             desc: desc,
         }));
+    }
+
+    pub fn await(mut self) -> AsyncResult<Producer<T>> {
+        let inner = self.inner.take().unwrap();
+        inner.producer_await()
+    }
+
+    pub fn is_ready(&self) -> bool {
+        self.inner.as_ref()
+            .expect("producer has already been consumed")
+            .producer_is_ready()
+    }
+
+    pub fn is_err(&self) -> bool {
+        self.inner.as_ref()
+            .expect("producer has already been consumed")
+            .producer_is_err()
     }
 }
 
@@ -153,7 +168,7 @@ impl<T: Send> Drop for Producer<T> {
     fn drop(&mut self) {
         match self.inner.take() {
             Some(inner) => {
-                inner.complete(Err(FutureError {
+                inner.complete(Err(AsyncError {
                     kind: ExecutionError,
                     desc: "producer dropped out of scope without completing",
                 }));
@@ -169,23 +184,12 @@ impl<T: Send> Drop for Producer<T> {
  *
  */
 
-impl<T: Send> Future<Producer<T>, ProducerInterest> for Producer<T> {
+impl<T: Send> Async<ProducerInterest> for Producer<T> {
     #[inline]
-    fn receive<F: FnOnce(FutureResult<Producer<T>>) + Send>(mut self, cb: F) -> ProducerInterest {
+    fn ready<F: FnOnce(Producer<T>) + Send>(mut self, cb: F) -> ProducerInterest {
         let inner = self.inner.take().unwrap();
-        inner.producer_receive(cb);
+        inner.producer_ready(cb);
         ProducerInterest
-    }
-}
-
-impl<T: Send> SyncFuture<Producer<T>> for Producer<T> {
-    fn take(mut self) -> FutureResult<Producer<T>> {
-        let inner = self.inner.take().unwrap();
-        inner.producer_take()
-    }
-
-    fn take_timed(self, _timeout: Duration) -> FutureResult<Producer<T>> {
-        unimplemented!()
     }
 }
 
@@ -213,11 +217,11 @@ impl Cancel for ProducerInterest {
 
 // == Implementation details ==
 //
-// FutureImpl handles the implementation of FutureVal & Producer. It manages
-// completing the value for the primary FutureVal instance as well as any
+// FutureInner handles the implementation of Future & Producer. It manages
+// completing the value for the primary Future instance as well as any
 // clones.
 //
-// FutureImpl consists of a state machine that manages the internal state of
+// FutureInner consists of a state machine that manages the internal state of
 // the future. State transitions are a DAG, aka there are no possible cycles.
 // The state transitions are as follows:
 //
@@ -244,9 +248,9 @@ impl Cancel for ProducerInterest {
 //
 // # Cloning
 //
-// If type T implements Clone then FutureVal can be cloned. FutureImpl will
+// If type T implements Clone then Future can be cloned. FutureInner will
 // track the number of interested consumers. Then, once the future has been
-// realized and consumers start taking the result, FutureImpl will clone the
+// realized and consumers start taking the result, FutureInner will clone the
 // value then. For the last consumer, the value will be moved out.
 //
 // The future will transition to complete only once all the interested
@@ -255,18 +259,31 @@ impl Cancel for ProducerInterest {
 // The future will transition to canceled only once all the interested
 // consumers have issued a cancel.
 
-struct FutureImpl<T> {
+struct FutureInner<T> {
     core: Arc<Mutex<Core<T>>>,
 }
 
-impl<T: Send> FutureImpl<T> {
-    fn new() -> FutureImpl<T> {
-        FutureImpl {
+impl<T: Send> FutureInner<T> {
+    fn new() -> FutureInner<T> {
+        FutureInner {
             core: Arc::new(Mutex::new(Core::new()))
         }
     }
 
-    fn receive<F: FnOnce(FutureResult<T>) + Send>(&self, cb: F) {
+    fn is_ready(&self) -> bool {
+        let core = self.lock();
+
+        // This fn should not be called if interest has been canceled
+        assert!(!core.state.is_canceled());
+        core.state.is_complete()
+    }
+
+    fn is_err(&self) -> bool {
+        let core = self.lock();
+        core.is_err()
+    }
+
+    fn ready<F: FnOnce(Future<T>) + Send>(self, cb: F) {
         // Acquire the lock
         let mut core = self.lock();
 
@@ -276,28 +293,34 @@ impl<T: Send> FutureImpl<T> {
 
         // If the future has already been realized, move the value out
         // of the core so that it can be sent to the supplied callback.
-        if let Some(val) = core.take_value() {
+        if core.state.is_complete() {
             // Drop the lock before invoking the callback (prevent
             // deadlocks).
             drop(core);
-            cb(val);
+            // TODO: Avoid the clone
+            cb(Future::new(self.clone()));
             return;
         }
 
         // The future's value has not yet been realized. Save off the
         // callback and mark the consumer as waiting for the value. When
         // the value is available, the calback will be invoked with it.
-        let i: Box<Invoke<(FutureResult<T>,), ()> + Send> = box cb;
+        let i: Box<Invoke<(Future<T>,), ()> + Send> = box cb;
         core.push_consumer_wait(Callback(i));
     }
 
-    fn take(&self) -> FutureResult<T> {
+    fn await(&self) -> AsyncResult<T> {
         // Acquire the lock
         let mut core = self.lock();
 
         // If the producer is currently waiting, notify it that the
         // consumer has indicated interest in the result.
         core = self.producer_notify(core, true);
+
+        // If the future is complete, return immediately.
+        if let Some(val) = core.take_value() {
+            return val;
+        }
 
         // Before the thread blocks, track that the consumer is waiting
         core.push_consumer_wait(Park(Thread::current()));
@@ -326,12 +349,13 @@ impl<T: Send> FutureImpl<T> {
             // consumer has canceled the future.
             core = self.producer_notify(core, false);
 
-            // Set the state to canceled
+            // The state MAY have already transitioned to Canceled, but not
+            // always.
             core.state = Canceled;
         }
     }
 
-    fn complete(self, val: FutureResult<T>) {
+    fn complete(self, val: AsyncResult<T>) {
         // Acquire the lock
         let mut core = self.lock();
 
@@ -347,12 +371,10 @@ impl<T: Send> FutureImpl<T> {
                     // If the consumer is waiting with a callback, release
                     // the lock and invoke the callback with the value.
                     Some(Callback(cb)) => {
-                        // Grab the value (or a clone)
-                        let val = core.take_value().expect("[BUG] WAT the value was just set!");
                         // Relase the lock
                         drop(core);
                         // Invoke the callback
-                        cb.invoke((val,));
+                        cb.invoke((Future::new(self.clone()),));
                         // Reacquire the lock in case there is another iteration
                         core = self.lock();
                     }
@@ -382,9 +404,17 @@ impl<T: Send> FutureImpl<T> {
         }
     }
 
-    fn producer_receive<F: FnOnce(FutureResult<Producer<T>>) + Send>(self, cb: F) {
-        let mut canceled;
+    fn producer_is_ready(&self) -> bool {
+        let core = self.lock();
+        core.state.is_consumer_ready() || core.state.is_consumer_wait()
+    }
 
+    fn producer_is_err(&self) -> bool {
+        let core = self.lock();
+        core.state.is_canceled()
+    }
+
+    fn producer_ready<F: FnOnce(Producer<T>) + Send>(self, cb: F) {
         // Run the synchronized logic within a scope such that the lock
         // is released at the end of the scope.
         {
@@ -393,13 +423,10 @@ impl<T: Send> FutureImpl<T> {
 
             // If the consumer has not registered an interest yet, save off
             // the callback for when it does and return;
-            if core.state.is_pending() {
+            if core.state.is_pending() || core.state.is_consumer_ready() {
                 core.state = ProducerWait(Callback(box cb));
                 return;
             }
-
-            // Check if the consumer canceled interest
-            canceled = core.state.is_canceled();
 
             // The consumer has registered an interest in the value. Release
             // the lock then invoke the callback. This allows the callback
@@ -407,17 +434,10 @@ impl<T: Send> FutureImpl<T> {
             drop(core);
         }
 
-        if canceled {
-            // Invoke the callback with the canceled state
-            cb(Err(cancelation()));
-        } else {
-            // Invoke the callback with the producer (simply wrap the
-            // FutureImpl instance)
-            cb(Ok(Producer::new(self)));
-        }
+        cb(Producer::new(self));
     }
 
-    fn producer_take(self) -> FutureResult<Producer<T>> {
+    fn producer_await(self) -> AsyncResult<Producer<T>> {
         let mut canceled;
 
         // Run the synchronized logic within a scope such that the lock
@@ -456,7 +476,7 @@ impl<T: Send> FutureImpl<T> {
             // for the future
             Err(cancelation())
         } else {
-            // Return the producer (simply wrap the FutureImpl instance)
+            // Return the producer (simply wrap the FutureInner instance)
             Ok(Producer::new(self))
         }
     }
@@ -468,17 +488,11 @@ impl<T: Send> FutureImpl<T> {
         // re-register another receive callback, in which case it should
         // be immediately invoked.
         loop {
-            if let ProducerWait(strategy) = core.take_producer_wait() {
+            if let ProducerWait(strategy) = core.take_producer_wait(interest) {
                 match strategy {
                     Callback(cb) => {
                         drop(core);
-
-                        if interest {
-                            cb.invoke((Ok(Producer::new(self.clone())),));
-                        } else {
-                            cb.invoke((Err(cancelation()),));
-                        }
-
+                        cb.invoke((Producer::new(self.clone()),));
                         core = self.lock();
                     }
                     Park(thread) => thread.unpark(),
@@ -497,15 +511,15 @@ impl<T: Send> FutureImpl<T> {
     }
 }
 
-impl<T: Send> Clone for FutureImpl<T> {
-    fn clone(&self) -> FutureImpl<T> {
-        FutureImpl { core: self.core.clone() }
+impl<T: Send> Clone for FutureInner<T> {
+    fn clone(&self) -> FutureInner<T> {
+        FutureInner { core: self.core.clone() }
     }
 }
 
 struct Core<T> {
     // The realized value
-    val: Option<FutureResult<T>>,
+    val: Option<AsyncResult<T>>,
     // State of the future
     state: State<T>,
     // Number of clones
@@ -515,7 +529,7 @@ struct Core<T> {
 }
 
 type LockedCore<'a, T> = MutexGuard<'a, Core<T>>;
-type Cloner<T> = fn(&FutureResult<T>) -> FutureResult<T>;
+type Cloner<T> = fn(&AsyncResult<T>) -> AsyncResult<T>;
 
 impl<T: Send> Core<T> {
     fn new() -> Core<T> {
@@ -529,12 +543,18 @@ impl<T: Send> Core<T> {
         }
     }
 
-    fn put(&mut self, val: FutureResult<T>) {
+    fn is_err(&self) -> bool {
+        self.val.as_ref()
+            .map(|v| v.is_err())
+            .unwrap_or(false)
+    }
+
+    fn put(&mut self, val: AsyncResult<T>) {
         assert!(self.val.is_none(), "future already completed");
         self.val = Some(val);
     }
 
-    fn take_value(&mut self) -> Option<FutureResult<T>> {
+    fn take_value(&mut self) -> Option<AsyncResult<T>> {
         if self.val.is_none() {
             return None;
         }
@@ -562,7 +582,7 @@ impl<T: Send> Core<T> {
         }
     }
 
-    fn push_consumer_wait(&mut self, strategy: WaitStrategy<T>) -> uint {
+    fn push_consumer_wait(&mut self, strategy: WaitStrategy<Future<T>>) -> uint {
         if let ConsumerWait(ref mut vec) = self.state {
             let ret = vec.len();
             vec.push(Some(strategy));
@@ -573,9 +593,15 @@ impl<T: Send> Core<T> {
         }
     }
 
-    fn take_producer_wait(&mut self) -> State<T> {
+    fn take_producer_wait(&mut self, interest: bool) -> State<T> {
         if self.state.is_producer_wait() {
-            mem::replace(&mut self.state, Pending)
+            let new = if interest {
+                ConsumerReady
+            } else {
+                Canceled
+            };
+
+            mem::replace(&mut self.state, new)
         } else {
             Pending
         }
@@ -584,7 +610,8 @@ impl<T: Send> Core<T> {
 
 enum State<T> {
     Pending,
-    ConsumerWait(Vec<Option<WaitStrategy<T>>>),
+    ConsumerReady, // Consumer has signaled interest but hasn't blocked
+    ConsumerWait(Vec<Option<WaitStrategy<Future<T>>>>),
     ProducerWait(WaitStrategy<Producer<T>>),
     Complete,
     Canceled,
@@ -605,6 +632,13 @@ impl<T: Send> State<T> {
         }
     }
 
+    fn is_consumer_ready(&self) -> bool {
+        match *self {
+            ConsumerReady => true,
+            _ => false,
+        }
+    }
+
     fn is_consumer_wait(&self) -> bool {
         match *self {
             ConsumerWait(..) => true,
@@ -618,6 +652,14 @@ impl<T: Send> State<T> {
             _ => false,
         }
     }
+
+    fn is_complete(&self) -> bool {
+        match *self {
+            // TODO: Is canceled needed?
+            Complete /* | Canceled */ => true,
+            _ => false,
+        }
+    }
 }
 
 impl<T> fmt::Show for State<T> {
@@ -626,6 +668,7 @@ impl<T> fmt::Show for State<T> {
             Pending => "Pending",
             Complete => "Complete",
             Canceled => "Canceled",
+            ConsumerReady => "ConsumerReady",
             ConsumerWait(..) => "ConsumerWait",
             ProducerWait(ref strategy) => {
                 match *strategy {
@@ -638,7 +681,7 @@ impl<T> fmt::Show for State<T> {
 }
 
 enum WaitStrategy<T> {
-    Callback(Box<Invoke<(FutureResult<T>,), ()> + Send>),
+    Callback(Box<Invoke<(T,), ()> + Send>),
     Park(Thread),
 }
 
@@ -653,8 +696,8 @@ impl<A, R, F> Invoke<A,R> for F where F : FnOnce<A, R> {
     }
 }
 
-fn cancelation() -> FutureError {
-    FutureError {
+fn cancelation() -> AsyncError {
+    AsyncError {
         kind: CancelationError,
         desc: "future was canceled by consumer",
     }
@@ -663,7 +706,7 @@ fn cancelation() -> FutureError {
 #[cfg(test)]
 mod test {
     use super::*;
-    use future::{Future, SyncFuture, Cancel, FutureResult};
+    use util::async::Async;
     use std::io::timer::sleep;
     use std::time::Duration;
     use std::sync::Arc;
@@ -671,106 +714,107 @@ mod test {
     use std::thread::Thread;
 
     #[test]
-    pub fn test_complete_before_take() {
-        let (f, c) = future();
+    pub fn test_complete_before_await() {
+        let (f, c) = Future::pair();
 
-        Thread::spawn(move || {
-            c.complete("zomg");
-        }).detach();
+        spawn(move || c.complete("zomg"));
 
         sleep(millis(50));
-        assert_eq!(f.take().unwrap(), "zomg");
+        assert_eq!(f.unwrap(), "zomg");
     }
 
     #[test]
-    pub fn test_complete_after_take() {
-        let (f, c) = future();
+    pub fn test_complete_after_await() {
+        let (f, c) = Future::pair();
 
-        Thread::spawn(move || {
+        spawn(move || {
             sleep(millis(50));
             c.complete("zomg");
-        }).detach();
+        });
 
-        assert_eq!(f.take().unwrap(), "zomg");
+        assert_eq!(f.unwrap(), "zomg");
     }
 
     #[test]
     pub fn test_complete_before_receive() {
-        let (f, c) = future();
-        let (tx, rx) = channel::<&'static str>();
+        let (f, c) = Future::pair();
+        let (tx, rx) = channel();
 
-        Thread::spawn(move || {
-            c.complete("zomg");
-        }).detach();
+        spawn(move || c.complete("zomg"));
 
         sleep(millis(50));
-        f.receive(move |:v: FutureResult<&'static str>| tx.send(v.unwrap()));
+        f.ready(move |f| tx.send(f.unwrap()));
         assert_eq!(rx.recv(), "zomg");
     }
 
     #[test]
     pub fn test_complete_after_receive() {
-        let (f, c) = future();
-        let (tx, rx) = channel::<&'static str>();
+        let (f, c) = Future::pair();
+        let (tx, rx) = channel();
 
-        Thread::spawn(move || {
+        spawn(move || {
             sleep(millis(50));
             c.complete("zomg");
-        }).detach();
+        });
 
-        f.receive(move |:v: FutureResult<&'static str>| tx.send(v.unwrap()));
+        f.ready(move |f| tx.send(f.unwrap()));
         assert_eq!(rx.recv(), "zomg");
     }
 
     #[test]
-    pub fn test_receive_complete_future_before_take() {
-        let (f, c) = future::<&'static str>();
+    pub fn test_receive_complete_future_before_await() {
+        let (f, c) = Future::pair();
         let w1 = Arc::new(AtomicBool::new(false));
         let w2 = w1.clone();
 
-        c.receive(move |:c: FutureResult<Producer<&'static str>>| {
+        c.ready(move |c| {
+            assert!(c.is_ready());
+            assert!(!c.is_err());
             assert!(w2.load(Relaxed));
-            c.unwrap().complete("zomg");
+
+            c.complete("zomg");
         });
 
         w1.store(true, Relaxed);
-        assert_eq!(f.take().unwrap(), "zomg");
+        assert_eq!(f.unwrap(), "zomg");
     }
 
     #[test]
-    pub fn test_receive_complete_future_after_take() {
-        let (f, c) = future();
+    pub fn test_receive_complete_future_after_await() {
+        let (f, c) = Future::pair();
         let w1 = Arc::new(AtomicBool::new(false));
         let w2 = w1.clone();
 
-        Thread::spawn(move || {
+        spawn(move || {
             sleep(millis(50));
 
-            c.receive(move |:c: FutureResult<Producer<&'static str>>| {
+            c.ready(move |c| {
                 assert!(w2.load(Relaxed));
-                c.unwrap().complete("zomg");
+                assert!(c.is_ready());
+                c.complete("zomg");
             });
-        }).detach();
+        });
 
         w1.store(true, Relaxed);
-        assert_eq!(f.take().unwrap(), "zomg");
+        assert_eq!(f.unwrap(), "zomg");
     }
 
     #[test]
     pub fn test_receive_complete_before_consumer_receive() {
-        let (f, c) = future();
+        let (f, c) = Future::pair();
         let w1 = Arc::new(AtomicBool::new(false));
         let w2 = w1.clone();
 
-        c.receive(move |:c: FutureResult<Producer<&'static str>>| {
+        c.ready(move |c| {
             assert!(w2.load(Relaxed));
-            c.unwrap().complete("zomg");
+            assert!(c.is_ready());
+            c.complete("zomg");
         });
 
         let (tx, rx) = channel();
         w1.store(true, Relaxed);
 
-        f.receive(move |:msg: FutureResult<&'static str>| {
+        f.ready(move |msg| {
             assert_eq!("zomg", msg.unwrap());
             tx.send("hi2u");
         });
@@ -780,23 +824,24 @@ mod test {
 
     #[test]
     pub fn test_receive_complete_after_consumer_receive() {
-        let (f, c) = future();
+        let (f, c) = Future::pair();
         let w1 = Arc::new(AtomicBool::new(false));
         let w2 = w1.clone();
 
-        Thread::spawn(move || {
+        spawn(move || {
             sleep(millis(50));
 
-            c.receive(move |:c: FutureResult<Producer<&'static str>>| {
+            c.ready(move |c| {
                 assert!(w2.load(Relaxed));
-                c.unwrap().complete("zomg");
+                assert!(c.is_ready());
+                c.complete("zomg");
             });
-        }).detach();
+        });
 
         let (tx, rx) = channel();
         w1.store(true, Relaxed);
 
-        f.receive(move |:msg: FutureResult<&'static str>| {
+        f.ready(move |msg| {
             assert_eq!("zomg", msg.unwrap());
             tx.send("hi2u");
         });
@@ -805,58 +850,51 @@ mod test {
     }
 
     #[test]
-    pub fn test_take_complete_before_consumer_take() {
-        let (f, c) = future();
+    pub fn test_await_complete_before_consumer_await() {
+        let (f, c) = Future::pair();
 
-        Thread::spawn(move || {
-            c.take().unwrap().complete("zomg");
-        }).detach();
-
+        spawn(move || c.await().unwrap().complete("zomg"));
         sleep(millis(50));
-        assert_eq!("zomg", f.take().unwrap());
+
+        assert_eq!("zomg", f.unwrap());
     }
 
     #[test]
-    pub fn test_take_complete_after_consumer_take() {
-        let (f, c) = future();
+    pub fn test_await_complete_after_consumer_await() {
+        let (f, c) = Future::pair();
 
-        Thread::spawn(move || {
+        spawn(move || {
             sleep(millis(50));
-            c.take().unwrap().complete("zomg");
-        }).detach();
+            c.await().unwrap().complete("zomg");
+        });
 
-        assert_eq!("zomg", f.take().unwrap());
+        assert_eq!("zomg", f.unwrap());
     }
 
     #[test]
-    pub fn test_take_complete_before_consumer_receive() {
-        let (f, c) = future();
-        let (tx, rx) = channel::<&'static str>();
+    pub fn test_await_complete_before_consumer_receive() {
+        let (f, c) = Future::pair();
+        let (tx, rx) = channel();
 
-        Thread::spawn(move || {
-            c.take().unwrap().complete("zomg");
-        }).detach();
-
+        spawn(move || c.await().unwrap().complete("zomg"));
         sleep(millis(50));
-        f.receive(move |:v: FutureResult<&'static str>| {
-            tx.send(v.unwrap())
-        });
+
+        f.ready(move |f| tx.send(f.unwrap()));
+
         assert_eq!(rx.recv(), "zomg");
     }
 
     #[test]
-    pub fn test_take_complete_after_consumer_receive() {
-        let (f, c) = future();
-        let (tx, rx) = channel::<&'static str>();
+    pub fn test_await_complete_after_consumer_receive() {
+        let (f, c) = Future::pair();
+        let (tx, rx) = channel();
 
-        Thread::spawn(move || {
+        spawn(move || {
             sleep(millis(50));
-            c.take().unwrap().complete("zomg");
-        }).detach();
-
-        f.receive(move |:v: FutureResult<&'static str>| {
-            tx.send(v.unwrap())
+            c.await().unwrap().complete("zomg");
         });
+
+        f.ready(move |f| tx.send(f.unwrap()));
         assert_eq!(rx.recv(), "zomg");
     }
 
@@ -869,9 +907,7 @@ mod test {
             c.complete("done");
         } else {
             let d2 = d.clone();
-            c.receive(move |:c: FutureResult<Producer<&'static str>>| {
-                waiting(count + 1, d2, c.unwrap())
-            });
+            c.ready(move |c| waiting(count + 1, d2, c));
         }
 
         d.fetch_sub(1, Relaxed);
@@ -879,73 +915,67 @@ mod test {
 
     #[test]
     pub fn test_producer_receive_when_consumer_cb_set() {
-        let (f, c) = future();
-        let (tx, rx) = channel::<&'static str>();
+        let (f, c) = Future::pair();
+        let (tx, rx) = channel();
         let depth = Arc::new(AtomicUint::new(0));
 
         waiting(0, depth, c);
 
-        f.receive(move |:v: FutureResult<&'static str>| {
-            tx.send(v.unwrap())
-        });
-
+        f.ready(move |f| tx.send(f.unwrap()));
         assert_eq!(rx.recv(), "done");
     }
 
     #[test]
     pub fn test_producer_receive_when_consumer_waiting() {
-        let (f, c) = future();
+        let (f, c) = Future::pair();
         let depth = Arc::new(AtomicUint::new(0));
 
         waiting(0, depth, c);
 
         sleep(millis(50));
-        assert_eq!(f.take().unwrap(), "done");
+        assert_eq!(f.unwrap(), "done");
     }
 
     #[test]
     pub fn test_producer_take_when_consumer_cb_set() {
-        let (f, c) = future();
-        let (tx, rx) = channel::<&'static str>();
+        let (f, c) = Future::pair();
+        let (tx, rx) = channel();
 
-        Thread::spawn(move || {
-            c.take().unwrap()
-                .take().unwrap()
-                .take().unwrap().complete("zomg");
-        }).detach();
+        spawn(move || {
+            c.await().unwrap()
+                .await().unwrap()
+                .await().unwrap().complete("zomg");
+        });
 
         sleep(millis(50));
 
-        f.receive(move |:v: FutureResult<&'static str>| {
-            tx.send(v.unwrap())
-        });
-
+        f.ready(move |f| tx.send(f.unwrap()));
         assert_eq!(rx.recv(), "zomg");
     }
 
     #[test]
     pub fn test_producer_take_when_consumer_waiting() {
-        let (f, c) = future();
+        let (f, c) = Future::pair();
 
-        Thread::spawn(move || {
-            c.take().unwrap()
-                .take().unwrap()
-                .take().unwrap().complete("zomg");
-        }).detach();
+        spawn(move || {
+            c.await().unwrap()
+                .await().unwrap()
+                .await().unwrap().complete("zomg");
+        });
 
         sleep(millis(50));
-        assert_eq!(f.take().unwrap(), "zomg");
+        assert_eq!(f.unwrap(), "zomg");
     }
 
     #[test]
     pub fn test_canceling_future_before_producer_receive() {
-        let (f, c) = future();
+        let (f, c) = Future::<uint>::pair();
         let (tx, rx) = channel();
 
-        f.cancel();
+        drop(f);
 
-        c.receive(move |:s: FutureResult<Producer<&'static str>>| {
-            assert!(s.is_err());
+        c.ready(move |c| {
+            assert!(c.is_err());
             tx.send("done");
         });
 
@@ -954,103 +984,105 @@ mod test {
 
     #[test]
     pub fn test_canceling_future_before_producer_take() {
-        let (f, c) = future::<uint>();
+        let (f, c) = Future::<uint>::pair();
 
-        f.cancel();
+        drop(f);
 
-        assert!(c.take().is_err());
+        assert!(c.await().is_err());
     }
 
     #[test]
     pub fn test_canceling_future_after_producer_receive() {
-        let (f, c) = future();
+        let (f, c) = Future::<uint>::pair();
         let (tx, rx) = channel();
 
-        c.receive(move |:s: FutureResult<Producer<&'static str>>| {
-            assert!(s.is_err());
+        c.ready(move |c| {
+            assert!(c.is_err());
             tx.send("done");
         });
-
-        f.cancel();
-        assert_eq!(rx.recv(), "done");
-    }
-
-    #[test]
-    pub fn test_canceling_future_after_producer_take() {
-        let (f, c) = future::<uint>();
-        let (tx, rx) = channel();
-
-        Thread::spawn(move || {
-            assert!(c.take().is_err());
-            tx.send("done");
-        }).detach();
-
-        sleep(millis(50));
-        f.cancel();
-
-        assert_eq!(rx.recv(), "done");
-    }
-
-    #[test]
-    pub fn test_dropping_val_signals_cancelation() {
-        let (f, c) = future::<uint>();
-        let (tx, rx) = channel();
-
-        Thread::spawn(move || {
-            assert!(c.take().is_err());
-            tx.send("done");
-        }).detach();
 
         drop(f);
         assert_eq!(rx.recv(), "done");
     }
 
     #[test]
+    pub fn test_canceling_future_after_producer_take() {
+        let (f, c) = Future::<uint>::pair();
+        let (tx, rx) = channel();
+
+        spawn(move || {
+            assert!(c.await().is_err());
+            tx.send("done");
+        });
+
+        sleep(millis(50));
+        drop(f);
+
+        assert_eq!(rx.recv(), "done");
+    }
+
+    #[test]
+    pub fn test_canceling_producer_then_ready() {
+        let (f, c) = Future::<uint>::pair();
+        let (tx, rx) = channel();
+
+        drop(c);
+
+        f.ready(move |f| {
+            // TODO: More assertions
+            assert!(f.is_err());
+            tx.send("done");
+        });
+
+        assert_eq!(rx.recv(), "done");
+    }
+
+    #[test]
     pub fn test_producer_fail_before_consumer_take() {
-        let (f, c) = future::<uint>();
+        let (f, c) = Future::<uint>::pair();
 
         c.fail("nope");
 
-        let err = f.take().unwrap_err();
+        let err = f.await().unwrap_err();
         assert_eq!(err.desc, "nope");
         assert!(err.is_execution_error());
     }
 
     #[test]
     pub fn test_producer_fail_consumer_receive() {
-        let (f, c) = future::<uint>();
+        let (f, c) = Future::<uint>::pair();
 
-        Thread::spawn(move || {
+        spawn(move || {
             sleep(millis(50));
             c.fail("nope");
-        }).detach();
+        });
 
-        let err = f.take().unwrap_err();
+        let err = f.await().unwrap_err();
         assert_eq!(err.desc, "nope");
         assert!(err.is_execution_error());
     }
 
     #[test]
     pub fn test_producer_drops_before_consumer_take() {
-        let (f, c) = future::<uint>();
+        let (f, c) = Future::<uint>::pair();
 
         drop(c);
 
-        let err = f.take().unwrap_err();
+        let err = f.await().unwrap_err();
         assert_eq!(err.desc, "producer dropped out of scope without completing");
         assert!(err.is_execution_error());
     }
 
     #[test]
     pub fn test_producer_drops_after_consumer_take() {
-        let (f, c) = future::<uint>();
+        let (f, c) = Future::<uint>::pair();
 
-        Thread::spawn(move || {
+        spawn(move || {
             sleep(millis(50));
             drop(c);
-        }).detach();
+        });
 
-        let err = f.take().unwrap_err();
+        let err = f.await().unwrap_err();
         assert_eq!(err.desc, "producer dropped out of scope without completing");
         assert!(err.is_execution_error());
     }
@@ -1059,49 +1091,49 @@ mod test {
 
     #[test]
     pub fn test_cloning_clone_complete_take_both() {
-        let (f1, c) = future();
+        let (f1, c) = Future::pair();
         let f2 = f1.clone();
 
         c.complete("zomg");
 
-        assert_eq!(f1.take().unwrap(), "zomg");
-        assert_eq!(f2.take().unwrap(), "zomg");
+        assert_eq!(f1.unwrap(), "zomg");
+        assert_eq!(f2.unwrap(), "zomg");
     }
 
     #[test]
     pub fn test_cloning_clone_take_both_complete() {
-        let (f1, c) = future();
+        let (f1, c) = Future::pair();
         let f2 = f1.clone();
 
         let (tx, rx) = channel();
 
-        Thread::spawn(move || tx.send(f2.take().unwrap())).detach();
-        Thread::spawn(move || {
+        spawn(move || tx.send(f2.unwrap()));
+        spawn(move || {
             sleep(millis(50));
             c.complete("zomg");
-        }).detach();
+        });
 
-        assert_eq!(f1.take().unwrap(), "zomg");
+        assert_eq!(f1.unwrap(), "zomg");
         assert_eq!(rx.recv(), "zomg");
     }
 
     #[test]
     pub fn test_cloning_clone_take_complete_take() {
-        let (f1, c) = future();
+        let (f1, c) = Future::pair();
         let f2 = f1.clone();
 
-        Thread::spawn(move || {
+        spawn(move || {
             sleep(millis(50));
             c.complete("zomg");
-        }).detach();
+        });
 
-        assert_eq!(f1.take().unwrap(), "zomg");
-        assert_eq!(f2.take().unwrap(), "zomg");
+        assert_eq!(f1.unwrap(), "zomg");
+        assert_eq!(f2.unwrap(), "zomg");
     }
 
     #[test]
     pub fn test_cloning_clone_complete_receive_both() {
-        let (f1, c) = future();
+        let (f1, c) = Future::pair();
         let f2 = f1.clone();
 
         c.complete("zomg");
@@ -1109,8 +1141,8 @@ mod test {
         let (tx1, rx1) = channel();
         let (tx2, rx2) = channel();
 
-        f1.receive(move |:v: FutureResult<&'static str>| tx1.send(v.unwrap()));
-        f2.receive(move |:v: FutureResult<&'static str>| tx2.send(v.unwrap()));
+        f1.ready(move |f| tx1.send(f.unwrap()));
+        f2.ready(move |f| tx2.send(f.unwrap()));
 
         assert_eq!(rx1.recv(), "zomg");
         assert_eq!(rx2.recv(), "zomg");
@@ -1118,14 +1150,14 @@ mod test {
 
     #[test]
     pub fn test_cloning_receive_both_complete() {
-        let (f1, c) = future();
+        let (f1, c) = Future::pair();
         let f2 = f1.clone();
 
         let (tx1, rx1) = channel();
         let (tx2, rx2) = channel();
 
-        f1.receive(move |:v: FutureResult<&'static str>| tx1.send(v.unwrap()));
-        f2.receive(move |:v: FutureResult<&'static str>| tx2.send(v.unwrap()));
+        f1.ready(move |f| tx1.send(f.unwrap()));
+        f2.ready(move |f| tx2.send(f.unwrap()));
 
         c.complete("zomg");
 
@@ -1135,15 +1167,15 @@ mod test {
 
     #[test]
     pub fn test_cloning_receive_complete_receive() {
-        let (f1, c) = future();
+        let (f1, c) = Future::pair();
         let f2 = f1.clone();
 
         let (tx1, rx1) = channel();
         let (tx2, rx2) = channel();
 
-        f1.receive(move |:v: FutureResult<&'static str>| tx1.send(v.unwrap()));
+        f1.ready(move |f| tx1.send(f.unwrap()));
         c.complete("zomg");
-        f2.receive(move |:v: FutureResult<&'static str>| tx2.send(v.unwrap()));
+        f2.ready(move |f| tx2.send(f.unwrap()));
 
 
         assert_eq!(rx1.recv(), "zomg");
@@ -1151,6 +1183,10 @@ mod test {
     }
 
     // ======= Util fns =======
+
+    fn spawn<F: FnOnce() + Send>(f: F) {
+        Thread::spawn(f).detach();
+    }
 
     fn millis(ms: uint) -> Duration {
         Duration::milliseconds(ms as i64)
