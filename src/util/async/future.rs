@@ -68,6 +68,15 @@ impl<T: Send> Future<T> {
         self.await().unwrap()
     }
 
+    /// Registers a readiness callback but does not indicate interest to the
+    /// producer.
+    pub fn watch<F: FnOnce(Future<T>) + Send>(mut self, cb: F) -> Watch<T> {
+        let inner = self.inner.take().unwrap();
+        inner.watch(cb);
+
+        Watch { inner: inner }
+    }
+
     /*
      *
      * ===== Operations =====
@@ -83,11 +92,10 @@ impl<T: Send> Future<T> {
             self.ready(move |f| {
                 match f.await() {
                     Ok(v) => prod.complete(cb(v)),
-                    Err(_) => prod.fail("origin failed"), // TODO: better errors
+                    Err(_) => prod.fail("origin future failed"), // TODO: better errors
                 }
             });
         });
-
 
         ret
     }
@@ -142,7 +150,27 @@ pub struct Interest;
 
 impl Cancel for Interest {
     fn cancel(self) {
-        unimplemented!()
+        unimplemented!();
+    }
+}
+
+// TODO: Remove T generic
+pub struct Watch<T> {
+    inner: FutureInner<T>,
+}
+
+impl<T: Send> Watch<T> {
+    /// Indicate interest in the result of the future
+    pub fn interest(self) -> Interest {
+        let Watch { inner } = self;
+        inner.interest();
+        Interest
+    }
+}
+
+impl<T: Send> Cancel for Watch<T> {
+    fn cancel(self) {
+        unimplemented!();
     }
 }
 
@@ -338,7 +366,40 @@ impl<T: Send> FutureInner<T> {
         // callback and mark the consumer as waiting for the value. When
         // the value is available, the calback will be invoked with it.
         let i: Box<Invoke<(Future<T>,), ()> + Send> = box cb;
-        core.push_consumer_wait(Callback(i));
+        core.push_consumer_wait(Callback(i), true);
+    }
+
+    fn watch<F: FnOnce(Future<T>) + Send>(&self, cb: F) {
+        // Acquire the lock
+        let mut core = self.lock();
+
+        // If the future has already been realized, move the value out of the
+        // core so that it can be sent to the supplied callback.
+        if core.state.is_complete() {
+            // Drop the lock before invoking the callback (prevent deadlocks).
+            drop(core);
+            // TODO: Avoid the clone
+            cb(Future::new(self.clone()));
+            return;
+        }
+
+        // The future's value has not yet been realized. Save off the
+        // callback and mark the consumer as waiting for the value. When
+        // the value is available, the calback will be invoked with it.
+        let i: Box<Invoke<(Future<T>,), ()> + Send> = box cb;
+        core.push_consumer_wait(Callback(i), false);
+    }
+
+    fn interest(&self) {
+        let mut core = self.lock();
+
+        if core.state.is_pending() {
+            // The consumer is not indicating interest
+            core.state = ConsumerWait;
+        }
+
+        // Notify the producer of the interest
+        let _ = self.producer_notify(core, true);
     }
 
     fn await(&self) -> AsyncResult<T> {
@@ -355,7 +416,7 @@ impl<T: Send> FutureInner<T> {
         }
 
         // Before the thread blocks, track that the consumer is waiting
-        core.push_consumer_wait(Park(Thread::current()));
+        core.push_consumer_wait(Park(Thread::current()), true);
 
         // Checking the value and waiting happens in a loop to handle
         // cases where the condition variable unblocks early for an
@@ -396,7 +457,7 @@ impl<T: Send> FutureInner<T> {
 
         // Check if the consumer is waiting on the value, if so, it will
         // be notified that value is ready.
-        if let ConsumerWait(waiters) = core.take_consumer_wait() {
+        if let Some(waiters) = core.take_consumer_wait() {
             for waiter in waiters.into_iter() {
                 // Check the consumer wait strategy
                 match waiter {
@@ -554,6 +615,8 @@ struct Core<T> {
     val: Option<AsyncResult<T>>,
     // State of the future
     state: State<T>,
+    // Consumer callbacks
+    waits: Option<Vec<Option<WaitStrategy<Future<T>>>>>,
     // Number of clones
     clones: uint,
     // Clone function
@@ -568,10 +631,9 @@ impl<T: Send> Core<T> {
         Core {
             val: None,
             state: Pending,
-            // There always is one consumer at creation
-            clones: 1,
-            // Gets set when clone is invoked
-            cloner: None,
+            waits: Some(vec![]),
+            clones: 1, // THere always is one consumer at creation
+            cloner: None, // Gets set when clone is invoked
         }
     }
 
@@ -579,6 +641,7 @@ impl<T: Send> Core<T> {
         Core {
             val: Some(Ok(val)),
             state: Complete,
+            waits: Some(vec![]),
             clones: 1,
             cloner: None,
         }
@@ -615,22 +678,31 @@ impl<T: Send> Core<T> {
         }
     }
 
-    fn take_consumer_wait(&mut self) -> State<T> {
-        if self.state.is_consumer_wait() {
-            mem::replace(&mut self.state, Complete)
-        } else {
-            Complete
+    fn take_consumer_wait(&mut self) -> Option<Vec<Option<WaitStrategy<Future<T>>>>> {
+        // Take the waits now in order to free them even if the future has been
+        // canceled
+        let ret = self.waits.take();
+
+        if self.state.is_canceled() {
+            return None;
         }
+
+        mem::replace(&mut self.state, Complete);
+        ret
     }
 
-    fn push_consumer_wait(&mut self, strategy: WaitStrategy<Future<T>>) -> uint {
-        if let ConsumerWait(ref mut vec) = self.state {
-            let ret = vec.len();
-            vec.push(Some(strategy));
-            ret
-        } else {
-            self.state = ConsumerWait(vec![Some(strategy)]);
-            0
+    fn push_consumer_wait(&mut self, strategy: WaitStrategy<Future<T>>, interest: bool) -> uint {
+        if interest {
+            self.state = ConsumerWait;
+        }
+
+        match self.waits {
+            Some(ref mut waits) => {
+                let ret = waits.len();
+                waits.push(Some(strategy));
+                ret
+            }
+            None => panic!("wait list has already been consumed"),
         }
     }
 
@@ -649,10 +721,13 @@ impl<T: Send> Core<T> {
     }
 }
 
+// Both ConsumerReady and ConsumerWait are needed in order to handle the case
+// of a producer registering interest in a ready callback (which is a strange
+// case, but it should probably be handled).
 enum State<T> {
     Pending,
-    ConsumerReady, // Consumer has signaled interest but hasn't blocked
-    ConsumerWait(Vec<Option<WaitStrategy<Future<T>>>>),
+    ConsumerReady, // Consumer has signaled interest but hasn't started waiting
+    ConsumerWait, // The consumer is waiting on the result
     ProducerWait(WaitStrategy<Producer<T>>),
     Complete,
     Canceled,
@@ -1133,6 +1208,66 @@ mod test {
         assert!(err.is_execution_error());
     }
 
+    // ======= Future::watch() =======
+
+    #[test]
+    pub fn test_watch_future_before_ready_success() {
+        let (f, c) = Future::pair();
+        let (tx, rx) = channel();
+
+        f.watch(move |f| tx.send(f.unwrap()));
+
+        assert!(!c.is_ready());
+        c.complete("zomg");
+
+        assert_eq!("zomg", rx.recv());
+    }
+
+    #[test]
+    pub fn test_watch_future_before_ready_error() {
+        let (f, c) = Future::<uint>::pair();
+        let (tx, rx) = channel();
+
+        f.watch(move |f| tx.send(f.await()));
+
+        c.fail("nope");
+
+        let res = rx.recv();
+        assert!(res.is_err());
+    }
+
+    #[test]
+    pub fn test_watch_future_after_ready_success() {
+        let (f, c) = Future::pair();
+        let (tx, rx) = channel();
+
+        c.complete("zomg");
+
+        f.watch(move |f| tx.send(f.unwrap()));
+        assert_eq!("zomg", rx.recv());
+    }
+
+    #[test]
+    #[ignore]
+    pub fn test_watch_future_after_ready_error() {
+    }
+
+    #[test]
+    pub fn test_watch_future_upgrade_interest() {
+        let (f, c) = Future::pair();
+        let (tx, rx) = channel();
+
+        let w = f.watch(move |f| tx.send(f.unwrap()));
+        c.ready(move |c| c.complete("zomg"));
+
+        assert!(rx.try_recv().is_err());
+
+        // Indicate interest
+        w.interest();
+
+        assert_eq!("zomg", rx.recv());
+    }
+
     // ======= Cloning futures =======
 
     #[test]
@@ -1273,14 +1408,12 @@ mod test {
     }
 
     #[test]
-    #[ignore] // TODO: Currently broken
     pub fn test_future_map_then_ready() {
         let (f, p) = Future::<uint>::pair();
 
         let f = f.map(move |v| v+v);
         p.complete(1u);
 
-        assert!(f.is_ready());
         assert_eq!(2u, f.unwrap());
     }
 

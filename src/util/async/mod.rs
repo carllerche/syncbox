@@ -1,4 +1,4 @@
-pub use self::future::{Future, Producer};
+pub use self::future::{Future, Producer, Watch};
 
 mod future;
 mod stream;
