@@ -9,8 +9,6 @@
 // TODO:
 // - Interest::cancel()
 // - Deref
-// - clone & producer take / receive
-// - Future cancelation -> producer error
 
 use super::{
     Cancel,
@@ -40,6 +38,10 @@ impl<T: Send> Future<T> {
         (f, c)
     }
 
+    pub fn of(val: T) -> Future<T> {
+        Future::new(FutureInner::of(val))
+    }
+
     /// Creates a new Future with the given core
     #[inline]
     fn new(inner: FutureInner<T>) -> Future<T> {
@@ -64,6 +66,30 @@ impl<T: Send> Future<T> {
     #[inline]
     pub fn unwrap(self) -> T {
         self.await().unwrap()
+    }
+
+    /*
+     *
+     * ===== Operations =====
+     *
+     */
+
+    /// Maps a `Future<T>` to `Future<U>` by applying a function to a realized
+    /// value, leaving error values untouched.
+    pub fn map<U: Send, F: FnOnce(T) -> U + Send>(self, cb: F) -> Future<U> {
+        let (ret, prod) = Future::pair();
+
+        prod.ready(move |prod| {
+            self.ready(move |f| {
+                match f.await() {
+                    Ok(v) => prod.complete(cb(v)),
+                    Err(_) => prod.fail("origin failed"), // TODO: better errors
+                }
+            });
+        });
+
+
+        ret
     }
 }
 
@@ -267,6 +293,12 @@ impl<T: Send> FutureInner<T> {
     fn new() -> FutureInner<T> {
         FutureInner {
             core: Arc::new(Mutex::new(Core::new()))
+        }
+    }
+
+    fn of(val: T) -> FutureInner<T> {
+        FutureInner {
+            core: Arc::new(Mutex::new(Core::completed(val))),
         }
     }
 
@@ -543,6 +575,15 @@ impl<T: Send> Core<T> {
         }
     }
 
+    fn completed(val: T) -> Core<T> {
+        Core {
+            val: Some(Ok(val)),
+            state: Complete,
+            clones: 1,
+            cloner: None,
+        }
+    }
+
     fn is_err(&self) -> bool {
         self.val.as_ref()
             .map(|v| v.is_err())
@@ -655,8 +696,7 @@ impl<T: Send> State<T> {
 
     fn is_complete(&self) -> bool {
         match *self {
-            // TODO: Is canceled needed?
-            Complete /* | Canceled */ => true,
+            Complete => true,
             _ => false,
         }
     }
@@ -712,6 +752,12 @@ mod test {
     use std::sync::Arc;
     use std::sync::atomic::{AtomicBool, AtomicUint, Relaxed};
     use std::thread::Thread;
+
+    /*
+     *
+     * ===== Core functionality tests =====
+     *
+     */
 
     #[test]
     pub fn test_complete_before_await() {
@@ -1182,7 +1228,82 @@ mod test {
         assert_eq!(rx2.recv(), "zomg");
     }
 
-    // ======= Util fns =======
+    /*
+     *
+     * ===== Future::of() =====
+     *
+     */
+
+    #[test]
+    pub fn test_future_of_is_ready() {
+        let f = Future::of("hello");
+
+        assert!(f.is_ready());
+        assert!(!f.is_err());
+
+        let (tx, rx) = channel();
+
+        f.ready(move |f| {
+            assert!(f.is_ready());
+            assert!(!f.is_err());
+            tx.send("done")
+        });
+
+        assert_eq!("done", rx.recv());
+    }
+
+    #[test]
+    pub fn test_future_of_await() {
+        let f = Future::of("hello");
+        assert_eq!("hello", f.unwrap());
+    }
+
+    /*
+     *
+     * ===== Future::map() =====
+     *
+     */
+
+    #[test]
+    pub fn test_ready_future_map() {
+        let f = Future::of(1u)
+            .map(move |v| v+v);
+
+        assert_eq!(2u, f.unwrap());
+    }
+
+    #[test]
+    #[ignore] // TODO: Currently broken
+    pub fn test_future_map_then_ready() {
+        let (f, p) = Future::<uint>::pair();
+
+        let f = f.map(move |v| v+v);
+        p.complete(1u);
+
+        assert!(f.is_ready());
+        assert_eq!(2u, f.unwrap());
+    }
+
+    #[test]
+    pub fn test_future_interest_registered_on_map() {
+        let (f, p) = Future::<uint>::pair();
+        let (tx, rx) = channel();
+
+        let f = f.map(move |v| v+v);
+
+        assert!(!p.is_ready());
+
+        f.ready(move |f| tx.send(f.unwrap()));
+        p.ready(move |p| p.complete(1u));
+
+        assert_eq!(2u, rx.recv());
+    }
+
+    /*
+     *
+     * ===== Helper functions =====
+     *
+     */
 
     fn spawn<F: FnOnce() + Send>(f: F) {
         Thread::spawn(f).detach();
