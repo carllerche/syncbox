@@ -20,23 +20,61 @@ impl<T: Send, E: Send> Future<T, E> {
         (future, Complete { core: OptionCore::new(core) })
     }
 
-    /// Returns an immediately ready future containing the supplied value.
+    /// Returns a future that will immediately succeed with the supplied value.
+    ///
+    /// ```
+    /// Future::of(1).and_then(|val| assert!(result == 1))
+    /// ```
     pub fn of(val: T) -> Future<T, E> {
         Future { core: OptionCore::new(Core::with_value(Ok(val))) }
     }
 
     /// Returns a future that will immediately fail with the supplied error.
+    ///
+    /// ```
+    /// Future::error("hi").catch(|err| {
+    ///     match err {
+    ///         ExecutionError(e) => assert!(e == "hi"),
+    ///         CancellationError => unreachable!()
+    ///     }
+    /// });
+    /// ```
     pub fn error(err: E) -> Future<T, E> {
         let core = Core::with_value(Err(AsyncError::wrap(err)));
         Future { core: OptionCore::new(core) }
     }
 
+    /// Returns a future that will immediately be cancelled
+    ///
+    /// ```
+    /// Future::cancelled().catch(|err| {
+    ///     match err {
+    ///         ExecutionError(e) => unreachable!(),
+    ///         CancellationError => assert!(true)
+    ///     }
+    /// });
+    /// ```
     pub fn canceled() -> Future<T, E> {
         let core = Core::with_value(Err(AsyncError::canceled()));
         Future { core: OptionCore::new(core) }
     }
 
-    pub fn lazy<F: FnOnce() -> R + Send, R: Async<T, E>>(f: F) -> Future<T, E> {
+    /// Returns a future that won't kick off its async action until
+    /// a consumer registers interest.
+    ///
+    /// ```
+    /// let post = Future::lazy(|| http.get("/posts/1"))
+    /// // the HTTP request has not happened yet
+    ///
+    /// // later...
+    ///
+    /// post.and_then(|p| println!("{:?}", p))
+    /// // the HTTP request has now happened
+    /// ```
+    pub fn lazy<F, R>(f: F) -> Future<T, E>
+        where F: FnOnce() -> R + Send,
+              R: Async<T, E> {
+
         let (future, complete) = Future::pair();
 
         // Complete the future with the provided function once consumer
@@ -75,6 +113,7 @@ impl<T: Send, E: Send> Future<T, E> {
 }
 
 impl<T: Send, E: Send> Future<Option<(T, Stream<T, E>)>, E> {
+    /// An adapter that converts any future into a one-value stream
     pub fn as_stream(mut self) -> Stream<T, E> {
         stream::from_core(self.core.take())
     }
@@ -95,16 +134,35 @@ impl<T: Send, E: Send> Drop for Future<T, E> {
     }
 }
 
+/// An object that is used to fulfill or reject an associated Future.
+///
+/// ```
+/// let (future, completer) = Future::pair();
+/// future.and_then(|v| assert!(v == 1));
+/// completer.complete(1);
+///
+/// let (future, completer) = Future::pair();
+/// future.fail("failed");
+/// future.or_else(|err| {
+///     match err {
+///         CancellationError => unreachable!()
+///         ExecutionError(err) => assert!(err == "failed")
+///     }
+/// });
+/// ```
 #[unsafe_no_drop_flag]
 pub struct Complete<T: Send, E: Send> {
     core: OptionCore<T, E, Complete<T, E>>,
 }
 
 impl<T: Send, E: Send> Complete<T, E> {
+    /// Fulfill the associated promise with a value
     pub fn complete(mut self, val: T) {
         self.core.take().complete(Ok(val), true);
     }
 
+    /// Reject the associated promise with an error. The error
+    /// will be wrapped in an `ExecutionError`.
     pub fn fail(mut self, err: E) {
         self.core.take().complete(Err(AsyncError::wrap(err)), true);
     }
