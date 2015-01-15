@@ -1,6 +1,8 @@
 use std::{mem, ptr, uint};
 use std::sync::{Arc, Mutex, Condvar};
 
+// == WARNING: CURRENTLY BUGGY ==
+
 /// A queue in which values are contained by a linked list.
 ///
 /// The current implementation is based on a mutex and two condition variables.
@@ -343,7 +345,7 @@ mod test {
             Thread::spawn(move || {
                 sleep(Duration::milliseconds(10));
 
-                for i in range(1, 10_000u) {
+                for i in range(1, 1_000u) {
                     producer.put((t, i));
                 }
 
@@ -364,7 +366,7 @@ mod test {
                 loop {
                     let (t, v) = consumer.take();
 
-                    if v > 10_000u {
+                    if v > 1_000u {
                         break;
                     }
 
@@ -384,7 +386,7 @@ mod test {
             let vals = results.take();
 
             // Probably too strict
-            assert!(vals.len() >= 9_000 && vals.len() <= 11_000, "uneven batch size {}", vals.len());
+            assert!(vals.len() >= 900 && vals.len() <= 1_100, "uneven batch size {}", vals.len());
             for &v in vals.iter() {
                 all_vals.push(v);
             }
@@ -400,7 +402,7 @@ mod test {
         }
 
         for &v in per_producer.iter() {
-            assert_eq!(10_000, v);
+            assert_eq!(1_000, v);
         }
     }
 
@@ -430,13 +432,13 @@ mod test {
             let queue = queue.clone();
 
             Thread::spawn(move || {
-                for i in range(0, 30_000u) {
+                for i in range(0, 1_000u) {
                     queue.put(i);
                 }
             });
         }
 
-        for _ in range(0, 8 * 30_000u) {
+        for _ in range(0, 8 * 1_000u) {
             queue.take();
         }
     }
