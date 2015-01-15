@@ -1,7 +1,8 @@
-use std::{mem, ptr, uint};
-use std::sync::{Arc, Mutex, Condvar};
-
-// == WARNING: CURRENTLY BUGGY ==
+use super::Consume;
+use std::{mem, ptr, ops, usize};
+use std::sync::{Arc, Mutex, MutexGuard, Condvar};
+use std::sync::atomic::{self, AtomicUsize, Ordering};
+use std::time::Duration;
 
 /// A queue in which values are contained by a linked list.
 ///
@@ -14,35 +15,44 @@ pub struct LinkedQueue<T> {
 
 impl<T: Send> LinkedQueue<T> {
     pub fn new() -> LinkedQueue<T> {
-        LinkedQueue::with_capacity(uint::MAX)
+        LinkedQueue::with_capacity(usize::MAX)
     }
 
-    pub fn with_capacity(capacity: uint) -> LinkedQueue<T> {
+    pub fn with_capacity(capacity: usize) -> LinkedQueue<T> {
         LinkedQueue {
             inner: Arc::new(QueueInner::new(capacity))
         }
     }
 
-    pub fn len(&self) -> uint {
-        self.inner.size()
+    pub fn len(&self) -> usize {
+        self.inner.len()
+    }
+
+    pub fn offer(&self, e: T) -> Result<(), T> {
+        self.inner.offer(e)
+    }
+
+    pub fn put(&self, e: T) {
+        self.inner.put(e);
+    }
+
+    pub fn poll(&self) -> Option<T> {
+        self.inner.poll()
     }
 
     /// Takes from the queue, blocking until there is an element available.
     pub fn take(&self) -> T {
-        self.inner.take(true).unwrap()
+        self.inner.take()
+    }
+}
+
+impl<T: Send> Consume<T> for LinkedQueue<T> {
+    fn poll(&self) -> Option<T> {
+        LinkedQueue::poll(self)
     }
 
-    pub fn take_opt(&self) -> Option<T> {
-        self.inner.take(false)
-    }
-
-    /// Put an element into the queue, blocking until there is capacity.
-    pub fn put(&self, val: T) {
-        let _ = self.inner.put(val, true);
-    }
-
-    pub fn put_opt(&self, val: T) -> Result<(), T> {
-        self.inner.put(val, false)
+    fn take(&self) -> T {
+        LinkedQueue::take(self)
     }
 }
 
@@ -85,178 +95,233 @@ impl<T: Send> Clone for LinkedQueue<T> {
 //  linking a Node that has just been dequeued to itself.  Such a
 //  self-link implicitly means to advance to head.next.
 struct QueueInner<T> {
-    core: Mutex<Core<T>>,
-    consumer_condvar: Condvar,
-    producer_condvar: Condvar,
-    capacity: uint,
+
+    // Maximum number of elements the queue can contain at one time
+    capacity: usize,
+
+    // Current number of elements
+    count: AtomicUsize,
+
+    // Lock held by take, poll, etc
+    head: Mutex<NodePtr<T>>,
+
+    // Lock held by put, offer, etc
+    last: Mutex<NodePtr<T>>,
+
+    // Wait queue for waiting takes
+    not_empty: Condvar,
+
+    // Wait queue for waiting puts
+    not_full: Condvar,
 }
 
 impl<T: Send> QueueInner<T> {
-    fn new(capacity: uint) -> QueueInner<T> {
+    fn new(capacity: usize) -> QueueInner<T> {
+        let head = NodePtr::new(Node::empty());
+
         QueueInner {
-            core: Mutex::new(Core::new()),
-            consumer_condvar: Condvar::new(),
-            producer_condvar: Condvar::new(),
             capacity: capacity,
+            count: AtomicUsize::new(0),
+            head: Mutex::new(head),
+            last: Mutex::new(head),
+            not_empty: Condvar::new(),
+            not_full: Condvar::new(),
         }
     }
 
-    fn take(&self, block: bool) -> Option<T> {
-        let mut core = self.core.lock().unwrap();
-
-        loop {
-            match core.pop_head() {
-                Some(link) => {
-                    // Notify any waiting producers
-                    self.producer_notify(&*core);
-
-                    // Return the value
-                    return Some(link.val)
-                }
-                None => {
-                    if !block { return None; }
-
-                    // Wait for data
-                    core.consumer_waiting += 1;
-                    // TODO: Respect timeout once Rust exposes timeouts
-                    core = self.consumer_condvar.wait(core).unwrap();
-                    core.consumer_waiting -= 1;
-                }
-            }
-        }
+    fn len(&self) -> usize {
+        self.count.load(Ordering::Relaxed)
     }
 
-    fn put(&self, mut val: T, block: bool) -> Result<(), T> {
-        let mut core = self.core.lock().unwrap();
-
-        loop {
-            match core.push_tail(val, self.capacity) {
-                Ok(_) => {
-                    self.consumer_notify(&*core);
-                    return Ok(());
-                }
-                Err(v) => {
-                    if !block { return Err(v) };
-
-                    val = v;
-
-                    // Wait for availability
-                    core.producer_waiting += 1;
-                    // TODO: Respect timeout once Rust exposes timeouts
-                    core = self.producer_condvar.wait(core).unwrap();
-                    core.consumer_waiting -= 1;
-                }
-            }
-        }
+    fn put(&self, e: T) {
+        self.offer_for(e, Duration::max_value())
+            .ok().expect("something went wrong");
     }
 
-    fn producer_notify(&self, core: &Core<T>) {
-        if core.producer_waiting > 0 {
-            self.producer_condvar.notify_one();
-        }
-    }
-
-    fn consumer_notify(&self, core: &Core<T>) {
-        if core.consumer_waiting > 0 {
-            self.consumer_condvar.notify_one();
-        }
-    }
-
-    fn size(&self) -> uint {
-        let core = self.core.lock().unwrap();
-        core.size
-    }
-}
-
-struct Core<T> {
-    size: uint,
-    head: *mut Link<T>,
-    tail: *mut Link<T>,
-    // Synchronization
-    consumer_waiting: uint,
-    producer_waiting: uint,
-}
-
-impl<T: Send> Core<T> {
-    fn new() -> Core<T> {
-        Core {
-            size: 0,
-            head: ptr::null_mut(),
-            tail: ptr::null_mut(),
-            // Synchronization
-            consumer_waiting: 0,
-            producer_waiting: 0,
-        }
-    }
-
-    fn pop_head(&mut self) -> Option<Box<Link<T>>> {
-        if self.size == 0 {
-            return None;
+    fn offer(&self, e: T) -> Result<(), T> {
+        if self.len() == self.capacity {
+            return Err(e);
         }
 
-        self.size -= 1;
+        self.offer_for(e, Duration::milliseconds(0))
+    }
 
-        unsafe {
-            let head: Box<Link<T>> = mem::transmute(self.head);
+    fn offer_for(&self, e: T, dur: Duration) -> Result<(), T> {
+        // Acquire the write lock
+        let mut last = self.last.lock()
+            .ok().expect("something went wrong");
 
-            // Update the head pointer
-            self.head = head.next;
-
-            if self.size == 0 {
-                self.tail = ptr::null_mut();
+        while self.len() == self.capacity {
+            if dur.num_milliseconds() <= 0 {
+                return Err(e);
             }
 
-            if !self.head.is_null() {
-                (*self.head).prev = ptr::null_mut();
-            }
-
-            Some(head)
-        }
-    }
-
-    fn push_tail(&mut self, val: T, capacity: uint) -> Result<(), T> {
-        if self.size >= capacity {
-            return Err(val);
+            last = self.not_full.wait(last)
+                .ok().expect("something went wrong");
         }
 
-        self.size += 1;
+        // Enqueue the node
+        enqueue(Node::new(e), &mut last);
 
-        unsafe {
-            let tail: *mut Link<T> = mem::transmute(Box::new(Link::new(val, self.tail)));
+        // Increment the count
+        let cnt = self.count.fetch_add(1, Ordering::Release);
 
-            if !self.tail.is_null() {
-                (*self.tail).next = tail;
-            }
-
-            self.tail = tail;
-
-            if self.size == 1 {
-                self.head = tail;
-            }
+        if cnt + 1 < self.capacity {
+            self.not_full.notify_one();
         }
+
+        drop(last);
+
+        self.notify_not_empty();
 
         Ok(())
     }
+
+    fn take(&self) -> T {
+        self.poll_for(Duration::max_value())
+            .expect("something went wrong")
+    }
+
+    fn poll(&self) -> Option<T> {
+        if self.len() == 0 {
+            // Fast path check
+            return None;
+        }
+
+        self.poll_for(Duration::milliseconds(0))
+    }
+
+    fn poll_for(&self, dur: Duration) -> Option<T> {
+        // Acquire the read lock
+        let mut head = self.head.lock()
+            .ok().expect("something went wrong");
+
+        while self.len() == 0 {
+            if dur.num_milliseconds() <= 0 {
+                return None;
+            }
+
+            head = self.not_empty.wait(head)
+                .ok().expect("something went wrong");
+        }
+
+        // Acquire memory from write side
+        atomic::fence(Ordering::Acquire);
+
+        // At this point, we are guaranteed to be able to dequeue a value
+        let val = dequeue(&mut head);
+        let cnt = self.count.fetch_sub(1, Ordering::Relaxed);
+
+        if cnt > 1 {
+            self.not_empty.notify_one();
+        }
+
+        // Release the lock here so that acquire the write lock does not result
+        // in a deadlock
+        drop(head);
+
+        if cnt == self.capacity {
+            self.notify_not_full();
+        }
+
+        Some(val)
+    }
+
+    // Signals a waiting put. Called only from take / poll
+    fn notify_not_full(&self) {
+        let _l = self.last.lock()
+            .ok().expect("something went wrong");
+
+        self.not_full.notify_one();
+    }
+
+    fn notify_not_empty(&self) {
+        let _l = self.head.lock()
+            .ok().expect("something went wrong");
+
+        self.not_empty.notify_one();
+    }
 }
 
-struct Link<T> {
-    next: *mut Link<T>,
-    prev: *mut Link<T>,
-    val: T,
-}
-
-impl<T: Send> Link<T> {
-    fn new(val: T, prev: *mut Link<T>) -> Link<T> {
-        Link {
-            next: ptr::null_mut(),
-            prev: prev,
-            val: val,
+#[unsafe_destructor]
+impl<T: Send> Drop for QueueInner<T> {
+    fn drop(&mut self) {
+        while let Some(_) = self.poll() {
         }
     }
 }
 
-unsafe impl<T: Send> Send for Core<T> {
+fn dequeue<T: Send>(mut head: &mut MutexGuard<NodePtr<T>>) -> T {
+    let h = **head;
+    let mut first = h.next;
+    **head = first;
+    h.free();
+    first.item.take().expect("item already consumed")
 }
+
+fn enqueue<T: Send>(node: Node<T>, mut last: &mut MutexGuard<NodePtr<T>>) {
+    let ptr = NodePtr::new(node);
+
+    last.next = ptr;
+    **last = ptr;
+}
+
+struct Node<T: Send> {
+    next: NodePtr<T>,
+    item: Option<T>,
+}
+
+impl<T: Send> Node<T> {
+    fn new(val: T) -> Node<T> {
+        Node {
+            next: NodePtr::null(),
+            item: Some(val),
+        }
+    }
+
+    fn empty() -> Node<T> {
+        Node {
+            next: NodePtr::null(),
+            item: None,
+        }
+    }
+}
+
+struct NodePtr<T> {
+    ptr: *mut Node<T>,
+}
+
+impl<T: Send> NodePtr<T> {
+    fn new(node: Node<T>) -> NodePtr<T> {
+        NodePtr { ptr: unsafe { mem::transmute(Box::new(node)) }}
+    }
+
+    fn null() -> NodePtr<T> {
+        NodePtr { ptr: ptr::null_mut() }
+    }
+
+    fn free(self) {
+        let NodePtr { ptr } = self;
+        let _: Box<Node<T>> = unsafe { mem::transmute(ptr) };
+    }
+}
+
+impl<T: Send> ops::Deref for NodePtr<T> {
+    type Target = Node<T>;
+
+    fn deref(&self) -> &Node<T> {
+        unsafe { mem::transmute(self.ptr) }
+    }
+}
+
+impl<T: Send> ops::DerefMut for NodePtr<T> {
+    fn deref_mut(&mut self) -> &mut Node<T> {
+        unsafe { mem::transmute(self.ptr) }
+    }
+}
+
+impl<T: Send> Copy for NodePtr<T> {}
+unsafe impl<T: Send> Send for NodePtr<T> {}
 
 #[cfg(test)]
 mod test {
@@ -285,7 +350,7 @@ mod test {
         assert_eq!(0, q.len());
 
         // Try taking on an empty queue
-        assert!(q.take_opt().is_none());
+        assert!(q.poll().is_none());
     }
 
     #[test]
@@ -305,7 +370,7 @@ mod test {
             assert_eq!(i, c.take());
         }
 
-        assert!(c.take_opt().is_none());
+        assert!(c.poll().is_none());
     }
 
     #[test]
@@ -339,7 +404,7 @@ mod test {
         let results = LinkedQueue::new();
 
         // Producers
-        for t in range(0, 10u) {
+        for t in range(0, 5u) {
             let producer = queue.clone();
 
             Thread::spawn(move || {
@@ -347,6 +412,7 @@ mod test {
 
                 for i in range(1, 1_000u) {
                     producer.put((t, i));
+                    Thread::yield_now();
                 }
 
                 // Put an extra val to signal consumers to exit
@@ -355,13 +421,13 @@ mod test {
         }
 
         // Consumers
-        for _ in range(0, 10u) {
+        for _ in range(0, 5u) {
             let consumer = queue.clone();
             let results = results.clone();
 
             Thread::spawn(move || {
                 let mut vals = vec![];
-                let mut per_producer = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+                let mut per_producer = [0, 0, 0, 0, 0];
 
                 loop {
                     let (t, v) = consumer.take();
@@ -374,6 +440,7 @@ mod test {
                     per_producer[t] = v;
 
                     vals.push((t, v));
+                    Thread::yield_now();
                 }
 
                 results.put(vals);
@@ -382,11 +449,10 @@ mod test {
 
         let mut all_vals = vec![];
 
-        for _ in range(0, 10u) {
+        for _ in range(0, 5u) {
             let vals = results.take();
 
-            // Probably too strict
-            assert!(vals.len() >= 900 && vals.len() <= 1_100, "uneven batch size {}", vals.len());
+            assert!(vals.len() >= 50 && vals.len() <= 3_000, "uneven batch size {}", vals.len());
             for &v in vals.iter() {
                 all_vals.push(v);
             }
@@ -394,7 +460,7 @@ mod test {
 
         all_vals.sort();
 
-        let mut per_producer = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
+        let mut per_producer = [1, 1, 1, 1, 1];
 
         for &(t, v) in all_vals.iter() {
             assert_eq!(per_producer[t], v);
@@ -411,16 +477,16 @@ mod test {
         let queue = LinkedQueue::with_capacity(8);
 
         for i in range(0, 8u) {
-            assert!(queue.put_opt(i).is_ok());
+            assert!(queue.offer(i).is_ok());
         }
 
-        assert_eq!(Err(8), queue.put_opt(8));
-        assert_eq!(Some(0), queue.take_opt());
+        assert_eq!(Err(8), queue.offer(8));
+        assert_eq!(Some(0), queue.poll());
 
-        assert!(queue.put_opt(8).is_ok());
+        assert!(queue.offer(8).is_ok());
 
         for i in range(1, 9u) {
-            assert_eq!(Some(i), queue.take_opt());
+            assert_eq!(Some(i), queue.poll());
         }
     }
 
