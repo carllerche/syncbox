@@ -84,6 +84,8 @@ impl<T: Send> Clone for LinkedQueue<T> {
 //  self-link implicitly means to advance to head.next.
 struct QueueInner<T> {
     core: Mutex<Core<T>>,
+    consumer_condvar: Condvar,
+    producer_condvar: Condvar,
     capacity: uint,
 }
 
@@ -91,18 +93,20 @@ impl<T: Send> QueueInner<T> {
     fn new(capacity: uint) -> QueueInner<T> {
         QueueInner {
             core: Mutex::new(Core::new()),
+            consumer_condvar: Condvar::new(),
+            producer_condvar: Condvar::new(),
             capacity: capacity,
         }
     }
 
     fn take(&self, block: bool) -> Option<T> {
-        let mut core = self.core.lock();
+        let mut core = self.core.lock().unwrap();
 
         loop {
             match core.pop_head() {
                 Some(link) => {
                     // Notify any waiting producers
-                    core.producer_notify();
+                    self.producer_notify(&*core);
 
                     // Return the value
                     return Some(link.val)
@@ -113,7 +117,7 @@ impl<T: Send> QueueInner<T> {
                     // Wait for data
                     core.consumer_waiting += 1;
                     // TODO: Respect timeout once Rust exposes timeouts
-                    core.consumer_condvar.wait(&core);
+                    core = self.consumer_condvar.wait(core).unwrap();
                     core.consumer_waiting -= 1;
                 }
             }
@@ -121,12 +125,12 @@ impl<T: Send> QueueInner<T> {
     }
 
     fn put(&self, mut val: T, block: bool) -> Result<(), T> {
-        let mut core = self.core.lock();
+        let mut core = self.core.lock().unwrap();
 
         loop {
             match core.push_tail(val, self.capacity) {
                 Ok(_) => {
-                    core.consumer_notify();
+                    self.consumer_notify(&*core);
                     return Ok(());
                 }
                 Err(v) => {
@@ -137,15 +141,27 @@ impl<T: Send> QueueInner<T> {
                     // Wait for availability
                     core.producer_waiting += 1;
                     // TODO: Respect timeout once Rust exposes timeouts
-                    core.producer_condvar.wait(&core);
+                    core = self.producer_condvar.wait(core).unwrap();
                     core.consumer_waiting -= 1;
                 }
             }
         }
     }
 
+    fn producer_notify(&self, core: &Core<T>) {
+        if core.producer_waiting > 0 {
+            self.producer_condvar.notify_one();
+        }
+    }
+
+    fn consumer_notify(&self, core: &Core<T>) {
+        if core.consumer_waiting > 0 {
+            self.consumer_condvar.notify_one();
+        }
+    }
+
     fn size(&self) -> uint {
-        let core = self.core.lock();
+        let core = self.core.lock().unwrap();
         core.size
     }
 }
@@ -156,9 +172,7 @@ struct Core<T> {
     tail: *mut Link<T>,
     // Synchronization
     consumer_waiting: uint,
-    consumer_condvar: Condvar,
     producer_waiting: uint,
-    producer_condvar: Condvar,
 }
 
 impl<T: Send> Core<T> {
@@ -169,9 +183,7 @@ impl<T: Send> Core<T> {
             tail: ptr::null_mut(),
             // Synchronization
             consumer_waiting: 0,
-            consumer_condvar: Condvar::new(),
             producer_waiting: 0,
-            producer_condvar: Condvar::new(),
         }
     }
 
@@ -208,7 +220,7 @@ impl<T: Send> Core<T> {
         self.size += 1;
 
         unsafe {
-            let tail: *mut Link<T> = mem::transmute(box Link::new(val, self.tail));
+            let tail: *mut Link<T> = mem::transmute(Box::new(Link::new(val, self.tail)));
 
             if !self.tail.is_null() {
                 (*self.tail).next = tail;
@@ -222,18 +234,6 @@ impl<T: Send> Core<T> {
         }
 
         Ok(())
-    }
-
-    fn producer_notify(&self) {
-        if self.producer_waiting > 0 {
-            self.producer_condvar.notify_one();
-        }
-    }
-
-    fn consumer_notify(&self) {
-        if self.consumer_waiting > 0 {
-            self.consumer_condvar.notify_one();
-        }
     }
 }
 
@@ -251,6 +251,9 @@ impl<T: Send> Link<T> {
             val: val,
         }
     }
+}
+
+unsafe impl<T: Send> Send for Core<T> {
 }
 
 #[cfg(test)]
@@ -294,7 +297,7 @@ mod test {
             for i in range(0, 10_000u) {
                 p.put(i);
             }
-        }).detach();
+        });
 
         for i in range(0, 10_000) {
             assert_eq!(i, c.take());
@@ -316,7 +319,7 @@ mod test {
                 for i in range(0, 10_000u) {
                     p.put((t, i));
                 }
-            }).detach();
+            });
         }
 
         let mut vals = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
@@ -346,7 +349,7 @@ mod test {
 
                 // Put an extra val to signal consumers to exit
                 producer.put((t, 1_000_000));
-            }).detach();
+            });
         }
 
         // Consumers
@@ -372,7 +375,7 @@ mod test {
                 }
 
                 results.put(vals);
-            }).detach();
+            });
         }
 
         let mut all_vals = vec![];
@@ -430,7 +433,7 @@ mod test {
                 for i in range(0, 30_000u) {
                     queue.put(i);
                 }
-            }).detach();
+            });
         }
 
         for _ in range(0, 8 * 30_000u) {
