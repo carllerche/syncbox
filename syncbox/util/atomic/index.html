@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="rustdoc">
+    <meta name="description" content="API documentation for the Rust `atomic` mod in crate `syncbox`.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, atomic">
+
+    <title>syncbox::util::atomic - Rust</title>
+
+    <link rel="stylesheet" type="text/css" href="../../../main.css">
+
+    
+    
+</head>
+<body class="rustdoc">
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    
+
+    <section class="sidebar">
+        
+        <p class='location'><a href='../../index.html'>syncbox</a>::<wbr><a href='../index.html'>util</a></p><div class='block mod'><h2>Modules</h2><a class='mod ' href='../async/index.html'>async</a><a class='mod current' href='../atomic/index.html'>atomic</a></div><div class='block struct'><h2>Structs</h2><a class='struct ' href='../struct.LinkedQueue.html'>LinkedQueue</a></div><div class='block trait'><h2>Traits</h2><a class='trait ' href='../trait.Consume.html'>Consume</a></div>
+    </section>
+
+    <nav class="sub">
+        <form class="search-form js-only">
+            <div class="search-container">
+                <input class="search-input" name="search"
+                       autocomplete="off"
+                       placeholder="Click or press 'S' to search, '?' for more options..."
+                       type="search">
+            </div>
+        </form>
+    </nav>
+
+    <section id='main' class="content mod">
+<h1 class='fqn'><span class='in-band'>Module <a href='../../index.html'>syncbox</a>::<wbr><a href='../index.html'>util</a>::<wbr><a class='mod' href=''>atomic</a><wbr><a class='stability Stable' title=''>Stable</a></span><span class='out-of-band'><span id='render-detail'>
+            <a id="collapse-all" href="#">[-]
+            </a>&nbsp;<a id="expand-all" href="#">[+]</a>
+        </span><a id='src-42175' href='http://doc.rust-lang.org/nightly/core/atomic/index.html?gotosrc=42175'>[src]</a></span></h1>
+<div class='docblock'><p>Atomic types</p>
+
+<p>Atomic types provide primitive shared-memory communication between
+threads, and are the building blocks of other concurrent
+types.</p>
+
+<p>This module defines atomic versions of a select number of primitive
+types, including <code>AtomicBool</code>, <code>AtomicIsize</code>, <code>AtomicUsize</code>, and <code>AtomicOption</code>.
+Atomic types present operations that, when used correctly, synchronize
+updates between threads.</p>
+
+<p>Each method takes an <code>Ordering</code> which represents the strength of
+the memory barrier for that operation. These orderings are the
+same as <a href="http://gcc.gnu.org/wiki/Atomic/GCCMM/AtomicSync">C++11 atomic orderings</a>.</p>
+
+<p>Atomic variables are safe to share between threads (they implement <code>Sync</code>)
+but they do not themselves provide the mechanism for sharing. The most
+common way to share an atomic variable is to put it into an <code>Arc</code> (an
+atomically-reference-counted shared pointer).</p>
+
+<p>Most atomic types may be stored in static variables, initialized using
+the provided static initializers like <code>INIT_ATOMIC_BOOL</code>. Atomic statics
+are often used for lazy global initialization.</p>
+
+<h1 id="examples" class='section-header'><a
+                           href="#examples">Examples</a></h1>
+<p>A simple spinlock:</p>
+<pre class='rust '>
+<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::<span class='ident'>Arc</span>;
+<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::<span class='ident'>atomic</span>::{<span class='ident'>AtomicUsize</span>, <span class='ident'>Ordering</span>};
+<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>thread</span>::<span class='ident'>Thread</span>;
+
+<span class='kw'>fn</span> <span class='ident'>main</span>() {
+    <span class='kw'>let</span> <span class='ident'>spinlock</span> <span class='op'>=</span> <span class='ident'>Arc</span>::<span class='ident'>new</span>(<span class='ident'>AtomicUsize</span>::<span class='ident'>new</span>(<span class='number'>1</span>));
+
+    <span class='kw'>let</span> <span class='ident'>spinlock_clone</span> <span class='op'>=</span> <span class='ident'>spinlock</span>.<span class='ident'>clone</span>();
+    <span class='ident'>Thread</span>::<span class='ident'>spawn</span>(<span class='kw'>move</span><span class='op'>||</span> {
+        <span class='ident'>spinlock_clone</span>.<span class='ident'>store</span>(<span class='number'>0</span>, <span class='ident'>Ordering</span>::<span class='ident'>SeqCst</span>);
+    });
+
+    <span class='comment'>// Wait for the other task to release the lock</span>
+    <span class='kw'>while</span> <span class='ident'>spinlock</span>.<span class='ident'>load</span>(<span class='ident'>Ordering</span>::<span class='ident'>SeqCst</span>) <span class='op'>!=</span> <span class='number'>0</span> {}
+}
+</pre>
+
+<p>Keep a global count of live tasks:</p>
+<pre class='rust '>
+<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::<span class='ident'>atomic</span>::{<span class='ident'>AtomicUsize</span>, <span class='ident'>Ordering</span>, <span class='ident'>ATOMIC_USIZE_INIT</span>};
+
+<span class='kw'>static</span> <span class='ident'>GLOBAL_TASK_COUNT</span>: <span class='ident'>AtomicUsize</span> <span class='op'>=</span> <span class='ident'>ATOMIC_USIZE_INIT</span>;
+
+<span class='kw'>let</span> <span class='ident'>old_task_count</span> <span class='op'>=</span> <span class='ident'>GLOBAL_TASK_COUNT</span>.<span class='ident'>fetch_add</span>(<span class='number'>1</span>, <span class='ident'>Ordering</span>::<span class='ident'>SeqCst</span>);
+<span class='macro'>println</span><span class='macro'>!</span>(<span class='string'>&quot;live tasks: {}&quot;</span>, <span class='ident'>old_task_count</span> <span class='op'>+</span> <span class='number'>1</span>);
+</pre>
+</div><h2 id='structs' class='section-header'><a href="#structs">Structs</a></h2>
+<table>
+                    <tr>
+                        <td><a class='stability Stable' title='Stable'></a><a class='struct' href='struct.AtomicBool.html'
+                               title='syncbox::util::atomic::AtomicBool'>AtomicBool</a></td>
+                        <td class='docblock short'><p>A boolean type which can be safely shared between threads.</p>
+</td>
+                    </tr>
+                
+                    <tr>
+                        <td><a class='stability Deprecated' title='Deprecated: renamed to AtomicIsize'></a><a class='struct' href='struct.AtomicInt.html'
+                               title='syncbox::util::atomic::AtomicInt'>AtomicInt</a></td>
+                        <td class='docblock short'></td>
+                    </tr>
+                
+                    <tr>
+                        <td><a class='stability Stable' title='Stable'></a><a class='struct' href='struct.AtomicIsize.html'
+                               title='syncbox::util::atomic::AtomicIsize'>AtomicIsize</a></td>
+                        <td class='docblock short'><p>A signed integer type which can be safely shared between threads.</p>
+</td>
+                    </tr>
+                
+                    <tr>
+                        <td><a class='stability Stable' title='Stable'></a><a class='struct' href='struct.AtomicPtr.html'
+                               title='syncbox::util::atomic::AtomicPtr'>AtomicPtr</a></td>
+                        <td class='docblock short'><p>A raw pointer type which can be safely shared between threads.</p>
+</td>
+                    </tr>
+                
+                    <tr>
+                        <td><a class='stability Deprecated' title='Deprecated: renamed to AtomicUsize'></a><a class='struct' href='struct.AtomicUint.html'
+                               title='syncbox::util::atomic::AtomicUint'>AtomicUint</a></td>
+                        <td class='docblock short'></td>
+                    </tr>
+                
+                    <tr>
+                        <td><a class='stability Stable' title='Stable'></a><a class='struct' href='struct.AtomicUsize.html'
+                               title='syncbox::util::atomic::AtomicUsize'>AtomicUsize</a></td>
+                        <td class='docblock short'><p>An unsigned integer type which can be safely shared between threads.</p>
+</td>
+                    </tr>
+                </table><h2 id='enums' class='section-header'><a href="#enums">Enums</a></h2>
+<table>
+                    <tr>
+                        <td><a class='stability Stable' title='Stable'></a><a class='enum' href='enum.Ordering.html'
+                               title='syncbox::util::atomic::Ordering'>Ordering</a></td>
+                        <td class='docblock short'><p>Atomic memory orderings</p>
+</td>
+                    </tr>
+                </table><h2 id='constants' class='section-header'><a href="#constants">Constants</a></h2>
+<table>
+                    <tr>
+                        <td><a class='stability Stable' title='Stable'></a><a class='constant' href='constant.ATOMIC_BOOL_INIT.html'
+                               title='syncbox::util::atomic::ATOMIC_BOOL_INIT'>ATOMIC_BOOL_INIT</a></td>
+                        <td class='docblock short'><p>An <code>AtomicBool</code> initialized to <code>false</code>.</p>
+</td>
+                    </tr>
+                
+                    <tr>
+                        <td><a class='stability Deprecated' title='Deprecated: use ATOMIC_ISIZE_INIT instead'></a><a class='constant' href='constant.ATOMIC_INT_INIT.html'
+                               title='syncbox::util::atomic::ATOMIC_INT_INIT'>ATOMIC_INT_INIT</a></td>
+                        <td class='docblock short'></td>
+                    </tr>
+                
+                    <tr>
+                        <td><a class='stability Stable' title='Stable'></a><a class='constant' href='constant.ATOMIC_ISIZE_INIT.html'
+                               title='syncbox::util::atomic::ATOMIC_ISIZE_INIT'>ATOMIC_ISIZE_INIT</a></td>
+                        <td class='docblock short'><p>An <code>AtomicIsize</code> initialized to <code>0</code>.</p>
+</td>
+                    </tr>
+                
+                    <tr>
+                        <td><a class='stability Deprecated' title='Deprecated: use ATOMIC_USIZE_INIT instead'></a><a class='constant' href='constant.ATOMIC_UINT_INIT.html'
+                               title='syncbox::util::atomic::ATOMIC_UINT_INIT'>ATOMIC_UINT_INIT</a></td>
+                        <td class='docblock short'></td>
+                    </tr>
+                
+                    <tr>
+                        <td><a class='stability Stable' title='Stable'></a><a class='constant' href='constant.ATOMIC_USIZE_INIT.html'
+                               title='syncbox::util::atomic::ATOMIC_USIZE_INIT'>ATOMIC_USIZE_INIT</a></td>
+                        <td class='docblock short'><p>An <code>AtomicUsize</code> initialized to <code>0</code>.</p>
+</td>
+                    </tr>
+                </table><h2 id='functions' class='section-header'><a href="#functions">Functions</a></h2>
+<table>
+                    <tr>
+                        <td><a class='stability Stable' title='Stable'></a><a class='fn' href='fn.fence.html'
+                               title='syncbox::util::atomic::fence'>fence</a></td>
+                        <td class='docblock short'><p>An atomic fence.</p>
+</td>
+                    </tr>
+                </table></section>
+    <section id='search' class="content hidden"></section>
+
+    <section class="footer"></section>
+
+    <div id="help" class="hidden">
+        <div class="shortcuts">
+            <h1>Keyboard shortcuts</h1>
+            <dl>
+                <dt>?</dt>
+                <dd>Show this help dialog</dd>
+                <dt>S</dt>
+                <dd>Focus the search field</dd>
+                <dt>&larrb;</dt>
+                <dd>Move up in search results</dd>
+                <dt>&rarrb;</dt>
+                <dd>Move down in search results</dd>
+                <dt>&#9166;</dt>
+                <dd>Go to active search result</dd>
+            </dl>
+        </div>
+        <div class="infos">
+            <h1>Search tricks</h1>
+            <p>
+                Prefix searches with a type followed by a colon (e.g.
+                <code>fn:</code>) to restrict the search to a given type.
+            </p>
+            <p>
+                Accepted types are: <code>fn</code>, <code>mod</code>,
+                <code>struct</code>, <code>enum</code>,
+                <code>trait</code>, <code>typedef</code> (or
+                <code>tdef</code>).
+            </p>
+        </div>
+    </div>
+
+    
+
+    <script>
+        window.rootPath = "../../../";
+        window.currentCrate = "syncbox";
+        window.playgroundUrl = "";
+    </script>
+    <script src="../../../jquery.js"></script>
+    <script src="../../../main.js"></script>
+    
+    <script async src="../../../search-index.js"></script>
+</body>
+</html>
