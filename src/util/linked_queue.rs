@@ -1,4 +1,4 @@
-use super::Consume;
+use super::{Queue, SyncQueue};
 use std::{mem, ptr, ops, usize};
 use std::sync::{Arc, Mutex, MutexGuard, Condvar};
 use std::sync::atomic::{self, AtomicUsize, Ordering};
@@ -28,6 +28,10 @@ impl<T: Send> LinkedQueue<T> {
         self.inner.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     pub fn offer(&self, e: T) -> Result<(), T> {
         self.inner.offer(e)
     }
@@ -46,13 +50,27 @@ impl<T: Send> LinkedQueue<T> {
     }
 }
 
-impl<T: Send> Consume<T> for LinkedQueue<T> {
+impl<T: Send> Queue<T> for LinkedQueue<T> {
     fn poll(&self) -> Option<T> {
         LinkedQueue::poll(self)
     }
 
+    fn is_empty(&self) -> bool {
+        LinkedQueue::is_empty(self)
+    }
+
+    fn offer(&self, e: T) -> Result<(), T> {
+        LinkedQueue::offer(self, e)
+    }
+}
+
+impl<T: Send> SyncQueue<T> for LinkedQueue<T> {
     fn take(&self) -> T {
         LinkedQueue::take(self)
+    }
+
+    fn put(&self, e: T) {
+        LinkedQueue::put(self, e)
     }
 }
 

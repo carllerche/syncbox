@@ -1,11 +1,11 @@
 pub use std::sync::atomic;
 pub use self::linked_queue::LinkedQueue;
+pub use self::thread_pool::ThreadPool;
+pub use self::queue::{Queue, SyncQueue};
+pub use self::run::Run;
 
 pub mod async;
 mod linked_queue;
-
-pub trait Consume<T: Send> {
-    fn poll(&self) -> Option<T>;
-
-    fn take(&self) -> T;
-}
+mod thread_pool;
+mod queue;
+mod run;
