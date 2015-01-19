@@ -26,7 +26,7 @@
 
     <section class="sidebar">
         
-        <p class='location'><a href='../../index.html'>syncbox</a>::<wbr><a href='../index.html'>util</a></p><div class='block mod'><h2>Modules</h2><a class='mod ' href='../async/index.html'>async</a><a class='mod current' href='../atomic/index.html'>atomic</a></div><div class='block struct'><h2>Structs</h2><a class='struct ' href='../struct.LinkedQueue.html'>LinkedQueue</a></div><div class='block trait'><h2>Traits</h2><a class='trait ' href='../trait.Consume.html'>Consume</a></div>
+        <p class='location'><a href='../../index.html'>syncbox</a>::<wbr><a href='../index.html'>util</a></p><div class='block mod'><h2>Modules</h2><a class='mod ' href='../async/index.html'>async</a><a class='mod current' href='../atomic/index.html'>atomic</a></div><div class='block struct'><h2>Structs</h2><a class='struct ' href='../struct.LinkedQueue.html'>LinkedQueue</a><a class='struct ' href='../struct.ThreadPool.html'>ThreadPool</a></div><div class='block trait'><h2>Traits</h2><a class='trait ' href='../trait.Queue.html'>Queue</a><a class='trait ' href='../trait.Run.html'>Run</a><a class='trait ' href='../trait.SyncQueue.html'>SyncQueue</a></div>
     </section>
 
     <nav class="sub">
@@ -44,7 +44,7 @@
 <h1 class='fqn'><span class='in-band'>Module <a href='../../index.html'>syncbox</a>::<wbr><a href='../index.html'>util</a>::<wbr><a class='mod' href=''>atomic</a><wbr><a class='stability Stable' title=''>Stable</a></span><span class='out-of-band'><span id='render-detail'>
             <a id="collapse-all" href="#">[-]
             </a>&nbsp;<a id="expand-all" href="#">[+]</a>
-        </span><a id='src-42175' href='http://doc.rust-lang.org/nightly/core/atomic/index.html?gotosrc=42175'>[src]</a></span></h1>
+        </span><a id='src-41698' href='http://doc.rust-lang.org/nightly/core/atomic/index.html?gotosrc=41698'>[src]</a></span></h1>
 <div class='docblock'><p>Atomic types</p>
 
 <p>Atomic types provide primitive shared-memory communication between
@@ -72,7 +72,7 @@ are often used for lazy global initialization.</p>
 <h1 id="examples" class='section-header'><a
                            href="#examples">Examples</a></h1>
 <p>A simple spinlock:</p>
-<pre class='rust '>
+<pre id='rust-example-rendered' class='rust '>
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::<span class='ident'>Arc</span>;
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::<span class='ident'>atomic</span>::{<span class='ident'>AtomicUsize</span>, <span class='ident'>Ordering</span>};
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>thread</span>::<span class='ident'>Thread</span>;
@@ -91,7 +91,7 @@ are often used for lazy global initialization.</p>
 </pre>
 
 <p>Keep a global count of live tasks:</p>
-<pre class='rust '>
+<pre id='rust-example-rendered' class='rust '>
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::<span class='ident'>atomic</span>::{<span class='ident'>AtomicUsize</span>, <span class='ident'>Ordering</span>, <span class='ident'>ATOMIC_USIZE_INIT</span>};
 
 <span class='kw'>static</span> <span class='ident'>GLOBAL_TASK_COUNT</span>: <span class='ident'>AtomicUsize</span> <span class='op'>=</span> <span class='ident'>ATOMIC_USIZE_INIT</span>;

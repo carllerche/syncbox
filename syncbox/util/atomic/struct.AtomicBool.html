@@ -44,7 +44,7 @@
 <h1 class='fqn'><span class='in-band'>Struct <a href='../../index.html'>syncbox</a>::<wbr><a href='../index.html'>util</a>::<wbr><a href='index.html'>atomic</a>::<wbr><a class='struct' href=''>AtomicBool</a><wbr><a class='stability Stable' title=''>Stable</a></span><span class='out-of-band'><span id='render-detail'>
             <a id="collapse-all" href="#">[-]
             </a>&nbsp;<a id="expand-all" href="#">[+]</a>
-        </span><a id='src-42180' href='http://doc.rust-lang.org/nightly/core/atomic/struct.AtomicBool.html?gotosrc=42180'>[src]</a></span></h1>
+        </span><a id='src-41703' href='http://doc.rust-lang.org/nightly/core/atomic/struct.AtomicBool.html?gotosrc=41703'>[src]</a></span></h1>
 <pre class='rust struct'>pub struct AtomicBool {
     // some fields omitted
 }</pre><div class='docblock'><p>A boolean type which can be safely shared between threads.</p>
@@ -52,7 +52,7 @@
 <div class='docblock'><p>Creates a new <code>AtomicBool</code>.</p>
 
 <h1 id="examples" class='section-header'><a
-                           href="#examples">Examples</a></h1><pre class='rust '>
+                           href="#examples">Examples</a></h1><pre id='rust-example-rendered' class='rust '>
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::<span class='ident'>atomic</span>::<span class='ident'>AtomicBool</span>;
 
 <span class='kw'>let</span> <span class='ident'>atomic_true</span>  <span class='op'>=</span> <span class='ident'>AtomicBool</span>::<span class='ident'>new</span>(<span class='boolval'>true</span>);
@@ -68,7 +68,7 @@
 <p>Panics if <code>order</code> is <code>Release</code> or <code>AcqRel</code>.</p>
 
 <h1 id="examples" class='section-header'><a
-                           href="#examples">Examples</a></h1><pre class='rust '>
+                           href="#examples">Examples</a></h1><pre id='rust-example-rendered' class='rust '>
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::<span class='ident'>atomic</span>::{<span class='ident'>AtomicBool</span>, <span class='ident'>Ordering</span>};
 
 <span class='kw'>let</span> <span class='ident'>some_bool</span> <span class='op'>=</span> <span class='ident'>AtomicBool</span>::<span class='ident'>new</span>(<span class='boolval'>true</span>);
@@ -81,7 +81,7 @@
 <p><code>store</code> takes an <code>Ordering</code> argument which describes the memory ordering of this operation.</p>
 
 <h1 id="examples" class='section-header'><a
-                           href="#examples">Examples</a></h1><pre class='rust '>
+                           href="#examples">Examples</a></h1><pre id='rust-example-rendered' class='rust '>
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::<span class='ident'>atomic</span>::{<span class='ident'>AtomicBool</span>, <span class='ident'>Ordering</span>};
 
 <span class='kw'>let</span> <span class='ident'>some_bool</span> <span class='op'>=</span> <span class='ident'>AtomicBool</span>::<span class='ident'>new</span>(<span class='boolval'>true</span>);
@@ -98,7 +98,7 @@
 <p><code>swap</code> takes an <code>Ordering</code> argument which describes the memory ordering of this operation.</p>
 
 <h1 id="examples" class='section-header'><a
-                           href="#examples">Examples</a></h1><pre class='rust '>
+                           href="#examples">Examples</a></h1><pre id='rust-example-rendered' class='rust '>
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::<span class='ident'>atomic</span>::{<span class='ident'>AtomicBool</span>, <span class='ident'>Ordering</span>};
 
 <span class='kw'>let</span> <span class='ident'>some_bool</span> <span class='op'>=</span> <span class='ident'>AtomicBool</span>::<span class='ident'>new</span>(<span class='boolval'>true</span>);
@@ -114,7 +114,7 @@
 operation.</p>
 
 <h1 id="examples" class='section-header'><a
-                           href="#examples">Examples</a></h1><pre class='rust '>
+                           href="#examples">Examples</a></h1><pre id='rust-example-rendered' class='rust '>
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::<span class='ident'>atomic</span>::{<span class='ident'>AtomicBool</span>, <span class='ident'>Ordering</span>};
 
 <span class='kw'>let</span> <span class='ident'>some_bool</span> <span class='op'>=</span> <span class='ident'>AtomicBool</span>::<span class='ident'>new</span>(<span class='boolval'>true</span>);
@@ -130,7 +130,7 @@ the new value to the result.</p>
 <p>Returns the previous value.</p>
 
 <h1 id="examples" class='section-header'><a
-                           href="#examples">Examples</a></h1><pre class='rust '>
+                           href="#examples">Examples</a></h1><pre id='rust-example-rendered' class='rust '>
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::<span class='ident'>atomic</span>::{<span class='ident'>AtomicBool</span>, <span class='ident'>Ordering</span>};
 
 <span class='kw'>let</span> <span class='ident'>foo</span> <span class='op'>=</span> <span class='ident'>AtomicBool</span>::<span class='ident'>new</span>(<span class='boolval'>true</span>);
@@ -154,7 +154,7 @@ the new value to the result.</p>
 <p>Returns the previous value.</p>
 
 <h1 id="examples" class='section-header'><a
-                           href="#examples">Examples</a></h1><pre class='rust '>
+                           href="#examples">Examples</a></h1><pre id='rust-example-rendered' class='rust '>
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::<span class='ident'>atomic</span>::{<span class='ident'>AtomicBool</span>, <span class='ident'>Ordering</span>};
 
 <span class='kw'>let</span> <span class='ident'>foo</span> <span class='op'>=</span> <span class='ident'>AtomicBool</span>::<span class='ident'>new</span>(<span class='boolval'>true</span>);
@@ -179,7 +179,7 @@ new value to the result.</p>
 <p>Returns the previous value.</p>
 
 <h1 id="examples" class='section-header'><a
-                           href="#examples">Examples</a></h1><pre class='rust '>
+                           href="#examples">Examples</a></h1><pre id='rust-example-rendered' class='rust '>
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::<span class='ident'>atomic</span>::{<span class='ident'>AtomicBool</span>, <span class='ident'>Ordering</span>};
 
 <span class='kw'>let</span> <span class='ident'>foo</span> <span class='op'>=</span> <span class='ident'>AtomicBool</span>::<span class='ident'>new</span>(<span class='boolval'>true</span>);
@@ -203,7 +203,7 @@ the new value to the result.</p>
 <p>Returns the previous value.</p>
 
 <h1 id="examples" class='section-header'><a
-                           href="#examples">Examples</a></h1><pre class='rust '>
+                           href="#examples">Examples</a></h1><pre id='rust-example-rendered' class='rust '>
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::<span class='ident'>atomic</span>::{<span class='ident'>AtomicBool</span>, <span class='ident'>Ordering</span>};
 
 <span class='kw'>let</span> <span class='ident'>foo</span> <span class='op'>=</span> <span class='ident'>AtomicBool</span>::<span class='ident'>new</span>(<span class='boolval'>true</span>);

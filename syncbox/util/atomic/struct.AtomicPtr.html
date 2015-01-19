@@ -44,7 +44,7 @@
 <h1 class='fqn'><span class='in-band'>Struct <a href='../../index.html'>syncbox</a>::<wbr><a href='../index.html'>util</a>::<wbr><a href='index.html'>atomic</a>::<wbr><a class='struct' href=''>AtomicPtr</a><wbr><a class='stability Stable' title=''>Stable</a></span><span class='out-of-band'><span id='render-detail'>
             <a id="collapse-all" href="#">[-]
             </a>&nbsp;<a id="expand-all" href="#">[+]</a>
-        </span><a id='src-42216' href='http://doc.rust-lang.org/nightly/core/atomic/struct.AtomicPtr.html?gotosrc=42216'>[src]</a></span></h1>
+        </span><a id='src-41739' href='http://doc.rust-lang.org/nightly/core/atomic/struct.AtomicPtr.html?gotosrc=41739'>[src]</a></span></h1>
 <pre class='rust struct'>pub struct AtomicPtr&lt;T&gt; {
     // some fields omitted
 }</pre><div class='docblock'><p>A raw pointer type which can be safely shared between threads.</p>
@@ -52,7 +52,7 @@
 <div class='docblock'><p>Creates a new <code>AtomicPtr</code>.</p>
 
 <h1 id="examples" class='section-header'><a
-                           href="#examples">Examples</a></h1><pre class='rust '>
+                           href="#examples">Examples</a></h1><pre id='rust-example-rendered' class='rust '>
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::<span class='ident'>atomic</span>::<span class='ident'>AtomicPtr</span>;
 
 <span class='kw'>let</span> <span class='ident'>ptr</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='number'>5i</span>;
@@ -68,7 +68,7 @@
 <p>Panics if <code>order</code> is <code>Release</code> or <code>AcqRel</code>.</p>
 
 <h1 id="examples" class='section-header'><a
-                           href="#examples">Examples</a></h1><pre class='rust '>
+                           href="#examples">Examples</a></h1><pre id='rust-example-rendered' class='rust '>
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::<span class='ident'>atomic</span>::{<span class='ident'>AtomicPtr</span>, <span class='ident'>Ordering</span>};
 
 <span class='kw'>let</span> <span class='ident'>ptr</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='number'>5i</span>;
@@ -82,7 +82,7 @@
 <p><code>store</code> takes an <code>Ordering</code> argument which describes the memory ordering of this operation.</p>
 
 <h1 id="examples" class='section-header'><a
-                           href="#examples">Examples</a></h1><pre class='rust '>
+                           href="#examples">Examples</a></h1><pre id='rust-example-rendered' class='rust '>
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::<span class='ident'>atomic</span>::{<span class='ident'>AtomicPtr</span>, <span class='ident'>Ordering</span>};
 
 <span class='kw'>let</span> <span class='ident'>ptr</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='number'>5i</span>;
@@ -102,7 +102,7 @@
 <p><code>swap</code> takes an <code>Ordering</code> argument which describes the memory ordering of this operation.</p>
 
 <h1 id="examples" class='section-header'><a
-                           href="#examples">Examples</a></h1><pre class='rust '>
+                           href="#examples">Examples</a></h1><pre id='rust-example-rendered' class='rust '>
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::<span class='ident'>atomic</span>::{<span class='ident'>AtomicPtr</span>, <span class='ident'>Ordering</span>};
 
 <span class='kw'>let</span> <span class='ident'>ptr</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='number'>5i</span>;
@@ -121,7 +121,7 @@
 this operation.</p>
 
 <h1 id="examples" class='section-header'><a
-                           href="#examples">Examples</a></h1><pre class='rust '>
+                           href="#examples">Examples</a></h1><pre id='rust-example-rendered' class='rust '>
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::<span class='ident'>atomic</span>::{<span class='ident'>AtomicPtr</span>, <span class='ident'>Ordering</span>};
 
 <span class='kw'>let</span> <span class='ident'>ptr</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='number'>5i</span>;

@@ -44,7 +44,7 @@
 <h1 class='fqn'><span class='in-band'>Struct <a href='../../index.html'>syncbox</a>::<wbr><a href='../index.html'>util</a>::<wbr><a href='index.html'>atomic</a>::<wbr><a class='struct' href=''>AtomicIsize</a><wbr><a class='stability Stable' title=''>Stable</a></span><span class='out-of-band'><span id='render-detail'>
             <a id="collapse-all" href="#">[-]
             </a>&nbsp;<a id="expand-all" href="#">[+]</a>
-        </span><a id='src-42192' href='http://doc.rust-lang.org/nightly/core/atomic/struct.AtomicIsize.html?gotosrc=42192'>[src]</a></span></h1>
+        </span><a id='src-41715' href='http://doc.rust-lang.org/nightly/core/atomic/struct.AtomicIsize.html?gotosrc=41715'>[src]</a></span></h1>
 <pre class='rust struct'>pub struct AtomicIsize {
     // some fields omitted
 }</pre><div class='docblock'><p>A signed integer type which can be safely shared between threads.</p>
@@ -52,7 +52,7 @@
 <div class='docblock'><p>Creates a new <code>AtomicIsize</code>.</p>
 
 <h1 id="examples" class='section-header'><a
-                           href="#examples">Examples</a></h1><pre class='rust '>
+                           href="#examples">Examples</a></h1><pre id='rust-example-rendered' class='rust '>
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::<span class='ident'>atomic</span>::<span class='ident'>AtomicIsize</span>;
 
 <span class='kw'>let</span> <span class='ident'>atomic_forty_two</span>  <span class='op'>=</span> <span class='ident'>AtomicIsize</span>::<span class='ident'>new</span>(<span class='number'>42</span>);
@@ -67,7 +67,7 @@
 <p>Panics if <code>order</code> is <code>Release</code> or <code>AcqRel</code>.</p>
 
 <h1 id="examples" class='section-header'><a
-                           href="#examples">Examples</a></h1><pre class='rust '>
+                           href="#examples">Examples</a></h1><pre id='rust-example-rendered' class='rust '>
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::<span class='ident'>atomic</span>::{<span class='ident'>AtomicIsize</span>, <span class='ident'>Ordering</span>};
 
 <span class='kw'>let</span> <span class='ident'>some_isize</span> <span class='op'>=</span> <span class='ident'>AtomicIsize</span>::<span class='ident'>new</span>(<span class='number'>5</span>);
@@ -80,7 +80,7 @@
 <p><code>store</code> takes an <code>Ordering</code> argument which describes the memory ordering of this operation.</p>
 
 <h1 id="examples" class='section-header'><a
-                           href="#examples">Examples</a></h1><pre class='rust '>
+                           href="#examples">Examples</a></h1><pre id='rust-example-rendered' class='rust '>
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::<span class='ident'>atomic</span>::{<span class='ident'>AtomicIsize</span>, <span class='ident'>Ordering</span>};
 
 <span class='kw'>let</span> <span class='ident'>some_isize</span> <span class='op'>=</span> <span class='ident'>AtomicIsize</span>::<span class='ident'>new</span>(<span class='number'>5</span>);
@@ -97,7 +97,7 @@
 <p><code>swap</code> takes an <code>Ordering</code> argument which describes the memory ordering of this operation.</p>
 
 <h1 id="examples" class='section-header'><a
-                           href="#examples">Examples</a></h1><pre class='rust '>
+                           href="#examples">Examples</a></h1><pre id='rust-example-rendered' class='rust '>
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::<span class='ident'>atomic</span>::{<span class='ident'>AtomicIsize</span>, <span class='ident'>Ordering</span>};
 
 <span class='kw'>let</span> <span class='ident'>some_isize</span> <span class='op'>=</span> <span class='ident'>AtomicIsize</span>::<span class='ident'>new</span>(<span class='number'>5</span>);
@@ -113,7 +113,7 @@
 this operation.</p>
 
 <h1 id="examples" class='section-header'><a
-                           href="#examples">Examples</a></h1><pre class='rust '>
+                           href="#examples">Examples</a></h1><pre id='rust-example-rendered' class='rust '>
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::<span class='ident'>atomic</span>::{<span class='ident'>AtomicIsize</span>, <span class='ident'>Ordering</span>};
 
 <span class='kw'>let</span> <span class='ident'>some_isize</span> <span class='op'>=</span> <span class='ident'>AtomicIsize</span>::<span class='ident'>new</span>(<span class='number'>5</span>);
@@ -124,7 +124,7 @@ this operation.</p>
 <div class='docblock'><p>Add an isize to the current value, returning the previous value.</p>
 
 <h1 id="examples" class='section-header'><a
-                           href="#examples">Examples</a></h1><pre class='rust '>
+                           href="#examples">Examples</a></h1><pre id='rust-example-rendered' class='rust '>
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::<span class='ident'>atomic</span>::{<span class='ident'>AtomicIsize</span>, <span class='ident'>Ordering</span>};
 
 <span class='kw'>let</span> <span class='ident'>foo</span> <span class='op'>=</span> <span class='ident'>AtomicIsize</span>::<span class='ident'>new</span>(<span class='number'>0</span>);
@@ -135,7 +135,7 @@ this operation.</p>
 <div class='docblock'><p>Subtract an isize from the current value, returning the previous value.</p>
 
 <h1 id="examples" class='section-header'><a
-                           href="#examples">Examples</a></h1><pre class='rust '>
+                           href="#examples">Examples</a></h1><pre id='rust-example-rendered' class='rust '>
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::<span class='ident'>atomic</span>::{<span class='ident'>AtomicIsize</span>, <span class='ident'>Ordering</span>};
 
 <span class='kw'>let</span> <span class='ident'>foo</span> <span class='op'>=</span> <span class='ident'>AtomicIsize</span>::<span class='ident'>new</span>(<span class='number'>0</span>);
@@ -146,7 +146,7 @@ this operation.</p>
 <div class='docblock'><p>Bitwise and with the current isize, returning the previous value.</p>
 
 <h1 id="examples" class='section-header'><a
-                           href="#examples">Examples</a></h1><pre class='rust '>
+                           href="#examples">Examples</a></h1><pre id='rust-example-rendered' class='rust '>
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::<span class='ident'>atomic</span>::{<span class='ident'>AtomicIsize</span>, <span class='ident'>Ordering</span>};
 
 <span class='kw'>let</span> <span class='ident'>foo</span> <span class='op'>=</span> <span class='ident'>AtomicIsize</span>::<span class='ident'>new</span>(<span class='number'>0b101101</span>);
@@ -157,7 +157,7 @@ this operation.</p>
 <div class='docblock'><p>Bitwise or with the current isize, returning the previous value.</p>
 
 <h1 id="examples" class='section-header'><a
-                           href="#examples">Examples</a></h1><pre class='rust '>
+                           href="#examples">Examples</a></h1><pre id='rust-example-rendered' class='rust '>
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::<span class='ident'>atomic</span>::{<span class='ident'>AtomicIsize</span>, <span class='ident'>Ordering</span>};
 
 <span class='kw'>let</span> <span class='ident'>foo</span> <span class='op'>=</span> <span class='ident'>AtomicIsize</span>::<span class='ident'>new</span>(<span class='number'>0b101101</span>);
@@ -168,7 +168,7 @@ this operation.</p>
 <div class='docblock'><p>Bitwise xor with the current isize, returning the previous value.</p>
 
 <h1 id="examples" class='section-header'><a
-                           href="#examples">Examples</a></h1><pre class='rust '>
+                           href="#examples">Examples</a></h1><pre id='rust-example-rendered' class='rust '>
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::<span class='ident'>atomic</span>::{<span class='ident'>AtomicIsize</span>, <span class='ident'>Ordering</span>};
 
 <span class='kw'>let</span> <span class='ident'>foo</span> <span class='op'>=</span> <span class='ident'>AtomicIsize</span>::<span class='ident'>new</span>(<span class='number'>0b101101</span>);
