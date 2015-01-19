@@ -23,7 +23,12 @@ impl<T: Send, E: Send> Future<T, E> {
     /// Returns a future that will immediately succeed with the supplied value.
     ///
     /// ```
-    /// Future::of(1).and_then(|val| assert!(result == 1))
+    /// use syncbox::util::async::*;
+    ///
+    /// Future::<i32, ()>::of(1).and_then(|val| {
+    ///     assert!(val == 1);
+    ///     Ok(val + 1)
+    /// });
     /// ```
     pub fn of(val: T) -> Future<T, E> {
         Future { core: OptionCore::new(Core::with_value(Ok(val))) }
@@ -32,6 +37,9 @@ impl<T: Send, E: Send> Future<T, E> {
     /// Returns a future that will immediately fail with the supplied error.
     ///
     /// ```
+    /// use syncbox::util::async::*;
+    /// use syncbox::util::async::AsyncError::*;
+    ///
     /// Future::error("hi").catch(|err| {
     ///     match err {
     ///         ExecutionError(e) => assert!(e == "hi"),
@@ -47,11 +55,16 @@ impl<T: Send, E: Send> Future<T, E> {
     /// Returns a future that will immediately be cancelled
     ///
     /// ```
-    /// Future::cancelled().catch(|err| {
+    /// use syncbox::util::async::*;
+    /// use syncbox::util::async::AsyncError::*;
+    ///
+    /// Future::<&'static str, ()>::canceled().or_else(|err| {
     ///     match err {
     ///         ExecutionError(e) => unreachable!(),
     ///         CancellationError => assert!(true)
     ///     }
+    ///
+    ///     Ok("handled")
     /// });
     /// ```
     pub fn canceled() -> Future<T, E> {
@@ -63,12 +76,21 @@ impl<T: Send, E: Send> Future<T, E> {
     /// a consumer registers interest.
     ///
     /// ```
-    /// let post = Future::lazy(|| http.get("/posts/1"))
+    /// use syncbox::util::async::*;
+    ///
+    /// let post = Future::lazy(|| {
+    ///     // Imagine a call to an HTTP lib, like so:
+    ///     // http::get("/posts/1")
+    ///     Ok("HTTP response")
+    /// });
+    ///
     /// // the HTTP request has not happened yet
     ///
     /// // later...
     ///
-    /// post.and_then(|p| println!("{:?}", p))
+    /// post.and_then(|p| {
+    ///     println!("{:?}", p);
+    /// });
     /// // the HTTP request has now happened
     /// ```
     pub fn lazy<F, R>(f: F) -> Future<T, E>
@@ -137,17 +159,28 @@ impl<T: Send, E: Send> Drop for Future<T, E> {
 /// An object that is used to fulfill or reject an associated Future.
 ///
 /// ```
-/// let (future, completer) = Future::pair();
-/// future.and_then(|v| assert!(v == 1));
+/// use syncbox::util::async::*;
+/// use syncbox::util::async::AsyncError::*;
+///
+/// let (future, completer) = Future::<u32, &'static str>::pair();
+///
+/// future.and_then(|v| {
+///     assert!(v == 1);
+///     Ok(v + v)
+/// });
+///
 /// completer.complete(1);
 ///
-/// let (future, completer) = Future::pair();
-/// future.fail("failed");
+/// let (future, completer) = Future::<u32, &'static str>::pair();
+/// completer.fail("failed");
+///
 /// future.or_else(|err| {
 ///     match err {
-///         CancellationError => unreachable!()
+///         CancellationError => unreachable!(),
 ///         ExecutionError(err) => assert!(err == "failed")
 ///     }
+///
+///     Ok(123)
 /// });
 /// ```
 #[unsafe_no_drop_flag]
