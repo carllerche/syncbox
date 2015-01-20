@@ -17,7 +17,7 @@ impl<T: Send, E: Send> Stream<T, E> {
         (stream, Produce { core: OptionCore::new(core) })
     }
 
-    pub fn receive<F: FnOnce(AsyncResult<Head<T, E>, E>) + Send>(mut self, f: F) {
+    pub fn receive<F>(mut self, f: F) where F: FnOnce(AsyncResult<Head<T, E>, E>) + Send {
         self.core.take().consumer_receive(f);
     }
 

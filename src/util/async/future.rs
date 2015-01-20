@@ -40,11 +40,13 @@ impl<T: Send, E: Send> Future<T, E> {
     /// use syncbox::util::async::*;
     /// use syncbox::util::async::AsyncError::*;
     ///
-    /// Future::error("hi").catch(|err| {
+    /// Future::error("hi").or_else(|err| {
     ///     match err {
     ///         ExecutionError(e) => assert!(e == "hi"),
     ///         CancellationError => unreachable!()
     ///     }
+    ///
+    ///     Ok(())
     /// });
     /// ```
     pub fn error(err: E) -> Future<T, E> {

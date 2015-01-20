@@ -25,7 +25,7 @@ impl ThreadPool {
         core_pool_size: u32,
         maximum_pool_size: u32,
         work_queue: Q) -> ThreadPool
-            where Q: SyncQueue<Option<Box<Task>>> + Send + Clone {
+            where Q: SyncQueue<Option<Box<Task>>> + Send + Sync + Clone {
 
         let inner = ThreadPoolInner::new(
             core_pool_size,
@@ -434,11 +434,11 @@ impl Drop for Worker {
     }
 }
 
-trait WorkQueue : SyncQueue<Option<Box<Task>>> + Send {
+trait WorkQueue : SyncQueue<Option<Box<Task>>> + Send + Sync {
     fn boxed_clone(&self) -> Box<WorkQueue>;
 }
 
-impl<Q: SyncQueue<Option<Box<Task>>> + Send + Clone> WorkQueue for Q {
+impl<Q: SyncQueue<Option<Box<Task>>> + Send + Sync + Clone> WorkQueue for Q {
     fn boxed_clone(&self) -> Box<WorkQueue> {
         Box::new(self.clone())
     }

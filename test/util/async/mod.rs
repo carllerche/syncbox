@@ -24,7 +24,6 @@ use syncbox::util::async::*;
 // == Future tests ==
 mod test_future_and;
 mod test_future_await;
-mod test_future_catch;
 mod test_future_or;
 mod test_future_receive;
 

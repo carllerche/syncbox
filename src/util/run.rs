@@ -1,12 +1,12 @@
 use util::async::Future;
 
-pub trait Run {
+pub trait Run : Send {
 
     /// Returns the `Run` instance associated with the current thread, None
     /// otherwise
-    fn current<'a>() -> Option<&'a (Run+'static)> {
-        unimplemented!();
-    }
+    // fn current<'a>() -> Option<&'a (Run+'static)> {
+    //     unimplemented!();
+    // }
 
     /// Runs the task on the underlying executor.
     fn run<F>(&self, task: F) where F: FnOnce() + Send;

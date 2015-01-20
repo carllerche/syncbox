@@ -26,6 +26,8 @@ pub use self::future::{Future, Complete};
 pub use self::stream::{Stream, StreamIter, Produce};
 pub use self::join::{join, ToJoin};
 
+use util::Run;
+
 use std::fmt;
 use self::AsyncError::*;
 
@@ -35,15 +37,14 @@ use self::AsyncError::*;
 //   - rust-lang/rust#20543 (nested type constraints)
 //   - rust-lang/rust#20540 (associated types & default types)
 //
-// * Implement Async::cancel()
+// * Allow Async::or & Async::or_else to change the error type
 //
-// * All handles go out of scope w/o reading => cancel future
-//
-// * Improve Async::handle_with (reduce allocations)
+// * Improve performance / reduce allocations
 //
 // * Rename Complete::receive -> ready (same with Produce)
 //
 // * Consider a default implementation for Async::await()
+//   - Probably could be don ewhen small callbacks are inlined vs. boxed
 
 mod core;
 mod future;
@@ -51,7 +52,21 @@ mod join;
 mod stream;
 
 pub trait Async<T: Send, E: Send> : Send + Sized {
-    fn receive<F: FnOnce(AsyncResult<T, E>) + Send>(self, cb: F);
+
+    /// Invoke the callback with the resolved `Async` result.
+    fn receive<F>(self, f: F) where F: FnOnce(AsyncResult<T, E>) + Send;
+
+    /// Invoke the callback on the specified `Run` with the resolved `Async`
+    /// result.
+    fn receive_defer<F, R>(self, f: F, run: R)
+            where F: FnOnce(AsyncResult<T, E>) + Send,
+                  R: Run {
+        // TODO: It should be possible for the future itself to behave as a
+        // Run task in order to reduce an allocation.
+        self.receive(move |res| {
+            run.run(move || f(res));
+        });
+    }
 
     /*
      *
@@ -60,7 +75,11 @@ pub trait Async<T: Send, E: Send> : Send + Sized {
      */
 
     // Is this needed?
-    fn handle<F: FnOnce(AsyncResult<T, E>) -> R + Send, R: Async<U, E2>, U: Send, E2: Send>(self, cb: F) -> Future<U, E2> {
+    fn handle<F, A, U, E2>(self, cb: F) -> Future<U, E2>
+            where F: FnOnce(AsyncResult<T, E>) -> A + Send,
+                  A: Async<U, E2>,
+                  U: Send,
+                  E2: Send {
         // TODO: Currently a naive implementation. Improve it by reducing
         // required allocations
         let (ret, complete) = Future::pair();
@@ -87,12 +106,17 @@ pub trait Async<T: Send, E: Send> : Send + Sized {
 
     /// If the future completes successfully, returns the complection of
     /// `next`.
-    fn and<A: Async<U, E>, U: Send>(self, next: A) -> Future<U, E> {
+    fn and<A: Async<U, E>, U: Send>(self, next: A) -> Future<U, E>
+            where A: Async<U, E>,
+                  U: Send {
         self.and_then(move |_| next)
     }
 
     /// Also handles the Future::map case
-    fn and_then<F: FnOnce(T) -> A + Send, A: Async<U, E>, U: Send>(self, f: F) -> Future<U, E> {
+    fn and_then<F, A, U>(self, f: F) -> Future<U, E>
+            where F: FnOnce(T) -> A + Send,
+                  A: Async<U, E>,
+                  U: Send {
         let (ret, complete) = Future::pair();
 
         complete.receive(move |c| {
@@ -118,11 +142,14 @@ pub trait Async<T: Send, E: Send> : Send + Sized {
         ret
     }
 
-    fn or<A: Async<T, E>>(self, alt: A) -> Future<T, E> {
+    fn or<A>(self, alt: A) -> Future<T, E> where A: Async<T, E> {
         self.or_else(move |_| alt)
     }
 
-    fn or_else<F: FnOnce(AsyncError<E>) -> A + Send, A: Async<T, E>>(self, f: F) -> Future<T, E> {
+    fn or_else<F, A>(self, f: F) -> Future<T, E>
+            where F: FnOnce(AsyncError<E>) -> A + Send,
+                  A: Async<T, E> {
+
         let (ret, complete) = Future::pair();
 
         complete.receive(move |c| {
@@ -136,34 +163,6 @@ pub trait Async<T: Send, E: Send> : Send + Sized {
                                     Ok(v) => complete.complete(v),
                                     Err(ExecutionError(e)) => complete.fail(e),
                                     _ => {}
-                                }
-                            });
-                        }
-                    }
-                });
-            }
-        });
-
-        ret
-    }
-
-    fn catch<F: FnOnce(AsyncError<E>) -> R + Send, R: Async<T, E2>, E2: Send = AsyncError<()>>(self, cb: F) -> Future<T, E2> {
-        let (ret, complete) = Future::pair();
-
-        complete.receive(move |c| {
-            if let Ok(complete) = c {
-                self.receive(move |res| {
-                    match res {
-                        Ok(v) => complete.complete(v),
-                        Err(err) => {
-                            cb(err).receive(move |res| {
-                                match res {
-                                    Ok(v) => complete.complete(v),
-                                    Err(e) => {
-                                        if let AsyncError::ExecutionError(e) = e {
-                                            complete.fail(e);
-                                        }
-                                    }
                                 }
                             });
                         }

@@ -30,3 +30,20 @@ pub fn test_or_first_success_async() {
     assert_eq!("first", rx.recv().unwrap());
     assert_eq!("winning", rx.recv().unwrap());
 }
+
+#[test]
+pub fn test_or_else_complete_before_receive() {
+    let (f, c) = Future::<&'static str, i32>::pair();
+    let (tx, rx) = channel();
+
+    f.or_else(move |e| {
+        assert_eq!(123, e.unwrap());
+        Ok("caught")
+    }).receive(move |res| {
+        tx.send(res.unwrap()).unwrap();
+    });
+
+    c.fail(123);
+
+    assert_eq!(rx.recv().unwrap(), "caught");
+}
