@@ -271,6 +271,8 @@
 <span id="229">229</span>
 <span id="230">230</span>
 <span id="231">231</span>
+<span id="232">232</span>
+<span id="233">233</span>
 </pre><pre class='rust '>
 <span class='kw'>use</span> <span class='ident'>super</span>::{<span class='ident'>Async</span>, <span class='ident'>Stream</span>, <span class='ident'>AsyncResult</span>, <span class='ident'>AsyncError</span>};
 <span class='kw'>use</span> <span class='ident'>super</span>::<span class='ident'>stream</span>;
@@ -314,11 +316,13 @@
     <span class='doccomment'>/// use syncbox::util::async::*;</span>
     <span class='doccomment'>/// use syncbox::util::async::AsyncError::*;</span>
     <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Future::error(&quot;hi&quot;).catch(|err| {</span>
+    <span class='doccomment'>/// Future::error(&quot;hi&quot;).or_else(|err| {</span>
     <span class='doccomment'>///     match err {</span>
     <span class='doccomment'>///         ExecutionError(e) =&gt; assert!(e == &quot;hi&quot;),</span>
     <span class='doccomment'>///         CancellationError =&gt; unreachable!()</span>
     <span class='doccomment'>///     }</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>///     Ok(())</span>
     <span class='doccomment'>/// });</span>
     <span class='doccomment'>/// ```</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>error</span>(<span class='ident'>err</span>: <span class='ident'>E</span>) <span class='op'>-&gt;</span> <span class='ident'>Future</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;</span> {
