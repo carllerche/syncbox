@@ -66,11 +66,28 @@ impl<T: Send, E: Send> Stream<T, E> {
         })
     }
 
-    pub fn take(self, _n: uint) -> Stream<T, E> {
-        unimplemented!();
+    pub fn take(self, n: u64) -> Stream<T, E> {
+        if n == 0 {
+            Future::of(None).as_stream()
+        } else {
+            self.handle(move |res| {
+                // Map the result
+                res.map(move |head| {
+                    // Map the option
+                    head.map(move |(v, rest)| {
+                        (v, rest.take(n - 1))
+                    })
+                })
+            }).as_stream()
+        }
     }
 
     pub fn take_while<F: Fn(&T) -> bool + Send>(self, _f: F) -> Stream<T, E> {
+        unimplemented!();
+    }
+
+    // TODO: Figure out what to do when the condition errors
+    pub fn take_until<A: Async<U, E2>, U: Send, E2: Send>(self, cond: A) -> Stream<T, E> {
         unimplemented!();
     }
 }
