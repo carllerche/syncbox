@@ -224,6 +224,23 @@
 <span id="182">182</span>
 <span id="183">183</span>
 <span id="184">184</span>
+<span id="185">185</span>
+<span id="186">186</span>
+<span id="187">187</span>
+<span id="188">188</span>
+<span id="189">189</span>
+<span id="190">190</span>
+<span id="191">191</span>
+<span id="192">192</span>
+<span id="193">193</span>
+<span id="194">194</span>
+<span id="195">195</span>
+<span id="196">196</span>
+<span id="197">197</span>
+<span id="198">198</span>
+<span id="199">199</span>
+<span id="200">200</span>
+<span id="201">201</span>
 </pre><pre class='rust '>
 <span class='kw'>use</span> <span class='ident'>super</span>::{<span class='ident'>Async</span>, <span class='ident'>Future</span>, <span class='ident'>AsyncResult</span>, <span class='ident'>AsyncError</span>};
 <span class='kw'>use</span> <span class='ident'>super</span>::<span class='ident'>core</span>::{<span class='ident'>Core</span>, <span class='ident'>OptionCore</span>, <span class='ident'>FromCore</span>};
@@ -293,11 +310,28 @@
         })
     }
 
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>take</span>(<span class='self'>self</span>, <span class='ident'>_n</span>: <span class='ident'>uint</span>) <span class='op'>-&gt;</span> <span class='ident'>Stream</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;</span> {
-        <span class='macro'>unimplemented</span><span class='macro'>!</span>();
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>take</span>(<span class='self'>self</span>, <span class='ident'>n</span>: <span class='ident'>u64</span>) <span class='op'>-&gt;</span> <span class='ident'>Stream</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;</span> {
+        <span class='kw'>if</span> <span class='ident'>n</span> <span class='op'>==</span> <span class='number'>0</span> {
+            <span class='ident'>Future</span>::<span class='ident'>of</span>(<span class='prelude-val'>None</span>).<span class='ident'>as_stream</span>()
+        } <span class='kw'>else</span> {
+            <span class='self'>self</span>.<span class='ident'>handle</span>(<span class='kw'>move</span> <span class='op'>|</span><span class='ident'>res</span><span class='op'>|</span> {
+                <span class='comment'>// Map the result</span>
+                <span class='ident'>res</span>.<span class='ident'>map</span>(<span class='kw'>move</span> <span class='op'>|</span><span class='ident'>head</span><span class='op'>|</span> {
+                    <span class='comment'>// Map the option</span>
+                    <span class='ident'>head</span>.<span class='ident'>map</span>(<span class='kw'>move</span> <span class='op'>|</span>(<span class='ident'>v</span>, <span class='ident'>rest</span>)<span class='op'>|</span> {
+                        (<span class='ident'>v</span>, <span class='ident'>rest</span>.<span class='ident'>take</span>(<span class='ident'>n</span> <span class='op'>-</span> <span class='number'>1</span>))
+                    })
+                })
+            }).<span class='ident'>as_stream</span>()
+        }
     }
 
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>take_while</span><span class='op'>&lt;</span><span class='ident'>F</span>: <span class='ident'>Fn</span>(<span class='kw-2'>&amp;</span><span class='ident'>T</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> <span class='op'>+</span> <span class='ident'>Send</span><span class='op'>&gt;</span>(<span class='self'>self</span>, <span class='ident'>_f</span>: <span class='ident'>F</span>) <span class='op'>-&gt;</span> <span class='ident'>Stream</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;</span> {
+        <span class='macro'>unimplemented</span><span class='macro'>!</span>();
+    }
+
+    <span class='comment'>// TODO: Figure out what to do when the condition errors</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>take_until</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Async</span><span class='op'>&lt;</span><span class='ident'>U</span>, <span class='ident'>E2</span><span class='op'>&gt;</span>, <span class='ident'>U</span>: <span class='ident'>Send</span>, <span class='ident'>E2</span>: <span class='ident'>Send</span><span class='op'>&gt;</span>(<span class='self'>self</span>, <span class='ident'>cond</span>: <span class='ident'>A</span>) <span class='op'>-&gt;</span> <span class='ident'>Stream</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;</span> {
         <span class='macro'>unimplemented</span><span class='macro'>!</span>();
     }
 }
