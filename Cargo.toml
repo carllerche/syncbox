@@ -4,8 +4,8 @@ name = "syncbox"
 version = "0.1.0"
 authors = ["Carl Lerche <me@carllerche.com>"]
 
-[dependencies]
-log = "*"
+[dependencies.log]
+git = "https://github.com/suhr/log"
 
 [[test]]
 

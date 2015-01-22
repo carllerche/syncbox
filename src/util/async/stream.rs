@@ -6,7 +6,7 @@ pub type Head<T, E> = Option<(T, Stream<T, E>)>;
 
 #[unsafe_no_drop_flag]
 pub struct Stream<T: Send, E: Send> {
-    core: OptionCore<Head<T, E>, E, Produce<T, E>>,
+    core: OptionCore<Stream<T, E>>,
 }
 
 impl<T: Send, E: Send> Stream<T, E> {
@@ -17,8 +17,21 @@ impl<T: Send, E: Send> Stream<T, E> {
         (stream, Produce { core: OptionCore::new(core) })
     }
 
-    pub fn receive<F>(mut self, f: F) where F: FnOnce(AsyncResult<Head<T, E>, E>) + Send {
-        self.core.take().consumer_receive(f);
+    pub fn is_ready(&self) -> bool {
+        self.core.get().consumer_is_ready()
+    }
+
+    pub fn poll(mut self) -> Result<AsyncResult<Head<T, E>, E>, Stream<T, E>> {
+        let core = self.core.take();
+
+        match core.consumer_poll() {
+            Some(res) => Ok(res),
+            None => Err(Stream { core: OptionCore::new(core) })
+        }
+    }
+
+    pub fn ready<F: FnOnce(Stream<T, E>) + Send>(mut self, f: F) {
+        self.core.take().consumer_ready(f);
     }
 
     pub fn await(mut self) -> AsyncResult<Head<T, E>, E> {
@@ -82,23 +95,40 @@ impl<T: Send, E: Send> Stream<T, E> {
         }
     }
 
-    pub fn take_while<F: Fn(&T) -> bool + Send>(self, _f: F) -> Stream<T, E> {
+    pub fn take_while<F>(self, _f: F) -> Stream<T, E>
+            where F: Fn(&T) -> bool + Send {
         unimplemented!();
     }
 
     // TODO: Figure out what to do when the condition errors
-    pub fn take_until<A: Async<U, E2>, U: Send, E2: Send>(self, cond: A) -> Stream<T, E> {
+    pub fn take_until<A>(self, _cond: A) -> Stream<T, E>
+            where A: Async {
         unimplemented!();
     }
 }
 
-impl<T: Send, E: Send> Async<Head<T, E>, E> for Stream<T, E> {
-    fn receive<F: FnOnce(AsyncResult<Head<T, E>, E>) + Send>(self, f: F) {
-        Stream::receive(self, f);
+impl<T: Send, E: Send> Async for Stream<T, E> {
+    type Value = Head<T, E>;
+    type Error = E;
+
+    fn is_ready(&self) -> bool {
+        Stream::is_ready(self)
+    }
+
+    fn poll(self) -> Result<AsyncResult<Head<T, E>, E>, Stream<T, E>> {
+        Stream::poll(self)
+    }
+
+    fn ready<F: FnOnce(Stream<T, E>) + Send>(self, f: F) {
+        Stream::ready(self, f);
+    }
+
+    fn await(self) -> AsyncResult<Head<T, E>, E> {
+        Stream::await(self)
     }
 }
 
-impl<T: Send, E: Send> fmt::Show for Stream<T, E> {
+impl<T: Send, E: Send> fmt::Debug for Stream<T, E> {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         write!(fmt, "Stream<?>")
     }
@@ -114,7 +144,7 @@ impl<T: Send, E: Send> Drop for Stream<T, E> {
 }
 
 pub struct Produce<T: Send, E: Send> {
-    core: OptionCore<Head<T, E>, E, Produce<T, E>>,
+    core: OptionCore<Stream<T, E>>,
 }
 
 impl<T: Send, E: Send> Produce<T, E> {
@@ -135,18 +165,62 @@ impl<T: Send, E: Send> Produce<T, E> {
         self.core.take().complete(Err(AsyncError::wrap(err)), true);
     }
 
-    pub fn receive<F: FnOnce(AsyncResult<Produce<T, E>, ()>) + Send>(mut self, f: F) {
-        self.core.take().producer_receive(f);
+    pub fn is_ready(&self) -> bool {
+        self.core.get().producer_is_ready()
+    }
+
+    fn poll(mut self) -> Result<AsyncResult<Produce<T, E>, ()>, Produce<T, E>> {
+        debug!("Produce::poll; is_ready={}", self.is_ready());
+
+        let core = self.core.take();
+
+        match core.producer_poll() {
+            Some(res) => Ok(res),
+            None => Err(Produce { core: OptionCore::new(core) })
+        }
+    }
+
+    pub fn ready<F: FnOnce(Produce<T, E>) + Send>(mut self, f: F) {
+        self.core.take().producer_ready(f);
+    }
+
+    pub fn await(self) -> AsyncResult<Produce<T, E>, ()> {
+        self.core.get().producer_await();
+        self.poll().ok().expect("Produce not ready")
     }
 }
 
-impl<T: Send, E: Send> FromCore<Head<T, E>, E> for Produce<T, E> {
-    fn from_core(core: Core<Head<T, E>, E, Produce<T, E>>) -> Produce<T, E> {
+
+impl<T: Send, E: Send> Async for Produce<T, E> {
+    type Value = Produce<T, E>;
+    type Error = ();
+
+    fn is_ready(&self) -> bool {
+        Produce::is_ready(self)
+    }
+
+    fn poll(self) -> Result<AsyncResult<Produce<T, E>, ()>, Produce<T, E>> {
+        Produce::poll(self)
+    }
+
+    fn ready<F: FnOnce(Produce<T, E>) + Send>(self, f: F) {
+        Produce::ready(self, f);
+    }
+}
+
+impl<T: Send, E: Send> FromCore for Stream<T, E> {
+    type Producer = Produce<T, E>;
+
+    fn consumer(core: Core<Stream<T, E>>) -> Stream<T, E> {
+        Stream { core: OptionCore::new(core) }
+    }
+
+    fn producer(core: Core<Stream<T, E>>) -> Produce<T, E> {
         Produce { core: OptionCore::new(core) }
     }
 }
 
-impl<T: Send, E: Send> fmt::Show for Produce<T, E> {
+impl<T: Send, E: Send> fmt::Debug for Produce<T, E> {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         write!(fmt, "Produce<?>")
     }
@@ -163,7 +237,7 @@ impl<T: Send, E: Send> Drop for Produce<T, E> {
 
 #[unsafe_no_drop_flag]
 pub struct StreamIter<T: Send, E: Send> {
-    core: OptionCore<Head<T, E>, E, Produce<T, E>>,
+    core: OptionCore<Stream<T, E>>,
 }
 
 impl<T: Send, E: Send> Iterator for StreamIter<T, E> {
@@ -195,7 +269,7 @@ impl<T: Send, E: Send> Drop for StreamIter<T, E> {
     }
 }
 
-pub fn from_core<T: Send, E: Send, P: FromCore<Head<T, E>, E>>(core: Core<Head<T, E>, E, P>) -> Stream<T, E> {
+pub fn from_core<T: Send, E: Send>(core: Core<Future<Head<T, E>, E>>) -> Stream<T, E> {
     use std::mem;
     Stream { core: OptionCore::new(unsafe { mem::transmute(core) })}
 }

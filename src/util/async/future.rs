@@ -9,7 +9,7 @@ use std::fmt;
 
 #[unsafe_no_drop_flag]
 pub struct Future<T: Send, E: Send> {
-    core: OptionCore<T, E, Complete<T, E>>,
+    core: OptionCore<Future<T, E>>,
 }
 
 impl<T: Send, E: Send> Future<T, E> {
@@ -97,7 +97,7 @@ impl<T: Send, E: Send> Future<T, E> {
     /// ```
     pub fn lazy<F, R>(f: F) -> Future<T, E>
         where F: FnOnce() -> R + Send,
-              R: Async<T, E> {
+              R: Async<Value=T, Error=E> {
 
         let (future, complete) = Future::pair();
 
@@ -117,8 +117,21 @@ impl<T: Send, E: Send> Future<T, E> {
         future
     }
 
-    pub fn receive<F: FnOnce(AsyncResult<T, E>) + Send>(mut self, f: F) {
-        self.core.take().consumer_receive(f);
+    pub fn is_ready(&self) -> bool {
+        self.core.get().consumer_is_ready()
+    }
+
+    pub fn poll(mut self) -> Result<AsyncResult<T, E>, Future<T, E>> {
+        let core = self.core.take();
+
+        match core.consumer_poll() {
+            Some(res) => Ok(res),
+            None => Err(Future { core: OptionCore::new(core) })
+        }
+    }
+
+    pub fn ready<F: FnOnce(Future<T, E>) + Send>(mut self, f: F) {
+        self.core.take().consumer_ready(f);
     }
 
     pub fn await(mut self) -> AsyncResult<T, E> {
@@ -143,9 +156,24 @@ impl<T: Send, E: Send> Future<Option<(T, Stream<T, E>)>, E> {
     }
 }
 
-impl<T: Send, E: Send> Async<T, E> for Future<T, E> {
-    fn receive<F: FnOnce(AsyncResult<T, E>) + Send>(self, f: F) {
-        Future::receive(self, f);
+impl<T: Send, E: Send> Async for Future<T, E> {
+    type Value = T;
+    type Error = E;
+
+    fn is_ready(&self) -> bool {
+        Future::is_ready(self)
+    }
+
+    fn poll(self) -> Result<AsyncResult<T, E>, Future<T, E>> {
+        Future::poll(self)
+    }
+
+    fn ready<F: FnOnce(Future<T, E>) + Send>(self, f: F) {
+        Future::ready(self, f);
+    }
+
+    fn await(self) -> AsyncResult<T, E> {
+        Future::await(self)
     }
 }
 
@@ -187,7 +215,7 @@ impl<T: Send, E: Send> Drop for Future<T, E> {
 /// ```
 #[unsafe_no_drop_flag]
 pub struct Complete<T: Send, E: Send> {
-    core: OptionCore<T, E, Complete<T, E>>,
+    core: OptionCore<Future<T, E>>,
 }
 
 impl<T: Send, E: Send> Complete<T, E> {
@@ -202,17 +230,56 @@ impl<T: Send, E: Send> Complete<T, E> {
         self.core.take().complete(Err(AsyncError::wrap(err)), true);
     }
 
-    pub fn receive<F: FnOnce(AsyncResult<Complete<T, E>, ()>) + Send>(mut self, f: F) {
-        self.core.take().producer_receive(f);
+    pub fn is_ready(&self) -> bool {
+        self.core.get().producer_is_ready()
     }
 
-    pub fn await(mut self) -> AsyncResult<Complete<T, E>, ()> {
-        self.core.take().producer_await()
+    fn poll(mut self) -> Result<AsyncResult<Complete<T, E>, ()>, Complete<T, E>> {
+        debug!("Complete::poll; is_ready={}", self.is_ready());
+
+        let core = self.core.take();
+
+        match core.producer_poll() {
+            Some(res) => Ok(res),
+            None => Err(Complete { core: OptionCore::new(core) })
+        }
+    }
+
+    pub fn ready<F: FnOnce(Complete<T, E>) + Send>(mut self, f: F) {
+        self.core.take().producer_ready(f);
+    }
+
+    pub fn await(self) -> AsyncResult<Complete<T, E>, ()> {
+        self.core.get().producer_await();
+        self.poll().ok().expect("Complete not ready")
     }
 }
 
-impl<T: Send, E: Send> FromCore<T, E> for Complete<T, E> {
-    fn from_core(core: Core<T, E, Complete<T, E>>) -> Complete<T, E> {
+impl<T: Send, E: Send> Async for Complete<T, E> {
+    type Value = Complete<T, E>;
+    type Error = ();
+
+    fn is_ready(&self) -> bool {
+        Complete::is_ready(self)
+    }
+
+    fn poll(self) -> Result<AsyncResult<Complete<T, E>, ()>, Complete<T, E>> {
+        Complete::poll(self)
+    }
+
+    fn ready<F: FnOnce(Complete<T, E>) + Send>(self, f: F) {
+        Complete::ready(self, f);
+    }
+}
+
+impl<T: Send, E: Send> FromCore for Future<T, E> {
+    type Producer = Complete<T, E>;
+
+    fn consumer(core: Core<Future<T, E>>) -> Future<T, E> {
+        Future { core: OptionCore::new(core) }
+    }
+
+    fn producer(core: Core<Future<T, E>>) -> Complete<T, E> {
         Complete { core: OptionCore::new(core) }
     }
 }
@@ -221,12 +288,13 @@ impl<T: Send, E: Send> FromCore<T, E> for Complete<T, E> {
 impl<T: Send, E: Send> Drop for Complete<T, E> {
     fn drop(&mut self) {
         if self.core.is_some() {
+            debug!("Complete::drop -- canceling future");
             self.core.take().complete(Err(AsyncError::canceled()), true);
         }
     }
 }
 
-impl<T: Send, E: Send> fmt::Show for Complete<T, E> {
+impl<T: Send, E: Send> fmt::Debug for Complete<T, E> {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         write!(fmt, "Complete {{ ... }}")
     }

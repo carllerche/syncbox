@@ -15,7 +15,7 @@ pub fn test_one_shot_stream_await() {
         debug!(" ~~ awaiting on stream ~~");
         match stream.await() {
             Ok(Some((h, _))) => tx.send(h).unwrap(),
-            head => panic!("nope {:?}", head),
+            _ => panic!("nope"),
         }
     });
 

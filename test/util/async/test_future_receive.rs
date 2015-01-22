@@ -85,12 +85,14 @@ pub fn test_await_complete_before_consumer_receive() {
     let (tx, rx) = channel();
 
     spawn(move || {
+        debug!("~~~~ Complete::await ~~~~ ");
         c.await().unwrap().complete("zomg");
     });
 
     sleep(50);
 
     f.receive(move |res| {
+        debug!("~~~~ Future receive ~~~~ | {}", res.is_ok());
         tx.send(res.unwrap()).unwrap();
     });
 
@@ -104,10 +106,12 @@ pub fn test_await_complete_after_consumer_receive() {
 
     spawn(move || {
         sleep(50);
+        debug!("complete await");
         c.await().unwrap().complete("zomg");
     });
 
     f.receive(move |res| {
+        debug!("future receive");
         tx.send(res.unwrap()).unwrap()
     });
 
@@ -181,8 +185,12 @@ pub fn test_canceling_future_before_producer_receive() {
     drop(f);
 
     c.receive(move |c| {
-        assert!(c.is_err());
-        assert!(c.unwrap_err().is_cancellation());
+        // TODO: Clean this up https://github.com/rust-lang/rfcs/pull/565#issuecomment-71090271
+        match c {
+            Err(e) => assert!(e.is_cancellation()),
+            _ => panic!("nope"),
+        }
+
         tx.send("done").unwrap();
     });
 

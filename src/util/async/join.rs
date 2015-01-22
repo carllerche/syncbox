@@ -58,14 +58,12 @@ macro_rules! component {
     }};
 }
 
-impl<A1, T1, A2, T2, E> ToJoin<(T1, T2), E> for (A1, A2)
-        where A1: Async<T1, E>,
-              A2: Async<T2, E>,
-              T1: Send,
-              T2: Send,
-              E: Send {
+impl<A1: Async<Error=E>, A2: Async<Error=E>, E> ToJoin<(A1::Value, A2::Value), E> for (A1, A2)
+        where E: Send,
+              A1::Value: Send,
+              A2::Value: Send {
 
-    fn join(self, complete: Complete<(T1, T2), E>) {
+    fn join(self, complete: Complete<(<A1 as Async>::Value, <A2 as Async>::Value), E>) {
         let (a1, a2) = self;
         let p = Progress::new((None, None), complete, 2);
 
@@ -74,16 +72,13 @@ impl<A1, T1, A2, T2, E> ToJoin<(T1, T2), E> for (A1, A2)
     }
 }
 
-impl<A1, T1, A2, T2, A3, T3, E> ToJoin<(T1, T2, T3), E> for (A1, A2, A3)
-        where A1: Async<T1, E>,
-              A2: Async<T2, E>,
-              A3: Async<T3, E>,
-              T1: Send,
-              T2: Send,
-              T3: Send,
-              E: Send {
+impl<A1: Async<Error=E>, A2: Async<Error=E>, A3: Async<Error=E>, E> ToJoin<(A1::Value, A2::Value, A3::Value), E> for (A1, A2, A3)
+        where E: Send,
+              A1::Value: Send,
+              A2::Value: Send,
+              A3::Value: Send {
 
-    fn join(self, complete: Complete<(T1, T2, T3), E>) {
+    fn join(self, complete: Complete<(A1::Value, A2::Value, A3::Value), E>) {
         let (a1, a2, a3) = self;
         let p = Progress::new((None, None, None), complete, 3);
 

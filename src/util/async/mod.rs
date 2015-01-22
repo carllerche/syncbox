@@ -33,39 +33,68 @@ use self::AsyncError::*;
 
 // ## TODO
 //
-// * Use associated types. Blocked on:
-//   - rust-lang/rust#20543 (nested type constraints)
-//   - rust-lang/rust#20540 (associated types & default types)
+// * Switch generics to where clauses
+//   - rust-lang/rust#20300 (T::Foo resolution)
 //
 // * Allow Async::or & Async::or_else to change the error type
 //
 // * Improve performance / reduce allocations
 //
-// * Rename Complete::receive -> ready (same with Produce)
+// * Implement Async for Complete -> ready (same with Produce)
 //
-// * Consider a default implementation for Async::await()
-//   - Probably could be don ewhen small callbacks are inlined vs. boxed
+// * Implement Async::await() in terms of ready / take.
+//
+// * Rename Produce -> Generate
 
 mod core;
 mod future;
 mod join;
 mod stream;
 
-pub trait Async<T: Send, E: Send> : Send + Sized {
+pub trait Async : Send + Sized {
+    type Value: Send;
+    type Error: Send;
+
+    /// Returns true if `take` will succeed.
+    fn is_ready(&self) -> bool;
+
+    /// Get the underlying value if present
+    fn poll(self) -> Result<AsyncResult<Self::Value, Self::Error>, Self>;
+
+    /// Invokes the given function when the Async instance is ready to be
+    /// consumed.
+    fn ready<F>(self, f: F) where F: FnOnce(Self) + Send;
 
     /// Invoke the callback with the resolved `Async` result.
-    fn receive<F>(self, f: F) where F: FnOnce(AsyncResult<T, E>) + Send;
+    fn receive<F>(self, f: F)
+            where F: FnOnce(AsyncResult<Self::Value, Self::Error>) + Send {
+        self.ready(move |async| {
+            match async.poll() {
+                Ok(res) => f(res),
+                Err(_) => panic!("ready callback invoked but is not actually ready"),
+            }
+        });
+    }
 
     /// Invoke the callback on the specified `Run` with the resolved `Async`
     /// result.
     fn receive_defer<F, R>(self, f: F, run: R)
-            where F: FnOnce(AsyncResult<T, E>) + Send,
+            where F: FnOnce(AsyncResult<Self::Value, Self::Error>) + Send,
                   R: Run {
         // TODO: It should be possible for the future itself to behave as a
         // Run task in order to reduce an allocation.
         self.receive(move |res| {
             run.run(move || f(res));
         });
+    }
+
+    fn await(self) -> AsyncResult<Self::Value, Self::Error> {
+        use std::sync::mpsc::channel;
+
+        let (tx, rx) = channel();
+
+        self.receive(move |res| tx.send(res).ok().expect("receiver thread died"));
+        rx.recv().ok().expect("async disappeared without a trace")
     }
 
     /*
@@ -75,11 +104,9 @@ pub trait Async<T: Send, E: Send> : Send + Sized {
      */
 
     // Is this needed?
-    fn handle<F, A, U, E2>(self, cb: F) -> Future<U, E2>
-            where F: FnOnce(AsyncResult<T, E>) -> A + Send,
-                  A: Async<U, E2>,
-                  U: Send,
-                  E2: Send {
+    fn handle<F, U: Async>(self, cb: F) -> Future<U::Value, U::Error>
+            where F: FnOnce(AsyncResult<Self::Value, Self::Error>) -> U + Send,
+                  U::Value: Send, U::Error: Send {
         // TODO: Currently a naive implementation. Improve it by reducing
         // required allocations
         let (ret, complete) = Future::pair();
@@ -106,17 +133,14 @@ pub trait Async<T: Send, E: Send> : Send + Sized {
 
     /// If the future completes successfully, returns the complection of
     /// `next`.
-    fn and<A: Async<U, E>, U: Send>(self, next: A) -> Future<U, E>
-            where A: Async<U, E>,
-                  U: Send {
+    fn and<U: Async<Error=Self::Error>>(self, next: U) -> Future<U::Value, Self::Error> {
         self.and_then(move |_| next)
     }
 
     /// Also handles the Future::map case
-    fn and_then<F, A, U>(self, f: F) -> Future<U, E>
-            where F: FnOnce(T) -> A + Send,
-                  A: Async<U, E>,
-                  U: Send {
+    fn and_then<F, U: Async<Error=Self::Error>>(self, f: F) -> Future<U::Value, Self::Error>
+            where F: FnOnce(Self::Value) -> U + Send,
+                  U::Value: Send {
         let (ret, complete) = Future::pair();
 
         complete.receive(move |c| {
@@ -142,13 +166,14 @@ pub trait Async<T: Send, E: Send> : Send + Sized {
         ret
     }
 
-    fn or<A>(self, alt: A) -> Future<T, E> where A: Async<T, E> {
+    fn or<A>(self, alt: A) -> Future<Self::Value, Self::Error>
+            where A: Async<Value=Self::Value, Error=Self::Error> {
         self.or_else(move |_| alt)
     }
 
-    fn or_else<F, A>(self, f: F) -> Future<T, E>
-            where F: FnOnce(AsyncError<E>) -> A + Send,
-                  A: Async<T, E> {
+    fn or_else<F, A>(self, f: F) -> Future<Self::Value, Self::Error>
+            where F: FnOnce(AsyncError<Self::Error>) -> A + Send,
+                  A: Async<Value=Self::Value, Error=Self::Error> {
 
         let (ret, complete) = Future::pair();
 
@@ -181,15 +206,45 @@ pub trait Async<T: Send, E: Send> : Send + Sized {
  *
  */
 
-impl Async<(), ()> for () {
-    fn receive<F: FnOnce(AsyncResult<(), ()>) + Send>(self, f: F) {
-        f(Ok(self));
+impl Async for () {
+    type Value = ();
+    type Error = ();
+
+    fn is_ready(&self) -> bool {
+        true
+    }
+
+    fn poll(self) -> Result<AsyncResult<(), ()>, ()> {
+        Ok(Ok(self))
+    }
+
+    fn ready<F: FnOnce(()) + Send>(self, f: F) {
+        f(self);
+    }
+
+    fn await(self) -> AsyncResult<(), ()> {
+        Ok(self)
     }
 }
 
-impl<T: Send, E: Send> Async<T, E> for AsyncResult<T, E> {
-    fn receive<F: FnOnce(AsyncResult<T, E>) + Send>(self, f: F) {
+impl<T: Send, E: Send> Async for AsyncResult<T, E> {
+    type Value = T;
+    type Error = E;
+
+    fn is_ready(&self) -> bool {
+        true
+    }
+
+    fn poll(self) -> Result<AsyncResult<T, E>, AsyncResult<T, E>> {
+        Ok(self)
+    }
+
+    fn ready<F: FnOnce(AsyncResult<T, E>) + Send>(self, f: F) {
         f(self);
+    }
+
+    fn await(self) -> AsyncResult<T, E> {
+        self
     }
 }
 
@@ -244,7 +299,7 @@ impl<E: Send> AsyncError<E> {
     }
 }
 
-impl<E: Send + fmt::Show> fmt::Show for AsyncError<E> {
+impl<E: Send + fmt::Debug> fmt::Display for AsyncError<E> {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             AsyncError::ExecutionError(ref e) => write!(fmt, "ExecutionError({:?})", e),
@@ -260,12 +315,12 @@ impl<E: Send + fmt::Show> fmt::Show for AsyncError<E> {
  */
 
 // Needed to allow virtual dispatch to Receive
-trait BoxedReceive<T: Send, E: Send> : Send {
-    fn receive_boxed(self: Box<Self>, val: AsyncResult<T, E>);
+trait BoxedReceive<T> : Send {
+    fn receive_boxed(self: Box<Self>, val: T);
 }
 
-impl<F: FnOnce(AsyncResult<T, E>) + Send, T: Send, E: Send> BoxedReceive<T, E> for F {
-    fn receive_boxed(self: Box<F>, val: AsyncResult<T, E>) {
+impl<F: FnOnce(T) + Send, T> BoxedReceive<T> for F {
+    fn receive_boxed(self: Box<F>, val: T) {
         (*self)(val)
     }
 }

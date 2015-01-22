@@ -1,12 +1,11 @@
 #[allow(dead_code)]
 
 use self::Lifecycle::*;
-use self::WaitStrategy::*;
-use super::{BoxedReceive, AsyncResult, AsyncError};
+use super::{Async, BoxedReceive, AsyncResult, AsyncError};
 use std::{fmt, mem, ptr};
 use std::num::FromPrimitive;
 use std::sync::atomic;
-use std::sync::atomic::{AtomicUint, Ordering};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::atomic::Ordering::{Acquire, Relaxed, Release};
 use std::thread::Thread;
 use alloc::heap;
@@ -19,38 +18,81 @@ use alloc::heap;
 
 // Core implementation of Future & Stream
 #[unsafe_no_drop_flag]
-pub struct Core<T: Send, E: Send, P: FromCore<T, E>> {
-    ptr: *mut CoreInner<T, E, P>,
+pub struct Core<A: Async + FromCore> {
+    ptr: *mut CoreInner<A>,
 }
 
-impl<T: Send, E: Send, P: FromCore<T, E>> Core<T, E, P> {
-    pub fn new() -> Core<T, E, P> {
-        let ptr = Box::new(CoreInner::<T, E, P>::new());
+impl<A: Async + FromCore> Core<A> {
+    pub fn new() -> Core<A> {
+        let ptr = Box::new(CoreInner::<A>::new());
         Core { ptr: unsafe { mem::transmute(ptr) }}
     }
 
-    pub fn with_value(val: AsyncResult<T, E>) -> Core<T, E, P> {
-        let ptr = Box::new(CoreInner::<T, E, P>::with_value(val));
+    pub fn with_value(val: AsyncResult<A::Value, A::Error>) -> Core<A> {
+        let ptr = Box::new(CoreInner::<A>::with_value(val));
         Core { ptr: unsafe { mem::transmute(ptr) }}
     }
 
-    pub fn consumer_await(&self) -> AsyncResult<T, E> {
-        self.inner().consumer_await()
+    pub fn consumer_is_ready(&self) -> bool {
+        self.inner().consumer_is_ready()
     }
 
-    pub fn producer_await(&self) -> AsyncResult<P, ()> {
-        self.inner().producer_await()
+    pub fn consumer_poll(&self) -> Option<AsyncResult<A::Value, A::Error>> {
+        self.inner().consumer_poll()
     }
 
-    pub fn consumer_receive<F: FnOnce(AsyncResult<T, E>) + Send>(&self, f: F) {
-        self.inner().consumer_receive(f);
+    pub fn consumer_await(&self) -> AsyncResult<A::Value, A::Error> {
+        debug!("Core::consumer_await");
+
+        // Ensure not already consuming
+        if self.inner().state.load(Relaxed).is_invoking_consumer() {
+            panic!("cannot block thread when in a callback");
+        }
+
+        let th = Thread::current();
+        self.inner().consumer_ready(move |_| th.unpark());
+
+        while !self.consumer_is_ready() {
+            Thread::park();
+        }
+
+        self.consumer_poll().expect("result not ready")
     }
 
-    pub fn producer_receive<F: FnOnce(AsyncResult<P, ()>) + Send>(&self, f: F) {
-        self.inner().producer_receive(f);
+    pub fn consumer_ready<F: FnOnce(A) + Send>(&self, f: F) {
+        self.inner().consumer_ready(move |core| f(FromCore::consumer(core)));
     }
 
-    pub fn complete(&self, val: AsyncResult<T, E>, last: bool) {
+    pub fn producer_is_ready(&self) -> bool {
+        self.inner().producer_is_ready()
+    }
+
+    pub fn producer_poll(&self) -> Option<AsyncResult<A::Producer, ()>> {
+        self.inner().producer_poll()
+    }
+
+    pub fn producer_await(&self) {
+        debug!("Core::producer_await");
+
+        // Ensure not already producing
+        if self.inner().state.load(Relaxed).is_invoking_producer() {
+            panic!("cannot block thread when in a callback");
+        }
+
+        let th = Thread::current();
+
+        self.inner().producer_ready(move |_| th.unpark());
+
+        while !self.producer_is_ready() {
+            Thread::park();
+        }
+    }
+
+    pub fn producer_ready<F: FnOnce(A::Producer) + Send>(&self, f: F) {
+        self.inner().producer_ready(move |core| f(FromCore::producer(core)));
+    }
+
+    pub fn complete(&self, val: AsyncResult<A::Value, A::Error>, last: bool) {
         self.inner().complete(val, last);
     }
 
@@ -59,12 +101,12 @@ impl<T: Send, E: Send, P: FromCore<T, E>> Core<T, E, P> {
     }
 
     #[inline]
-    fn inner(&self) -> &CoreInner<T, E, P> {
+    fn inner(&self) -> &CoreInner<A> {
         unsafe { &*self.ptr }
     }
 
     #[inline]
-    fn inner_mut(&mut self) -> &mut CoreInner<T, E, P> {
+    fn inner_mut(&mut self) -> &mut CoreInner<A> {
         unsafe { &mut *self.ptr }
     }
 
@@ -73,20 +115,20 @@ impl<T: Send, E: Send, P: FromCore<T, E>> Core<T, E, P> {
     }
 }
 
-impl<T: Send, E: Send, P: FromCore<T, E>> Clone for Core<T, E, P> {
-    fn clone(&self) -> Core<T, E, P> {
+impl<A: Async + FromCore> Clone for Core<A> {
+    fn clone(&self) -> Core<A> {
         // Increments ref count and returns a new core
         self.inner().core()
     }
 }
 
 #[unsafe_destructor]
-impl<T: Send, E: Send, P: FromCore<T, E>> Drop for Core<T, E, P> {
+impl<A: Async + FromCore> Drop for Core<A> {
     fn drop(&mut self) {
         // Handle memory already zeroed out
         if self.ptr.is_null() { return; }
 
-        if self.inner().state.ref_dec(Release) != 1 {
+        if self.inner().ref_dec(Release) != 1 {
             return;
         }
 
@@ -120,13 +162,13 @@ impl<T: Send, E: Send, P: FromCore<T, E>> Drop for Core<T, E, P> {
 
             heap::deallocate(
                 self.ptr as *mut u8,
-                mem::size_of::<CoreInner<T, E, P>>(),
-                mem::min_align_of::<CoreInner<T, E, P>>());
+                mem::size_of::<CoreInner<A>>(),
+                mem::min_align_of::<CoreInner<A>>());
         }
     }
 }
 
-unsafe impl<T: Send, E: Send, P: FromCore<T, E>> Send for Core<T, E, P> {
+unsafe impl<A: Async + FromCore> Send for Core<A> {
 }
 
 /*
@@ -135,13 +177,13 @@ unsafe impl<T: Send, E: Send, P: FromCore<T, E>> Send for Core<T, E, P> {
  *
  */
 
-pub struct OptionCore<T: Send, E: Send, P: FromCore<T, E>> {
-    core: Core<T, E, P>,
+pub struct OptionCore<A: Async + FromCore> {
+    core: Core<A>,
 }
 
-impl<T: Send, E: Send, P: FromCore<T, E>> OptionCore<T, E, P> {
+impl<A: Async + FromCore> OptionCore<A> {
     #[inline]
-    pub fn new(core: Core<T, E, P>) -> OptionCore<T, E, P> {
+    pub fn new(core: Core<A>) -> OptionCore<A> {
         OptionCore { core: core }
     }
 
@@ -150,20 +192,20 @@ impl<T: Send, E: Send, P: FromCore<T, E>> OptionCore<T, E, P> {
         !self.core.is_null()
     }
 
-    pub fn get(&self) -> &Core<T, E, P> {
+    pub fn get(&self) -> &Core<A> {
         assert!(self.is_some(), "Core has already been consumed");
         &self.core
     }
 
     #[inline]
-    pub fn take(&mut self) -> Core<T, E, P> {
+    pub fn take(&mut self) -> Core<A> {
         assert!(self.is_some(), "Core has already been consumed");
         unsafe { mem::replace(&mut self.core, mem::zeroed()) }
     }
 }
 
-impl<T: Send, E: Send, P: FromCore<T, E>> Clone for OptionCore<T, E, P> {
-    fn clone(&self) -> OptionCore<T, E, P> {
+impl<A: Async + FromCore> Clone for OptionCore<A> {
+    fn clone(&self) -> OptionCore<A> {
         OptionCore { core: self.core.clone() }
     }
 }
@@ -174,8 +216,12 @@ impl<T: Send, E: Send, P: FromCore<T, E>> Clone for OptionCore<T, E, P> {
  *
  */
 
-pub trait FromCore<T: Send, E: Send> : Send {
-    fn from_core(core: Core<T, E, Self>) -> Self;
+pub trait FromCore {
+    type Producer: Send;
+
+    fn consumer(core: Core<Self>) -> Self;
+
+    fn producer(core: Core<Self>) -> Self::Producer;
 }
 
 /*
@@ -185,16 +231,18 @@ pub trait FromCore<T: Send, E: Send> : Send {
  */
 
 
-struct CoreInner<T: Send, E: Send, P: FromCore<T, E>> {
+struct CoreInner<A: Async + FromCore> {
+    refs: AtomicUsize,
     state: AtomicState,
-    consumer_wait: Option<WaitStrategy<T, E>>,
-    producer_wait: Option<WaitStrategy<P, ()>>,
-    val: AsyncResult<T, E>, // May be uninitialized
+    consumer_wait: Option<Callback<A>>,
+    producer_wait: Option<Callback<A>>,
+    val: AsyncResult<A::Value, A::Error>, // May be uninitialized
 }
 
-impl<T: Send, E: Send, P: FromCore<T, E>> CoreInner<T, E, P> {
-    fn new() -> CoreInner<T, E, P> {
+impl<A: Async + FromCore> CoreInner<A> {
+    fn new() -> CoreInner<A> {
         CoreInner {
+            refs: AtomicUsize::new(1),
             state: AtomicState::new(),
             consumer_wait: None,
             producer_wait: None,
@@ -202,8 +250,9 @@ impl<T: Send, E: Send, P: FromCore<T, E>> CoreInner<T, E, P> {
         }
     }
 
-    fn with_value(val: AsyncResult<T, E>) -> CoreInner<T, E, P> {
+    fn with_value(val: AsyncResult<A::Value, A::Error>) -> CoreInner<A> {
         CoreInner {
+            refs: AtomicUsize::new(1),
             state: AtomicState::of(Ready),
             consumer_wait: None,
             producer_wait: None,
@@ -211,49 +260,37 @@ impl<T: Send, E: Send, P: FromCore<T, E>> CoreInner<T, E, P> {
         }
     }
 
-    fn consumer_await(&self) -> AsyncResult<T, E> {
-        let mut curr = self.state.load(Relaxed);
-
-        // There already is a value, just return
-        if !curr.is_ready() {
-            if curr.is_consuming() {
-                // If `await()` has been called from within a receive callback
-                // for the same future, panic. This is not a supported scenario
-                // and could cause deadlocks.
-                panic!("cannot block thread when in a callback");
-            }
-
-            // Store the wait strategy
-            self.put_consumer_wait(WaitStrategy::parked());
-
-            // Exec wait strategy
-            curr = self.consumer_wait(curr);
-
-            while !curr.is_ready() {
-                Thread::park();
-                curr = self.state.load(Relaxed);
-            }
-        }
-
-        // Get completed value
-        self.consume_val(curr, false)
+    pub fn consumer_is_ready(&self) -> bool {
+        self.state.load(Relaxed).is_ready()
     }
 
-    fn consumer_receive<F: FnOnce(AsyncResult<T, E>) + Send>(&self, f: F) {
+    pub fn consumer_poll(&self) -> Option<AsyncResult<A::Value, A::Error>> {
+        let curr = self.state.load(Relaxed);
+
+        debug!("Core::consumer_poll; state={:?}", curr);
+
+        if !curr.is_ready() {
+            return None;
+        }
+
+        Some(self.consume_val(curr))
+    }
+
+    fn consumer_ready<F: FnOnce(Core<A>) + Send>(&self, f: F) {
         let mut curr = self.state.load(Relaxed);
 
-        debug!("Core::receive; state={:?}", curr);
+        debug!("Core::consumer_ready; state={:?}", curr);
 
         // If the future is already complete, then there is no need to move the
         // callback to a Box. Consume the future result directly.
-        if curr.is_ready() && !curr.is_consuming() {
-            // Get the value transitioning the state to New / ProducerWait
-            let val = self.consume_val(curr, true);
+        if curr.is_ready() && !curr.is_invoking_consumer() {
+            // Transition the state to New / ProducerWait
+            self.state.invoking_consumer_ready();
 
             debug!("  - Invoking consumer");
-            f(val);
+            f(self.core());
 
-            curr = self.state.done_consuming(Relaxed);
+            curr = self.state.done_invoking_consumer_ready();
 
             if curr.is_consumer_notify() {
                 self.notify_consumer_loop(curr);
@@ -264,7 +301,7 @@ impl<T: Send, E: Send, P: FromCore<T, E>> CoreInner<T, E, P> {
 
         // At this point, odds are that the callback will happen async. Move
         // the callback to a box.
-        self.put_consumer_wait(Callback(Box::new(f)));
+        self.put_consumer_wait(Box::new(f));
 
         // Execute wait strategy
         self.consumer_wait(curr);
@@ -275,6 +312,8 @@ impl<T: Send, E: Send, P: FromCore<T, E>> CoreInner<T, E, P> {
     fn consumer_wait(&self, mut curr: State) -> State {
         let mut next;
         let mut notify_producer;
+
+        debug!("Core::consumer_wait; state={:?}", curr);
 
         loop {
             notify_producer = false;
@@ -287,7 +326,7 @@ impl<T: Send, E: Send, P: FromCore<T, E>> CoreInner<T, E, P> {
                     curr.with_lifecycle(ConsumerWait)
                 }
                 ProducerWait => {
-                    if curr.is_producing() {
+                    if curr.is_invoking_producer() {
                         curr.with_lifecycle(ProducerNotify)
                     } else {
                         notify_producer = true;
@@ -316,6 +355,7 @@ impl<T: Send, E: Send, P: FromCore<T, E>> CoreInner<T, E, P> {
         }
 
         if notify_producer {
+            debug!("  - notifying producer");
             // Use a fence to acquire the producer callback
             atomic::fence(Acquire);
 
@@ -329,7 +369,8 @@ impl<T: Send, E: Send, P: FromCore<T, E>> CoreInner<T, E, P> {
     fn notify_consumer(&self, curr: State) -> State {
         // Already in a consumer callback, track that it should be invoked
         // again
-        if curr.is_consuming() {
+        if curr.is_invoking_consumer() {
+            debug!("  - already consuming, defer");
             return self.defer_consumer_notify(curr);
         }
 
@@ -356,73 +397,61 @@ impl<T: Send, E: Send, P: FromCore<T, E>> CoreInner<T, E, P> {
 
     fn notify_consumer_loop(&self, mut curr: State) -> State {
         loop {
-            match self.take_consumer_wait() {
-                Callback(cb) => {
-                    // Take the value, indicating to transition to consuming
-                    let val = self.consume_val(curr, true);
+            let cb = self.take_consumer_wait();
 
-                    // Invoke the callback
-                    debug!("  - notifying consumer");
-                    cb.receive_boxed(val);
-                    debug!("  - consumer notified");
+            self.state.invoking_consumer_ready();
 
-                    curr = self.state.done_consuming(Relaxed);
+            // Invoke the callback
+            debug!("  - notifying consumer");
+            cb.receive_boxed(self.core());
+            debug!("  - consumer notified");
 
-                    if curr.is_consumer_notify() {
-                        continue;
-                    }
+            curr = self.state.done_invoking_consumer_ready();
 
-                    return curr;
-                }
-                Parked(thread) => {
-                    thread.unpark();
-                    return curr;
-                }
+            if curr.is_consumer_notify() {
+                continue;
             }
+
+            return curr;
         }
     }
 
-    fn producer_await(&self) -> AsyncResult<P, ()> {
-        let mut curr = self.state.load(Relaxed);
+    fn producer_is_ready(&self) -> bool {
+        let curr = self.state.load(Relaxed);
+        curr.is_producer_ready()
+    }
 
-        debug!("Core::producer_await; state={:?}", curr);
+    pub fn producer_poll(&self) -> Option<AsyncResult<A::Producer, ()>> {
+        let curr = self.state.load(Relaxed);
+
+        debug!("Core::producer_poll; state={:?}", curr);
 
         if !curr.is_producer_ready() {
-            if curr.is_producing() {
-                // If `await()` has been called from within a producer callback
-                // for the same future, panic. This is not a supported scenario
-                // and could cause deadlocks.
-                panic!("cannot block thread when in a callback");
-            }
-
-            self.put_producer_wait(WaitStrategy::parked());
-
-            curr = self.producer_wait(curr);
-
-            while !curr.is_producer_ready() {
-                Thread::park();
-                curr = self.state.load(Relaxed);
-            }
+            return None;
         }
 
-        self.producer_result(curr)
+        if curr.is_canceled() {
+            return Some(Err(AsyncError::canceled()));
+        }
+
+        Some(Ok(FromCore::producer(self.core())))
     }
 
-    fn producer_receive<F: FnOnce(AsyncResult<P, ()>) + Send>(&self, f: F) {
+    fn producer_ready<F: FnOnce(Core<A>) + Send>(&self, f: F) {
         let mut curr = self.state.load(Relaxed);
 
-        debug!("Core::producer_receive; state={:?}", curr);
+        debug!("Core::producer_ready; state={:?}", curr);
 
         // Don't recurse produce callbacks
-        if !curr.is_producing() {
+        if !curr.is_invoking_producer() {
             if curr.is_consumer_wait() || curr.is_canceled() {
                 // The producer callback is about to be invoked
-                curr = self.state.produce(curr, true, Relaxed);
+                self.state.invoking_producer_ready(curr);
 
                 debug!("  - Invoking producer");
-                f(self.producer_result(curr));
+                f(self.core());
 
-                curr = self.state.done_producing(Relaxed);
+                curr = self.state.done_invoking_producer_ready();
 
                 if curr.is_producer_notify() {
                     self.notify_producer_loop(curr);
@@ -434,7 +463,7 @@ impl<T: Send, E: Send, P: FromCore<T, E>> CoreInner<T, E, P> {
 
         // At this point, odds are that the callback will happen async. Move
         // the callback to a box.
-        self.put_producer_wait(Callback(Box::new(f)));
+        self.put_producer_wait(Box::new(f));
 
         // Do producer
         self.producer_wait(curr);
@@ -497,7 +526,7 @@ impl<T: Send, E: Send, P: FromCore<T, E>> CoreInner<T, E, P> {
                     curr.with_lifecycle(Canceled)
                 }
                 ProducerWait => {
-                    if curr.is_producing() {
+                    if curr.is_invoking_producer() {
                         curr.with_lifecycle(ProducerNotifyCanceled)
                     } else {
                         notify_producer = true;
@@ -505,10 +534,12 @@ impl<T: Send, E: Send, P: FromCore<T, E>> CoreInner<T, E, P> {
                     }
                 }
                 Ready => {
+                    debug!("   ~~~ WARN!! Transitioning from Ready -> Cancel ~~~");
                     read_val = true;
                     curr.with_lifecycle(Canceled)
                 }
                 ReadyProducerWait => {
+                    debug!("   ~~~ WARN!! Transitioning from Ready -> Cancel ~~~");
                     read_val = true;
                     notify_producer = true;
                     curr.with_lifecycle(Canceled)
@@ -542,11 +573,11 @@ impl<T: Send, E: Send, P: FromCore<T, E>> CoreInner<T, E, P> {
         }
     }
 
-    fn complete(&self, val: AsyncResult<T, E>, last: bool) {
+    fn complete(&self, val: AsyncResult<A::Value, A::Error>, last: bool) {
         let mut curr = self.state.load(Relaxed);
         let mut next;
 
-        debug!("Core::complete; state={:?}; last={:?}", curr, last);
+        debug!("Core::complete; state={:?}; success={}; last={:?}", curr, val.is_ok(), last);
 
         // Do nothing if canceled
         if curr.is_canceled() {
@@ -598,7 +629,7 @@ impl<T: Send, E: Send, P: FromCore<T, E>> CoreInner<T, E, P> {
     fn notify_producer(&self, curr: State) -> State {
         debug!("Core::notify_producer");
 
-        if curr.is_producing() {
+        if curr.is_invoking_producer() {
             return self.defer_producer_notify(curr);
         }
 
@@ -632,94 +663,104 @@ impl<T: Send, E: Send, P: FromCore<T, E>> CoreInner<T, E, P> {
     // one as long as the state is ProducerNotify
     fn notify_producer_loop(&self, mut curr: State) -> State {
         loop {
-            match self.take_producer_wait() {
-                Callback(cb) => {
-                    // Transition the state to track that a producer callback
-                    // is being invoked
-                    curr = self.state.produce(curr, true, Relaxed);
+            let cb = self.take_producer_wait();
 
-                    debug!("  - Invoking producer; state={:?}", curr);
+            // Transition the state to track that a producer callback
+            // is being invoked
+            curr = self.state.invoking_producer_ready(curr);
 
-                    // Invoke the callback
-                    cb.receive_boxed(self.producer_result(curr));
+            debug!("  - Invoking producer; state={:?}", curr);
 
-                    // Track that the callback is done being invoked
-                    curr = self.state.done_producing(Relaxed);
+            // Invoke the callback
+            cb.receive_boxed(self.core());
 
-                    debug!("  - Producer invoked; state={:?}", curr);
+            // Track that the callback is done being invoked
+            curr = self.state.done_invoking_producer_ready();
 
-                    if curr.is_producer_notify() {
-                        continue;
-                    }
+            debug!("  - Producer invoked; state={:?}", curr);
 
-                    return curr;
-                }
-                Parked(thread) => {
-                    thread.unpark();
-                    return curr;
-                }
+            if curr.is_producer_notify() {
+                continue;
             }
+
+            return curr;
         }
     }
 
-    fn producer_result(&self, curr: State) -> AsyncResult<P, ()> {
-        if !curr.is_canceled() {
-            Ok(FromCore::from_core(self.core()))
-        } else {
-            Err(AsyncError::canceled())
-        }
-    }
-
-    fn consume_val(&self, curr: State, callback: bool) -> AsyncResult<T, E> {
+    fn consume_val(&self, mut curr: State) -> AsyncResult<A::Value, A::Error> {
         // Ensure that the memory is synced
         atomic::fence(Acquire);
 
         // Get the value
         let ret = unsafe { self.take_val() };
 
-        // Transition the state
-        self.state.consume(curr, callback, Relaxed);
+        loop {
+            let next = match curr.lifecycle() {
+                Ready | ConsumerNotify => {
+                    curr.with_lifecycle(New)
+                }
+                ReadyProducerWait => {
+                    curr.with_lifecycle(ProducerWait)
+                }
+                _ => panic!("unexpected state {:?}", curr),
+            };
 
-        ret
-    }
+            let actual = self.state.compare_and_swap(curr, next, Relaxed);
 
-    unsafe fn put_val(&self, val: AsyncResult<T, E>) {
-        ptr::write(mem::transmute(&self.val), val);
-    }
+            if curr == actual {
+                debug!("  - transitioned from {:?} to {:?} (consuming value)", curr, next);
+                return ret;
+            }
 
-    unsafe fn take_val(&self) -> AsyncResult<T, E> {
-        ptr::read(&self.val)
-    }
-
-    fn put_consumer_wait(&self, wait: WaitStrategy<T, E>) {
-        unsafe {
-            let s: &mut CoreInner<T, E, P> = mem::transmute(self);
-            s.consumer_wait = Some(wait);
+            curr = actual
         }
     }
 
-    fn take_consumer_wait(&self) -> WaitStrategy<T, E> {
+    unsafe fn put_val(&self, val: AsyncResult<A::Value, A::Error>) {
+        ptr::write(mem::transmute(&self.val), val);
+    }
+
+    unsafe fn take_val(&self) -> AsyncResult<A::Value, A::Error> {
+        ptr::read(&self.val)
+    }
+
+    fn put_consumer_wait(&self, cb: Callback<A>) {
         unsafe {
-            let s: &mut CoreInner<T, E, P> = mem::transmute(self);
+            let s: &mut CoreInner<A> = mem::transmute(self);
+            s.consumer_wait = Some(cb);
+        }
+    }
+
+    fn take_consumer_wait(&self) -> Callback<A> {
+        unsafe {
+            let s: &mut CoreInner<A> = mem::transmute(self);
             s.consumer_wait.take().expect("consumer_wait is none")
         }
     }
 
-    fn put_producer_wait(&self, wait: WaitStrategy<P, ()>) {
+    fn put_producer_wait(&self, cb: Callback<A>) {
         unsafe {
-            let s: &mut CoreInner<T, E, P> = mem::transmute(self);
-            s.producer_wait = Some(wait);
+            let s: &mut CoreInner<A> = mem::transmute(self);
+            s.producer_wait = Some(cb);
         }
     }
 
-    fn take_producer_wait(&self) -> WaitStrategy<P, ()> {
+    fn take_producer_wait(&self) -> Callback<A> {
         unsafe {
-            let s: &mut CoreInner<T, E, P> = mem::transmute(self);
+            let s: &mut CoreInner<A> = mem::transmute(self);
             s.producer_wait.take().expect("producer_wait is none")
         }
     }
 
-    fn core(&self) -> Core<T, E, P> {
+    fn ref_inc(&self, order: Ordering) -> usize {
+        self.refs.fetch_add(1, order)
+    }
+
+    fn ref_dec(&self, order: Ordering) -> usize {
+        self.refs.fetch_sub(1, order)
+    }
+
+    fn core(&self) -> Core<A> {
         // Using a relaxed ordering is alright here, as knowledge of the original reference
         // prevents other threads from erroneously deleting the object.
         //
@@ -729,24 +770,24 @@ impl<T: Send, E: Send, P: FromCore<T, E>> CoreInner<T, E, P> {
         // must already provide any required synchronization.
         //
         // [1]: (www.boost.org/doc/libs/1_55_0/doc/html/atomic/usage_examples.html)
-        self.state.ref_inc(Relaxed);
+        self.ref_inc(Relaxed);
         Core { ptr: unsafe { mem::transmute(self) } }
     }
 }
 
 struct AtomicState {
-    atomic: AtomicUint,
+    atomic: AtomicUsize,
 }
 
 impl AtomicState {
     fn new() -> AtomicState {
         let initial = State::new();
-        AtomicState { atomic: AtomicUint::new(initial.as_uint()) }
+        AtomicState { atomic: AtomicUsize::new(initial.as_uint()) }
     }
 
     fn of(lifecycle: Lifecycle) -> AtomicState {
         let initial = State::new().with_lifecycle(lifecycle);
-        AtomicState { atomic: AtomicUint::new(initial.as_uint()) }
+        AtomicState { atomic: AtomicUsize::new(initial.as_uint()) }
     }
 
     fn load(&self, order: Ordering) -> State {
@@ -759,72 +800,28 @@ impl AtomicState {
         State::load(ret)
     }
 
-    fn ref_inc(&self, order: Ordering) {
-        self.atomic.fetch_add(1 << REF_COUNT_OFFSET, order);
+    fn invoking_consumer_ready(&self) {
+        self.atomic.fetch_add(CONSUMING_MASK, Relaxed);
     }
 
-    fn ref_dec(&self, order: Ordering) -> uint {
-        let prev = self.atomic.fetch_sub(1 << REF_COUNT_OFFSET, order);
-        prev >> REF_COUNT_OFFSET
-    }
-
-    fn consume(&self, mut curr: State, callback: bool, order: Ordering) -> State {
-        loop {
-            let next = match curr.lifecycle() {
-                Ready | ConsumerNotify => {
-                    if callback {
-                        curr.with_lifecycle(New).with_consuming()
-                    } else {
-                        curr.with_lifecycle(New)
-                    }
-                }
-                ReadyProducerWait => {
-                    if callback {
-                        curr.with_lifecycle(ProducerWait).with_consuming()
-                    } else {
-                        curr.with_lifecycle(ProducerWait)
-                    }
-                }
-                _ => panic!("unexpected state {:?}", curr),
-            };
-
-            let actual = self.compare_and_swap(curr, next, order);
-
-            if curr == actual {
-                debug!("  - transitioned from {:?} to {:?} (consuming value)", curr, next);
-                return next;
-            }
-
-            curr = actual
-        }
-    }
-
-    fn done_consuming(&self, order: Ordering) -> State {
-        let val = self.atomic.fetch_sub(CONSUMING_MASK, order);
+    fn done_invoking_consumer_ready(&self) -> State {
+        let val = self.atomic.fetch_sub(CONSUMING_MASK, Relaxed);
         State { val: val - CONSUMING_MASK }
     }
 
-    fn produce(&self, mut curr: State, callback: bool, order: Ordering) -> State {
+    fn invoking_producer_ready(&self, mut curr: State) -> State {
         loop {
             let next = match curr.lifecycle() {
                 ConsumerWait | ProducerNotify => {
-                    if callback {
-                        curr.with_lifecycle(ConsumerWait).with_producing()
-                    } else {
-                        curr.with_lifecycle(ConsumerWait)
-                    }
+                    curr.with_lifecycle(ConsumerWait).with_producing()
                 }
                 Canceled => {
-                    if callback {
-                        curr.with_producing()
-                    } else {
-                        curr
-                    }
+                    curr.with_producing()
                 }
                 _ => panic!("unexpected state {:?}", curr),
             };
 
-            let actual = self.compare_and_swap(curr, next, order);
+            let actual = self.compare_and_swap(curr, next, Relaxed);
 
             if curr == actual {
                 debug!("  - transitioned from {:?} to {:?}", curr, next);
@@ -835,8 +832,8 @@ impl AtomicState {
         }
     }
 
-    fn done_producing(&self, order: Ordering) -> State {
-        let val = self.atomic.fetch_sub(PRODUCING_MASK, order);
+    fn done_invoking_producer_ready(&self) -> State {
+        let val = self.atomic.fetch_sub(PRODUCING_MASK, Relaxed);
         State { val: val - PRODUCING_MASK }
     }
 }
@@ -846,22 +843,17 @@ struct State {
     val: uint,
 }
 
-const LIFECYCLE_MASK:   uint = 15;
-const CONSUMING_MASK:   uint = 1 << 4;
-const PRODUCING_MASK:   uint = 1 << 5;
-const REF_COUNT_OFFSET: uint = 6;
+const LIFECYCLE_MASK: uint = 15;
+const CONSUMING_MASK: uint = 1 << 4;
+const PRODUCING_MASK: uint = 1 << 5;
 
 impl State {
     fn new() -> State {
-        State { val: 1 << REF_COUNT_OFFSET }
+        State { val: 0 }
     }
 
     fn load(val: uint) -> State {
         State { val: val }
-    }
-
-    fn ref_count(&self) -> uint {
-        self.val >> REF_COUNT_OFFSET
     }
 
     fn lifecycle(&self) -> Lifecycle {
@@ -874,19 +866,15 @@ impl State {
         State { val: val }
     }
 
-    fn with_consuming(&self) -> State {
-        State { val: self.val | CONSUMING_MASK }
-    }
-
     fn with_producing(&self) -> State {
         State { val: self.val | PRODUCING_MASK }
     }
 
-    fn is_consuming(&self) -> bool {
+    fn is_invoking_consumer(&self) -> bool {
         self.val & CONSUMING_MASK == CONSUMING_MASK
     }
 
-    fn is_producing(&self) -> bool {
+    fn is_invoking_producer(&self) -> bool {
         self.val & PRODUCING_MASK == PRODUCING_MASK
     }
 
@@ -934,23 +922,14 @@ impl State {
     }
 }
 
-impl fmt::Show for State {
+impl fmt::Debug for State {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmt, "State[refs={}; consuming={}; producing={}; lifecycle={:?}]",
-               self.ref_count(), self.is_consuming(), self.is_producing(), self.lifecycle())
+        write!(fmt, "State[consuming={}; producing={}; lifecycle={:?}]",
+               self.is_invoking_consumer(), self.is_invoking_producer(), self.lifecycle())
     }
 }
 
-enum WaitStrategy<T, E> {
-    Callback(Box<BoxedReceive<T, E>>),
-    Parked(Thread),
-}
-
-impl<T, E> WaitStrategy<T, E> {
-    fn parked() -> WaitStrategy<T, E> {
-        Parked(Thread::current())
-    }
-}
+type Callback<A> = Box<BoxedReceive<Core<A>>>;
 
 #[derive(Show, FromPrimitive, PartialEq, Eq)]
 enum Lifecycle {
@@ -977,20 +956,11 @@ enum Lifecycle {
 
 #[cfg(test)]
 mod test {
-    use super::{Core, State};
+    use super::State;
     use std::mem;
-    use std::sync::atomic::Ordering::Relaxed;
 
     #[test]
     pub fn test_struct_sizes() {
         assert_eq!(mem::size_of::<State>(), mem::size_of::<uint>());
-    }
-
-    #[test]
-    pub fn test_initial_ref_count() {
-        use util::async::Complete;
-
-        let c = Core::<uint, (), Complete<uint, ()>>::new();
-        assert_eq!(1, c.inner().state.load(Relaxed).ref_count());
     }
 }
