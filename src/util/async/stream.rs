@@ -10,11 +10,11 @@ pub struct Stream<T: Send, E: Send> {
 }
 
 impl<T: Send, E: Send> Stream<T, E> {
-    pub fn pair() -> (Stream<T, E>, Produce<T, E>) {
+    pub fn pair() -> (Stream<T, E>, Generate<T, E>) {
         let core = Core::new();
         let stream = Stream { core: OptionCore::new(core.clone()) };
 
-        (stream, Produce { core: OptionCore::new(core) })
+        (stream, Generate { core: OptionCore::new(core) })
     }
 
     pub fn is_ready(&self) -> bool {
@@ -143,11 +143,11 @@ impl<T: Send, E: Send> Drop for Stream<T, E> {
     }
 }
 
-pub struct Produce<T: Send, E: Send> {
+pub struct Generate<T: Send, E: Send> {
     core: OptionCore<Stream<T, E>>,
 }
 
-impl<T: Send, E: Send> Produce<T, E> {
+impl<T: Send, E: Send> Generate<T, E> {
     pub fn send(&self, val: T) {
         let rest = Stream { core: self.core.clone() };
         self.core.get().complete(Ok(Some((val, rest))), false);
@@ -169,65 +169,65 @@ impl<T: Send, E: Send> Produce<T, E> {
         self.core.get().producer_is_ready()
     }
 
-    fn poll(mut self) -> Result<AsyncResult<Produce<T, E>, ()>, Produce<T, E>> {
-        debug!("Produce::poll; is_ready={}", self.is_ready());
+    fn poll(mut self) -> Result<AsyncResult<Generate<T, E>, ()>, Generate<T, E>> {
+        debug!("Generate::poll; is_ready={}", self.is_ready());
 
         let core = self.core.take();
 
         match core.producer_poll() {
             Some(res) => Ok(res),
-            None => Err(Produce { core: OptionCore::new(core) })
+            None => Err(Generate { core: OptionCore::new(core) })
         }
     }
 
-    pub fn ready<F: FnOnce(Produce<T, E>) + Send>(mut self, f: F) {
+    pub fn ready<F: FnOnce(Generate<T, E>) + Send>(mut self, f: F) {
         self.core.take().producer_ready(f);
     }
 
-    pub fn await(self) -> AsyncResult<Produce<T, E>, ()> {
+    pub fn await(self) -> AsyncResult<Generate<T, E>, ()> {
         self.core.get().producer_await();
-        self.poll().ok().expect("Produce not ready")
+        self.poll().ok().expect("Generate not ready")
     }
 }
 
 
-impl<T: Send, E: Send> Async for Produce<T, E> {
-    type Value = Produce<T, E>;
+impl<T: Send, E: Send> Async for Generate<T, E> {
+    type Value = Generate<T, E>;
     type Error = ();
 
     fn is_ready(&self) -> bool {
-        Produce::is_ready(self)
+        Generate::is_ready(self)
     }
 
-    fn poll(self) -> Result<AsyncResult<Produce<T, E>, ()>, Produce<T, E>> {
-        Produce::poll(self)
+    fn poll(self) -> Result<AsyncResult<Generate<T, E>, ()>, Generate<T, E>> {
+        Generate::poll(self)
     }
 
-    fn ready<F: FnOnce(Produce<T, E>) + Send>(self, f: F) {
-        Produce::ready(self, f);
+    fn ready<F: FnOnce(Generate<T, E>) + Send>(self, f: F) {
+        Generate::ready(self, f);
     }
 }
 
 impl<T: Send, E: Send> FromCore for Stream<T, E> {
-    type Producer = Produce<T, E>;
+    type Producer = Generate<T, E>;
 
     fn consumer(core: Core<Stream<T, E>>) -> Stream<T, E> {
         Stream { core: OptionCore::new(core) }
     }
 
-    fn producer(core: Core<Stream<T, E>>) -> Produce<T, E> {
-        Produce { core: OptionCore::new(core) }
+    fn producer(core: Core<Stream<T, E>>) -> Generate<T, E> {
+        Generate { core: OptionCore::new(core) }
     }
 }
 
-impl<T: Send, E: Send> fmt::Debug for Produce<T, E> {
+impl<T: Send, E: Send> fmt::Debug for Generate<T, E> {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmt, "Produce<?>")
+        write!(fmt, "Generate<?>")
     }
 }
 
 #[unsafe_destructor]
-impl<T: Send, E: Send> Drop for Produce<T, E> {
+impl<T: Send, E: Send> Drop for Generate<T, E> {
     fn drop(&mut self) {
         if self.core.is_some() {
             self.core.take().complete(Err(AsyncError::canceled()), true);

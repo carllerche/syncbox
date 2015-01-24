@@ -16,7 +16,7 @@ pub fn test_await_in_receive() {
         }
     });
 
-    fn produce(p: Produce<uint, ()>, n: uint) {
+    fn produce(p: Generate<uint, ()>, n: uint) {
         if n > 100_000 { return; }
 
         p.receive(move |res| {

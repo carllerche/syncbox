@@ -21,7 +21,7 @@ pub fn test_one_shot_stream_await() {
 
     sleep(50);
 
-    debug!(" ~~ Producer::send(\"hello\") ~~");
+    debug!(" ~~ Generate::send(\"hello\") ~~");
     producer.send("hello");
     assert_eq!("hello", rx.recv().unwrap());
 }
@@ -69,7 +69,7 @@ pub fn test_stream_receive_before_produce_interest_async() {
     // Transfer the producer out
     let (txp, rxp) = channel();
 
-    debug!(" ~~ Producer::receive ~~");
+    debug!(" ~~ Generate::receive ~~");
     producer.receive(move |p| {
         let p = p.unwrap();
         p.send("hello");
@@ -83,7 +83,7 @@ pub fn test_stream_receive_before_produce_interest_async() {
     let (txp, rxp2) = channel();
 
     // Get the producer, wait for readiness, and write another message
-    debug!(" ~~ Producer::receive ~~");
+    debug!(" ~~ Generate::receive ~~");
     rxp.recv().unwrap().receive(move |p| {
         let p = p.unwrap();
         p.send("world");
@@ -95,7 +95,7 @@ pub fn test_stream_receive_before_produce_interest_async() {
     // Receive the second message
     assert_eq!("world", rx.recv().unwrap());
 
-    debug!(" ~~ Producer::receive ~~");
+    debug!(" ~~ Generate::receive ~~");
     rxp2.recv().unwrap().receive(move |p| {
         p.unwrap().done();
     });
@@ -110,7 +110,7 @@ pub fn test_stream_produce_interest_before_receive_async() {
     let (mut stream, producer) = Stream::<&'static str, ()>::pair();
     let (txp, rxp) = channel();
 
-    debug!(" ~~ Producer::receive #1 ~~");
+    debug!(" ~~ Generate::receive #1 ~~");
     producer.receive(move |p| {
         let p = p.unwrap();
         p.send("hello");
@@ -132,7 +132,7 @@ pub fn test_stream_produce_interest_before_receive_async() {
 
     let (txp2, rxp2) = channel();
 
-    debug!(" ~~ Producer::receive #2 ~~");
+    debug!(" ~~ Generate::receive #2 ~~");
     rxp.recv().unwrap().receive(move |p| {
         let p = p.unwrap();
         p.send("world");
@@ -171,7 +171,7 @@ pub fn test_stream_produce_before_receive_async() {
 
 #[test]
 pub fn test_stream_send_then_done_before_receive() {
-    // Currently, Producer::done() cannot be called before the previous
+    // Currently, Generate::done() cannot be called before the previous
     // value is consumed. It would be ideal to be able to signal that the
     // stream is done without having to do another producer callback
     // iteration.
@@ -195,7 +195,7 @@ pub fn test_recursive_receive() {
         debug!(" ~~~~ CONSUME EXIT ~~~~~ ");
     }
 
-    fn produce(p: Produce<uint, ()>, n: uint) {
+    fn produce(p: Generate<uint, ()>, n: uint) {
         debug!(" ~~~~ PRODUCE ENTER ~~~~~ ");
         if n > 20_000 {
             p.done();

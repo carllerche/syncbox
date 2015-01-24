@@ -23,7 +23,7 @@
 #![experimental]
 
 pub use self::future::{Future, Complete};
-pub use self::stream::{Stream, StreamIter, Produce};
+pub use self::stream::{Stream, StreamIter, Generate};
 pub use self::join::{join, ToJoin};
 
 use util::Run;
@@ -39,12 +39,6 @@ use self::AsyncError::*;
 // * Allow Async::or & Async::or_else to change the error type
 //
 // * Improve performance / reduce allocations
-//
-// * Implement Async for Complete -> ready (same with Produce)
-//
-// * Implement Async::await() in terms of ready / take.
-//
-// * Rename Produce -> Generate
 
 mod core;
 mod future;
