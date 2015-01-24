@@ -55,6 +55,15 @@ pub trait Async : Send + Sized {
     /// Get the underlying value if present
     fn poll(self) -> Result<AsyncResult<Self::Value, Self::Error>, Self>;
 
+    /// Get the underlying value if present, panic otherwise
+    fn expect(self) -> AsyncResult<Self::Value, Self::Error> {
+        if let Ok(v) = self.poll() {
+            return v;
+        }
+
+        panic!("the async value is not ready");
+    }
+
     /// Invokes the given function when the Async instance is ready to be
     /// consumed.
     fn ready<F>(self, f: F) where F: FnOnce(Self) + Send;
