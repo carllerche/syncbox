@@ -48,6 +48,7 @@ mod stream;
 pub trait Async : Send + Sized {
     type Value: Send;
     type Error: Send;
+    type Cancel: Cancel<Self>;
 
     /// Returns true if `take` will succeed.
     fn is_ready(&self) -> bool;
@@ -66,7 +67,7 @@ pub trait Async : Send + Sized {
 
     /// Invokes the given function when the Async instance is ready to be
     /// consumed.
-    fn ready<F>(self, f: F) where F: FnOnce(Self) + Send;
+    fn ready<F>(self, f: F) -> Self::Cancel where F: FnOnce(Self) + Send;
 
     /// Invoke the callback with the resolved `Async` result.
     fn receive<F>(self, f: F)
@@ -203,6 +204,10 @@ pub trait Async : Send + Sized {
     }
 }
 
+pub trait Cancel<A> {
+    fn cancel(self) -> Option<A>;
+}
+
 /*
  *
  * ===== Async implementations =====
@@ -212,6 +217,7 @@ pub trait Async : Send + Sized {
 impl Async for () {
     type Value = ();
     type Error = ();
+    type Cancel = Option<()>;
 
     fn is_ready(&self) -> bool {
         true
@@ -221,8 +227,9 @@ impl Async for () {
         Ok(Ok(self))
     }
 
-    fn ready<F: FnOnce(()) + Send>(self, f: F) {
+    fn ready<F: FnOnce(()) + Send>(self, f: F) -> Option<()> {
         f(self);
+        None
     }
 
     fn await(self) -> AsyncResult<(), ()> {
@@ -233,6 +240,7 @@ impl Async for () {
 impl<T: Send, E: Send> Async for AsyncResult<T, E> {
     type Value = T;
     type Error = E;
+    type Cancel = Option<AsyncResult<T, E>>;
 
     fn is_ready(&self) -> bool {
         true
@@ -242,11 +250,18 @@ impl<T: Send, E: Send> Async for AsyncResult<T, E> {
         Ok(self)
     }
 
-    fn ready<F: FnOnce(AsyncResult<T, E>) + Send>(self, f: F) {
+    fn ready<F: FnOnce(AsyncResult<T, E>) + Send>(self, f: F) -> Option<AsyncResult<T, E>> {
         f(self);
+        None
     }
 
     fn await(self) -> AsyncResult<T, E> {
+        self
+    }
+}
+
+impl<A> Cancel<A> for Option<A> {
+    fn cancel(self) -> Option<A> {
         self
     }
 }

@@ -1,4 +1,4 @@
-use super::{Async, Future, AsyncResult, AsyncError};
+use super::{Async, Future, Cancel, AsyncResult, AsyncError};
 use super::core::{Core, OptionCore, FromCore};
 use std::fmt;
 
@@ -30,8 +30,13 @@ impl<T: Send, E: Send> Stream<T, E> {
         }
     }
 
-    pub fn ready<F: FnOnce(Stream<T, E>) + Send>(mut self, f: F) {
-        self.core.take().consumer_ready(f);
+    pub fn ready<F: FnOnce(Stream<T, E>) + Send>(mut self, f: F) -> CancelStream<T, E> {
+        let core = self.core.take();
+
+        match core.consumer_ready(f) {
+            Some(count) => CancelStream::new(core, count),
+            None => CancelStream::none(),
+        }
     }
 
     pub fn await(mut self) -> AsyncResult<Head<T, E>, E> {
@@ -110,6 +115,7 @@ impl<T: Send, E: Send> Stream<T, E> {
 impl<T: Send, E: Send> Async for Stream<T, E> {
     type Value = Head<T, E>;
     type Error = E;
+    type Cancel = CancelStream<T, E>;
 
     fn is_ready(&self) -> bool {
         Stream::is_ready(self)
@@ -119,8 +125,8 @@ impl<T: Send, E: Send> Async for Stream<T, E> {
         Stream::poll(self)
     }
 
-    fn ready<F: FnOnce(Stream<T, E>) + Send>(self, f: F) {
-        Stream::ready(self, f);
+    fn ready<F: FnOnce(Stream<T, E>) + Send>(self, f: F) -> CancelStream<T, E> {
+        Stream::ready(self, f)
     }
 
     fn await(self) -> AsyncResult<Head<T, E>, E> {
@@ -140,6 +146,43 @@ impl<T: Send, E: Send> Drop for Stream<T, E> {
         if self.core.is_some() {
             self.core.take().cancel();
         }
+    }
+}
+
+pub struct CancelStream<T: Send, E: Send> {
+    core: OptionCore<Stream<T, E>>,
+    count: u64,
+}
+
+impl<T: Send, E: Send> CancelStream<T, E> {
+    fn new(core: Core<Stream<T, E>>, count: u64) -> CancelStream<T, E> {
+        CancelStream {
+            core: OptionCore::new(core),
+            count: count,
+        }
+    }
+
+    fn none() -> CancelStream<T, E> {
+        CancelStream {
+            core: OptionCore::none(),
+            count: 0,
+        }
+    }
+}
+
+impl<T: Send, E: Send> Cancel<Stream<T, E>> for CancelStream<T, E> {
+    fn cancel(self) -> Option<Stream<T, E>> {
+        let CancelStream { core, count } = self;
+
+        if !core.is_some() {
+            return None;
+        }
+
+        if core.get().consumer_ready_cancel(count) {
+            return Some(Stream { core: core });
+        }
+
+        None
     }
 }
 
@@ -194,6 +237,7 @@ impl<T: Send, E: Send> Generate<T, E> {
 impl<T: Send, E: Send> Async for Generate<T, E> {
     type Value = Generate<T, E>;
     type Error = ();
+    type Cancel = CancelGenerate;
 
     fn is_ready(&self) -> bool {
         Generate::is_ready(self)
@@ -203,8 +247,9 @@ impl<T: Send, E: Send> Async for Generate<T, E> {
         Generate::poll(self)
     }
 
-    fn ready<F: FnOnce(Generate<T, E>) + Send>(self, f: F) {
+    fn ready<F: FnOnce(Generate<T, E>) + Send>(self, f: F) -> CancelGenerate {
         Generate::ready(self, f);
+        CancelGenerate
     }
 }
 
@@ -232,6 +277,14 @@ impl<T: Send, E: Send> Drop for Generate<T, E> {
         if self.core.is_some() {
             self.core.take().complete(Err(AsyncError::canceled()), true);
         }
+    }
+}
+
+pub struct CancelGenerate;
+
+impl<T, E> Cancel<Generate<T, E>> for CancelGenerate {
+    fn cancel(self) -> Option<Generate<T, E>> {
+        None
     }
 }
 

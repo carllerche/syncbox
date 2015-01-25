@@ -2,10 +2,9 @@
 
 use self::Lifecycle::*;
 use super::{Async, BoxedReceive, AsyncResult, AsyncError};
+use util::atomic::{self, AtomicU64, AtomicUsize, Ordering};
 use std::{fmt, mem, ptr};
 use std::num::FromPrimitive;
-use std::sync::atomic;
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::atomic::Ordering::{Acquire, Relaxed, Release};
 use std::thread::Thread;
 use alloc::heap;
@@ -33,14 +32,17 @@ impl<A: Async + FromCore> Core<A> {
         Core { ptr: unsafe { mem::transmute(ptr) }}
     }
 
+    /// Returns true if the calling `consumer_poll` will return a value.
     pub fn consumer_is_ready(&self) -> bool {
         self.inner().consumer_is_ready()
     }
 
+    /// Returns the underlying value if it has been realized, None otherwise.
     pub fn consumer_poll(&self) -> Option<AsyncResult<A::Value, A::Error>> {
         self.inner().consumer_poll()
     }
 
+    /// Blocks the thread until calling `consumer_poll` will return a value.
     pub fn consumer_await(&self) -> AsyncResult<A::Value, A::Error> {
         debug!("Core::consumer_await");
 
@@ -59,8 +61,14 @@ impl<A: Async + FromCore> Core<A> {
         self.consumer_poll().expect("result not ready")
     }
 
-    pub fn consumer_ready<F: FnOnce(A) + Send>(&self, f: F) {
-        self.inner().consumer_ready(move |core| f(FromCore::consumer(core)));
+    /// Registers a callback that will be invoked when calling `consumer_poll`
+    /// will return a value.
+    pub fn consumer_ready<F: FnOnce(A) + Send>(&self, f: F) -> Option<u64> {
+        self.inner().consumer_ready(move |core| f(FromCore::consumer(core)))
+    }
+
+    pub fn consumer_ready_cancel(&self, count: u64) -> bool {
+        self.inner().consumer_ready_cancel(count)
     }
 
     pub fn producer_is_ready(&self) -> bool {
@@ -187,6 +195,11 @@ impl<A: Async + FromCore> OptionCore<A> {
         OptionCore { core: core }
     }
 
+    pub fn none() -> OptionCore<A> {
+        let core = unsafe { mem::transmute(0u64) };
+        OptionCore { core: core }
+    }
+
     #[inline]
     pub fn is_some(&self) -> bool {
         !self.core.is_null()
@@ -207,6 +220,15 @@ impl<A: Async + FromCore> OptionCore<A> {
 impl<A: Async + FromCore> Clone for OptionCore<A> {
     fn clone(&self) -> OptionCore<A> {
         OptionCore { core: self.core.clone() }
+    }
+}
+
+#[unsafe_destructor]
+impl<A: Async + FromCore> Drop for OptionCore<A> {
+    fn drop(&mut self) {
+        if self.is_some() {
+            let _ = self.take();
+        }
     }
 }
 
@@ -276,7 +298,7 @@ impl<A: Async + FromCore> CoreInner<A> {
         Some(self.consume_val(curr))
     }
 
-    fn consumer_ready<F: FnOnce(Core<A>) + Send>(&self, f: F) {
+    fn consumer_ready<F: FnOnce(Core<A>) + Send>(&self, f: F) -> Option<u64> {
         let mut curr = self.state.load(Relaxed);
 
         debug!("Core::consumer_ready; state={:?}", curr);
@@ -296,7 +318,7 @@ impl<A: Async + FromCore> CoreInner<A> {
                 self.notify_consumer_loop(curr);
             }
 
-            return;
+            return None;
         }
 
         // At this point, odds are that the callback will happen async. Move
@@ -304,12 +326,12 @@ impl<A: Async + FromCore> CoreInner<A> {
         self.put_consumer_wait(Box::new(f));
 
         // Execute wait strategy
-        self.consumer_wait(curr);
+        self.consumer_wait(curr)
     }
 
     // Transition the state to indicate that a consumer is waiting.
     //
-    fn consumer_wait(&self, mut curr: State) -> State {
+    fn consumer_wait(&self, mut curr: State) -> Option<u64> {
         let mut next;
         let mut notify_producer;
 
@@ -337,12 +359,16 @@ impl<A: Async + FromCore> CoreInner<A> {
                     debug!("  - completing consumer");
 
                     // Handles the recursion case
-                    return self.notify_consumer(curr);
+                    self.notify_consumer(curr);
+                    return None;
                 }
                 Canceled | ConsumerWait | ConsumerNotify | ProducerNotify | ProducerNotifyCanceled => {
                     panic!("invalid state {:?}", curr.lifecycle())
                 }
             };
+
+            // Increment the callback count
+            next = next.inc_count();
 
             let actual = self.state.compare_and_swap(curr, next, Release);
 
@@ -363,10 +389,10 @@ impl<A: Async + FromCore> CoreInner<A> {
             next = self.notify_producer(next);
         }
 
-        next
+        Some(next.count())
     }
 
-    fn notify_consumer(&self, curr: State) -> State {
+    fn notify_consumer(&self, curr: State) {
         // Already in a consumer callback, track that it should be invoked
         // again
         if curr.is_invoking_consumer() {
@@ -377,7 +403,7 @@ impl<A: Async + FromCore> CoreInner<A> {
         self.notify_consumer_loop(curr)
     }
 
-    fn defer_consumer_notify(&self, mut curr: State) -> State {
+    fn defer_consumer_notify(&self, mut curr: State) {
         loop {
             let next = match curr.lifecycle() {
                 Ready => curr.with_lifecycle(ConsumerNotify),
@@ -388,14 +414,14 @@ impl<A: Async + FromCore> CoreInner<A> {
 
             if actual == curr {
                 debug!("  - transitioned from {:?} to {:?}", curr, next);
-                return next;
+                return;
             }
 
             curr = actual;
         }
     }
 
-    fn notify_consumer_loop(&self, mut curr: State) -> State {
+    fn notify_consumer_loop(&self, mut curr: State) {
         loop {
             let cb = self.take_consumer_wait();
 
@@ -412,7 +438,39 @@ impl<A: Async + FromCore> CoreInner<A> {
                 continue;
             }
 
-            return curr;
+            return;
+        }
+    }
+
+    fn consumer_ready_cancel(&self, count: u64) -> bool {
+        let curr = self.state.load(Relaxed);
+
+        debug!("Core::consumer_ready_cancel; count={}; state={:?}", count, curr);
+
+        loop {
+            let next = match curr.lifecycle() {
+                ConsumerWait | ProducerNotify => {
+                    if count != curr.count() {
+                        // Counts don't match, can't cancel the callback
+                        return false;
+                    }
+
+                    assert!(!curr.is_invoking_consumer());
+
+                    curr.with_lifecycle(New)
+                }
+                New | ProducerWait | Ready | ReadyProducerWait | ProducerNotifyCanceled | ConsumerNotify | Canceled => {
+                    // No pending consumer callback to cancel
+                    return false;
+                }
+            };
+
+            let actual = self.state.compare_and_swap(curr, next, Relaxed);
+
+            if actual == curr {
+                debug!("  - transitioned from {:?} to {:?}", curr, next);
+                return true;
+            }
         }
     }
 
@@ -776,18 +834,18 @@ impl<A: Async + FromCore> CoreInner<A> {
 }
 
 struct AtomicState {
-    atomic: AtomicUsize,
+    atomic: AtomicU64,
 }
 
 impl AtomicState {
     fn new() -> AtomicState {
         let initial = State::new();
-        AtomicState { atomic: AtomicUsize::new(initial.as_uint()) }
+        AtomicState { atomic: AtomicU64::new(initial.as_u64()) }
     }
 
     fn of(lifecycle: Lifecycle) -> AtomicState {
         let initial = State::new().with_lifecycle(lifecycle);
-        AtomicState { atomic: AtomicUsize::new(initial.as_uint()) }
+        AtomicState { atomic: AtomicU64::new(initial.as_u64()) }
     }
 
     fn load(&self, order: Ordering) -> State {
@@ -796,7 +854,7 @@ impl AtomicState {
     }
 
     fn compare_and_swap(&self, old: State, new: State, order: Ordering) -> State {
-        let ret = self.atomic.compare_and_swap(old.as_uint(), new.as_uint(), order);
+        let ret = self.atomic.compare_and_swap(old.as_u64(), new.as_u64(), order);
         State::load(ret)
     }
 
@@ -840,29 +898,30 @@ impl AtomicState {
 
 #[derive(Copy, Eq, PartialEq)]
 struct State {
-    val: uint,
+    val: u64,
 }
 
-const LIFECYCLE_MASK: uint = 15;
-const CONSUMING_MASK: uint = 1 << 4;
-const PRODUCING_MASK: uint = 1 << 5;
+const LIFECYCLE_MASK: u64 = 15;
+const CONSUMING_MASK: u64 = 1 << 4;
+const PRODUCING_MASK: u64 = 1 << 5;
+const COUNT_OFFSET:   u64 = 6;
 
 impl State {
     fn new() -> State {
         State { val: 0 }
     }
 
-    fn load(val: uint) -> State {
+    fn load(val: u64) -> State {
         State { val: val }
     }
 
     fn lifecycle(&self) -> Lifecycle {
-        FromPrimitive::from_uint(self.val & LIFECYCLE_MASK)
+        FromPrimitive::from_u64(self.val & LIFECYCLE_MASK)
             .expect("unexpected state value")
     }
 
     fn with_lifecycle(&self, val: Lifecycle) -> State {
-        let val = self.val & !LIFECYCLE_MASK | val as uint;
+        let val = self.val & !LIFECYCLE_MASK | val as u64;
         State { val: val }
     }
 
@@ -917,15 +976,23 @@ impl State {
         }
     }
 
-    fn as_uint(self) -> uint {
+    fn count(&self) -> u64 {
+        self.val >> COUNT_OFFSET
+    }
+
+    fn inc_count(&self) -> State {
+        State { val: self.val + (1 << COUNT_OFFSET) }
+    }
+
+    fn as_u64(self) -> u64 {
         self.val
     }
 }
 
 impl fmt::Debug for State {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmt, "State[consuming={}; producing={}; lifecycle={:?}]",
-               self.is_invoking_consumer(), self.is_invoking_producer(), self.lifecycle())
+        write!(fmt, "State[count={}; consuming={}; producing={}; lifecycle={:?}]",
+               self.count(), self.is_invoking_consumer(), self.is_invoking_producer(), self.lifecycle())
     }
 }
 

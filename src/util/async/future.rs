@@ -1,4 +1,4 @@
-use super::{Async, Stream, AsyncResult, AsyncError};
+use super::{Async, Stream, Cancel, AsyncResult, AsyncError};
 use super::stream;
 use super::core::{Core, OptionCore, FromCore};
 use std::fmt;
@@ -130,8 +130,13 @@ impl<T: Send, E: Send> Future<T, E> {
         }
     }
 
-    pub fn ready<F: FnOnce(Future<T, E>) + Send>(mut self, f: F) {
-        self.core.take().consumer_ready(f);
+    pub fn ready<F: FnOnce(Future<T, E>) + Send>(mut self, f: F) -> CancelFuture<T, E> {
+        let core = self.core.take();
+
+        match core.consumer_ready(f) {
+            Some(count) => CancelFuture::new(core, count),
+            None => CancelFuture::none(),
+        }
     }
 
     pub fn await(mut self) -> AsyncResult<T, E> {
@@ -159,6 +164,7 @@ impl<T: Send, E: Send> Future<Option<(T, Stream<T, E>)>, E> {
 impl<T: Send, E: Send> Async for Future<T, E> {
     type Value = T;
     type Error = E;
+    type Cancel = CancelFuture<T, E>;
 
     fn is_ready(&self) -> bool {
         Future::is_ready(self)
@@ -168,8 +174,8 @@ impl<T: Send, E: Send> Async for Future<T, E> {
         Future::poll(self)
     }
 
-    fn ready<F: FnOnce(Future<T, E>) + Send>(self, f: F) {
-        Future::ready(self, f);
+    fn ready<F: FnOnce(Future<T, E>) + Send>(self, f: F) -> CancelFuture<T, E> {
+        Future::ready(self, f)
     }
 
     fn await(self) -> AsyncResult<T, E> {
@@ -183,6 +189,44 @@ impl<T: Send, E: Send> Drop for Future<T, E> {
         if self.core.is_some() {
             self.core.take().cancel();
         }
+    }
+}
+
+// The lack of drop is explicit
+pub struct CancelFuture<T: Send, E: Send> {
+    core: OptionCore<Future<T, E>>,
+    count: u64,
+}
+
+impl<T: Send, E: Send> CancelFuture<T, E> {
+    fn new(core: Core<Future<T, E>>, count: u64) -> CancelFuture<T, E> {
+        CancelFuture {
+            core: OptionCore::new(core),
+            count: count,
+        }
+    }
+
+    fn none() -> CancelFuture<T, E> {
+        CancelFuture {
+            core: OptionCore::none(),
+            count: 0,
+        }
+    }
+}
+
+impl<T: Send, E: Send> Cancel<Future<T, E>> for CancelFuture<T, E> {
+    fn cancel(self) -> Option<Future<T, E>> {
+        let CancelFuture { core, count } = self;
+
+        if !core.is_some() {
+            return None;
+        }
+
+        if core.get().consumer_ready_cancel(count) {
+            return Some(Future { core: core });
+        }
+
+        None
     }
 }
 
@@ -258,6 +302,7 @@ impl<T: Send, E: Send> Complete<T, E> {
 impl<T: Send, E: Send> Async for Complete<T, E> {
     type Value = Complete<T, E>;
     type Error = ();
+    type Cancel = CancelComplete;
 
     fn is_ready(&self) -> bool {
         Complete::is_ready(self)
@@ -267,8 +312,9 @@ impl<T: Send, E: Send> Async for Complete<T, E> {
         Complete::poll(self)
     }
 
-    fn ready<F: FnOnce(Complete<T, E>) + Send>(self, f: F) {
+    fn ready<F: FnOnce(Complete<T, E>) + Send>(self, f: F) -> CancelComplete {
         Complete::ready(self, f);
+        CancelComplete
     }
 }
 
@@ -297,5 +343,13 @@ impl<T: Send, E: Send> Drop for Complete<T, E> {
 impl<T: Send, E: Send> fmt::Debug for Complete<T, E> {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         write!(fmt, "Complete {{ ... }}")
+    }
+}
+
+pub struct CancelComplete;
+
+impl<T, E> Cancel<Complete<T, E>> for CancelComplete {
+    fn cancel(self) -> Option<Complete<T, E>> {
+        None
     }
 }
