@@ -31,6 +31,9 @@ mod test_future_receive;
 // == Join tests ==
 mod test_join;
 
+// == Select tests ==
+mod test_select;
+
 // == Stream tests ==
 mod test_stream_await;
 mod test_stream_cancel;
@@ -64,7 +67,7 @@ fn spawn<F: FnOnce() + Send>(f: F) {
 }
 
 fn sleep(ms: uint) {
-    use std::io::timer::sleep;
+    use std::old_io::timer::sleep;
     use std::time::Duration;
     sleep(Duration::milliseconds(ms as i64));
 }

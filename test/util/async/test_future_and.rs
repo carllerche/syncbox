@@ -1,5 +1,5 @@
 use syncbox::util::async::*;
-use std::sync::mpsc::*;
+use std::sync::mpsc::channel;
 
 #[test]
 pub fn test_and_success_async() {

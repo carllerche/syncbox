@@ -1,6 +1,6 @@
 use syncbox::util::async::*;
 use super::{spawn, sleep};
-use std::sync::mpsc::*;
+use std::sync::mpsc::channel;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering::Relaxed;

@@ -37,6 +37,10 @@ impl<A: Async + FromCore> Core<A> {
         self.inner().consumer_is_ready()
     }
 
+    pub fn consumer_is_err(&self) -> bool {
+        self.inner().consumer_is_err()
+    }
+
     /// Returns the underlying value if it has been realized, None otherwise.
     pub fn consumer_poll(&self) -> Option<AsyncResult<A::Value, A::Error>> {
         self.inner().consumer_poll()
@@ -73,6 +77,10 @@ impl<A: Async + FromCore> Core<A> {
 
     pub fn producer_is_ready(&self) -> bool {
         self.inner().producer_is_ready()
+    }
+
+    pub fn producer_is_err(&self) -> bool {
+        self.inner().producer_is_err()
     }
 
     pub fn producer_poll(&self) -> Option<AsyncResult<A::Producer, ()>> {
@@ -286,6 +294,14 @@ impl<A: Async + FromCore> CoreInner<A> {
         self.state.load(Relaxed).is_ready()
     }
 
+    pub fn consumer_is_err(&self) -> bool {
+        if !self.state.load(Acquire).is_ready() {
+            return false;
+        }
+
+        self.val.is_err()
+    }
+
     pub fn consumer_poll(&self) -> Option<AsyncResult<A::Value, A::Error>> {
         let curr = self.state.load(Relaxed);
 
@@ -477,6 +493,10 @@ impl<A: Async + FromCore> CoreInner<A> {
     fn producer_is_ready(&self) -> bool {
         let curr = self.state.load(Relaxed);
         curr.is_producer_ready()
+    }
+
+    fn producer_is_err(&self) -> bool {
+        unimplemented!();
     }
 
     pub fn producer_poll(&self) -> Option<AsyncResult<A::Producer, ()>> {

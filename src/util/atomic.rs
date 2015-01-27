@@ -10,6 +10,12 @@ pub use self::types::{
     AtomicI64,
 };
 
+/* ## TODO
+ *
+ * - Extract AtomicState pattern
+ *
+ */
+
 #[cfg(target_pointer_width = "64")]
 mod types {
     use std::sync::atomic::{AtomicUsize, AtomicIsize, Ordering};

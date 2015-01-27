@@ -25,6 +25,7 @@
 pub use self::future::{Future, Complete};
 pub use self::stream::{Stream, StreamIter, Generate};
 pub use self::join::{join, ToJoin};
+pub use self::select::{select, Select};
 
 use util::Run;
 
@@ -39,10 +40,13 @@ use self::AsyncError::*;
 // * Allow Async::or & Async::or_else to change the error type
 //
 // * Improve performance / reduce allocations
+//
+// * Rename ToJoin -> Join & use associated types
 
 mod core;
 mod future;
 mod join;
+mod select;
 mod stream;
 
 pub trait Async : Send + Sized {
@@ -52,6 +56,9 @@ pub trait Async : Send + Sized {
 
     /// Returns true if `take` will succeed.
     fn is_ready(&self) -> bool;
+
+    /// Returns true if the async value is ready and has failed
+    fn is_err(&self) -> bool;
 
     /// Get the underlying value if present
     fn poll(self) -> Result<AsyncResult<Self::Value, Self::Error>, Self>;
@@ -204,7 +211,7 @@ pub trait Async : Send + Sized {
     }
 }
 
-pub trait Cancel<A> {
+pub trait Cancel<A: Send> : Send {
     fn cancel(self) -> Option<A>;
 }
 
@@ -221,6 +228,10 @@ impl Async for () {
 
     fn is_ready(&self) -> bool {
         true
+    }
+
+    fn is_err(&self) -> bool {
+        false
     }
 
     fn poll(self) -> Result<AsyncResult<(), ()>, ()> {
@@ -246,6 +257,10 @@ impl<T: Send, E: Send> Async for AsyncResult<T, E> {
         true
     }
 
+    fn is_err(&self) -> bool {
+        self.is_err()
+    }
+
     fn poll(self) -> Result<AsyncResult<T, E>, AsyncResult<T, E>> {
         Ok(self)
     }
@@ -260,7 +275,7 @@ impl<T: Send, E: Send> Async for AsyncResult<T, E> {
     }
 }
 
-impl<A> Cancel<A> for Option<A> {
+impl<A: Send> Cancel<A> for Option<A> {
     fn cancel(self) -> Option<A> {
         self
     }
@@ -317,7 +332,7 @@ impl<E: Send> AsyncError<E> {
     }
 }
 
-impl<E: Send + fmt::Debug> fmt::Display for AsyncError<E> {
+impl<E: Send + fmt::Debug> fmt::Debug for AsyncError<E> {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             AsyncError::ExecutionError(ref e) => write!(fmt, "ExecutionError({:?})", e),

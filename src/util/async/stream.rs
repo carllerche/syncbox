@@ -21,6 +21,10 @@ impl<T: Send, E: Send> Stream<T, E> {
         self.core.get().consumer_is_ready()
     }
 
+    pub fn is_err(&self) -> bool {
+        self.core.get().consumer_is_err()
+    }
+
     pub fn poll(mut self) -> Result<AsyncResult<Head<T, E>, E>, Stream<T, E>> {
         let core = self.core.take();
 
@@ -121,6 +125,10 @@ impl<T: Send, E: Send> Async for Stream<T, E> {
         Stream::is_ready(self)
     }
 
+    fn is_err(&self) -> bool {
+        Stream::is_err(self)
+    }
+
     fn poll(self) -> Result<AsyncResult<Head<T, E>, E>, Stream<T, E>> {
         Stream::poll(self)
     }
@@ -212,6 +220,10 @@ impl<T: Send, E: Send> Generate<T, E> {
         self.core.get().producer_is_ready()
     }
 
+    pub fn is_err(&self) -> bool {
+        self.core.get().producer_is_err()
+    }
+
     fn poll(mut self) -> Result<AsyncResult<Generate<T, E>, ()>, Generate<T, E>> {
         debug!("Generate::poll; is_ready={}", self.is_ready());
 
@@ -241,6 +253,10 @@ impl<T: Send, E: Send> Async for Generate<T, E> {
 
     fn is_ready(&self) -> bool {
         Generate::is_ready(self)
+    }
+
+    fn is_err(&self) -> bool {
+        Generate::is_err(self)
     }
 
     fn poll(self) -> Result<AsyncResult<Generate<T, E>, ()>, Generate<T, E>> {
@@ -282,7 +298,7 @@ impl<T: Send, E: Send> Drop for Generate<T, E> {
 
 pub struct CancelGenerate;
 
-impl<T, E> Cancel<Generate<T, E>> for CancelGenerate {
+impl<T: Send, E: Send> Cancel<Generate<T, E>> for CancelGenerate {
     fn cancel(self) -> Option<Generate<T, E>> {
         None
     }

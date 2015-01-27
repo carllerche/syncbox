@@ -1,5 +1,5 @@
 use syncbox::util::async::*;
-use std::sync::mpsc::*;
+use std::sync::mpsc::channel;
 use super::{sleep, spawn};
 
 #[test]

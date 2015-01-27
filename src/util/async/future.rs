@@ -121,6 +121,10 @@ impl<T: Send, E: Send> Future<T, E> {
         self.core.get().consumer_is_ready()
     }
 
+    pub fn is_err(&self) -> bool {
+        self.core.get().consumer_is_err()
+    }
+
     pub fn poll(mut self) -> Result<AsyncResult<T, E>, Future<T, E>> {
         let core = self.core.take();
 
@@ -130,6 +134,10 @@ impl<T: Send, E: Send> Future<T, E> {
         }
     }
 
+    pub fn expect(self) -> AsyncResult<T, E> {
+        Async::expect(self)
+    }
+
     pub fn ready<F: FnOnce(Future<T, E>) + Send>(mut self, f: F) -> CancelFuture<T, E> {
         let core = self.core.take();
 
@@ -137,6 +145,11 @@ impl<T: Send, E: Send> Future<T, E> {
             Some(count) => CancelFuture::new(core, count),
             None => CancelFuture::none(),
         }
+    }
+
+    pub fn receive<F>(self, f: F)
+            where F: FnOnce(AsyncResult<T, E>) + Send {
+        Async::receive(self, f);
     }
 
     pub fn await(mut self) -> AsyncResult<T, E> {
@@ -170,6 +183,10 @@ impl<T: Send, E: Send> Async for Future<T, E> {
         Future::is_ready(self)
     }
 
+    fn is_err(&self) -> bool {
+        Future::is_err(self)
+    }
+
     fn poll(self) -> Result<AsyncResult<T, E>, Future<T, E>> {
         Future::poll(self)
     }
@@ -180,6 +197,12 @@ impl<T: Send, E: Send> Async for Future<T, E> {
 
     fn await(self) -> AsyncResult<T, E> {
         Future::await(self)
+    }
+}
+
+impl<T: Send, E: Send> fmt::Debug for Future<T, E> {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        write!(fmt, "Future {{ ... }}")
     }
 }
 
@@ -278,6 +301,10 @@ impl<T: Send, E: Send> Complete<T, E> {
         self.core.get().producer_is_ready()
     }
 
+    pub fn is_err(&self) -> bool {
+        self.core.get().producer_is_err()
+    }
+
     fn poll(mut self) -> Result<AsyncResult<Complete<T, E>, ()>, Complete<T, E>> {
         debug!("Complete::poll; is_ready={}", self.is_ready());
 
@@ -306,6 +333,10 @@ impl<T: Send, E: Send> Async for Complete<T, E> {
 
     fn is_ready(&self) -> bool {
         Complete::is_ready(self)
+    }
+
+    fn is_err(&self) -> bool {
+        Complete::is_err(self)
     }
 
     fn poll(self) -> Result<AsyncResult<Complete<T, E>, ()>, Complete<T, E>> {
@@ -348,7 +379,7 @@ impl<T: Send, E: Send> fmt::Debug for Complete<T, E> {
 
 pub struct CancelComplete;
 
-impl<T, E> Cancel<Complete<T, E>> for CancelComplete {
+impl<T: Send, E: Send> Cancel<Complete<T, E>> for CancelComplete {
     fn cancel(self) -> Option<Complete<T, E>> {
         None
     }

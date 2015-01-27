@@ -344,7 +344,7 @@ unsafe impl<T: Send> Send for NodePtr<T> {}
 #[cfg(test)]
 mod test {
     use super::LinkedQueue;
-    use std::io::timer::sleep;
+    use std::old_io::timer::sleep;
     use std::time::Duration;
     use std::thread::Thread;
 
