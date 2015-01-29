@@ -1,4 +1,4 @@
-use super::{Async, Future, Cancel, AsyncResult, AsyncError};
+use util::async::{self, Async, Future, Cancel, AsyncResult, AsyncError};
 use super::core::{Core, OptionCore, FromCore};
 use std::fmt;
 
@@ -109,10 +109,22 @@ impl<T: Send, E: Send> Stream<T, E> {
         unimplemented!();
     }
 
-    // TODO: Figure out what to do when the condition errors
-    pub fn take_until<A>(self, _cond: A) -> Stream<T, E>
-            where A: Async {
-        unimplemented!();
+    pub fn take_until<A>(self, cond: A) -> Stream<T, E>
+            where A: Async<Error=E> {
+
+        async::select((cond, self))
+            .and_then(move |(i, (cond, stream))| {
+                if i == 0 {
+                    Ok(None)
+                } else {
+                    match stream.expect() {
+                        Ok(Some((v, rest))) => {
+                            Ok(Some((v, rest.take_until(cond))))
+                        }
+                        _ => Ok(None),
+                    }
+                }
+            }).as_stream()
     }
 }
 

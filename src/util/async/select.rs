@@ -4,7 +4,7 @@ use super::{Async, Future, Complete, Cancel};
 use util::atomic::{self, AtomicU64, Ordering};
 use std::cell::UnsafeCell;
 use std::sync::Arc;
-use std::u32;
+use std::{fmt, u32};
 
 use super::AsyncError::ExecutionError;
 
@@ -87,7 +87,7 @@ impl<V: Values<S, E>, S: Select<E>, E: Send> Selection<V, S, E> {
     fn async_ready<A: Async<Error=E>>(&self, async: A, index: u32, slot: &mut Option<A>) {
         let mut handled = 1;
 
-        debug!("selection async ready; is_err={}", async.is_err());
+        debug!("selection async ready; index={}; is_err={}", index, async.is_err());
 
         // Attempt to "win" the selection process
         let (win, prev, curr) = self.core().state.try_win(index, async.is_err());
@@ -96,6 +96,8 @@ impl<V: Values<S, E>, S: Select<E>, E: Send> Selection<V, S, E> {
             // Deregister all callbacks that have been registered up to now
             handled += self.core_mut().vals.cancel_callbacks(
                 index, prev.callbacks_registered(), &mut self.core_mut().tokens);
+
+            debug!("async val won select; handled={}", handled);
 
             if async.is_err() {
                 debug!("first realized async val is error");
@@ -160,12 +162,15 @@ impl<V: Values<S, E>, S: Select<E>, E: Send> Selection<V, S, E> {
     // Track async values that have moved to the ready state
     fn dec_remaining(&self, count: u32, mut curr: State) {
         if count == 0 {
+            debug!("dec_remaining -- nothing to do");
             return;
         }
 
         // Decrement the remaining count by the number of successfully
         // canceled callbacks
         curr = self.core().state.dec_remaining(count, curr);
+
+        debug!("dec_remaining -- performed dec; state={:?}", curr);
 
         // TODO: This should not be in the win condition
         if curr.remaining() == 0 {
@@ -355,10 +360,13 @@ impl AtomicState {
 
     fn dec_remaining(&self, count: u32, mut curr: State) -> State {
         loop {
+            assert!(curr.remaining() >= count, "curr={}; count={}", curr.remaining(), count);
+
             let next = curr.dec_remaining(count);
             let actual = self.compare_and_swap(curr, next, Ordering::Release);
 
             if actual == curr {
+                debug!("dec_remaining -- transitioned state; from={:?}; to={:?}", curr, next);
                 return next;
             }
 
@@ -379,9 +387,21 @@ impl AtomicState {
  *      - init: Callbacks registered
  *      - Won: Index that won
  */
-#[derive(Copy, Debug, PartialEq, Eq)]
+#[derive(Copy, PartialEq, Eq)]
 struct State {
     val: u64,
+}
+
+impl fmt::Debug for State {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        if self.is_won() {
+            write!(fmt, "State[won={}; err={}; selected={}; remaining={}]",
+                   true, self.is_err(), self.selected(), self.remaining())
+        } else {
+            write!(fmt, "State[won={}; err={}; callbacks={}; remaining={}]",
+                   false, false, self.callbacks_registered(), self.remaining())
+        }
+    }
 }
 
 const WON_MASK: u64 = 1;
@@ -405,7 +425,7 @@ impl State {
     fn as_won(&self, index: u32) -> State {
         assert!(index <= (u32::MAX >> 1));
 
-        let val = WON_MASK | ((index as u64) << 32)
+        let val = WON_MASK | ((index as u64) << 33)
                 | (self.val & (REM_MASK << 2))
                 ;
 

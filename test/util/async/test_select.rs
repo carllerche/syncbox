@@ -2,7 +2,7 @@ use syncbox::util::async::{self, Future};
 use std::sync::mpsc::channel;
 
 #[test]
-pub fn test_joining_two_futures_async_success() {
+pub fn test_selecting_two_futures_async_success() {
     let (f1, c1) = Future::<i32, ()>::pair();
     let (f2, c2) = Future::<i32, ()>::pair();
     let (tx, rx) = channel();
@@ -40,7 +40,7 @@ pub fn test_joining_two_futures_async_success() {
 }
 
 #[test]
-pub fn test_joining_two_futures_async_error() {
+pub fn test_selecting_two_futures_async_error() {
     let (f1, c1) = Future::<(), i32>::pair();
     let (f2, _c) = Future::<(), i32>::pair();
     let (tx, rx) = channel();
@@ -54,4 +54,25 @@ pub fn test_joining_two_futures_async_error() {
 
     c1.fail(123);
     assert_eq!(123, rx.recv().unwrap().unwrap());
+}
+
+#[test]
+pub fn test_selecting_two_completed_futures_async() {
+    let f1 = Future::<i32, ()>::of(123);
+    let f2 = Future::of(234);
+    let (tx, rx) = channel();
+
+    let sel = async::select((f1, f2));
+
+    assert!(!sel.is_ready());
+
+    sel.receive(move |res| {
+        tx.send(res.unwrap()).unwrap();
+    });
+
+    let (i, (f1, f2)) = rx.recv().unwrap();
+
+    assert_eq!(0, i);
+    assert_eq!(123, f1.expect().unwrap());
+    assert_eq!(234, f2.expect().unwrap());
 }

@@ -25,3 +25,6 @@ pub fn test_future_cancel_after_complete() {
     assert!(cancel.cancel().is_none());
     assert_eq!(123, rx.recv().unwrap());
 }
+
+// TODO:
+// - Test blocking & cancel
