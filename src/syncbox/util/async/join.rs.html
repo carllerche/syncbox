@@ -218,11 +218,6 @@
 <span id="176">176</span>
 <span id="177">177</span>
 <span id="178">178</span>
-<span id="179">179</span>
-<span id="180">180</span>
-<span id="181">181</span>
-<span id="182">182</span>
-<span id="183">183</span>
 </pre><pre class='rust '>
 <span class='kw'>use</span> <span class='ident'>super</span>::{<span class='ident'>Async</span>, <span class='ident'>Future</span>, <span class='ident'>Complete</span>, <span class='ident'>AsyncError</span>};
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>cell</span>::<span class='ident'>UnsafeCell</span>;
@@ -284,14 +279,12 @@
     }};
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A1</span>, <span class='ident'>T1</span>, <span class='ident'>A2</span>, <span class='ident'>T2</span>, <span class='ident'>E</span><span class='op'>&gt;</span> <span class='ident'>ToJoin</span><span class='op'>&lt;</span>(<span class='ident'>T1</span>, <span class='ident'>T2</span>), <span class='ident'>E</span><span class='op'>&gt;</span> <span class='kw'>for</span> (<span class='ident'>A1</span>, <span class='ident'>A2</span>)
-        <span class='kw'>where</span> <span class='ident'>A1</span>: <span class='ident'>Async</span><span class='op'>&lt;</span><span class='ident'>T1</span>, <span class='ident'>E</span><span class='op'>&gt;</span>,
-              <span class='ident'>A2</span>: <span class='ident'>Async</span><span class='op'>&lt;</span><span class='ident'>T2</span>, <span class='ident'>E</span><span class='op'>&gt;</span>,
-              <span class='ident'>T1</span>: <span class='ident'>Send</span>,
-              <span class='ident'>T2</span>: <span class='ident'>Send</span>,
-              <span class='ident'>E</span>: <span class='ident'>Send</span> {
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A1</span>: <span class='ident'>Async</span><span class='op'>&lt;</span><span class='ident'>Error</span><span class='op'>=</span><span class='ident'>E</span><span class='op'>&gt;</span>, <span class='ident'>A2</span>: <span class='ident'>Async</span><span class='op'>&lt;</span><span class='ident'>Error</span><span class='op'>=</span><span class='ident'>E</span><span class='op'>&gt;</span>, <span class='ident'>E</span><span class='op'>&gt;</span> <span class='ident'>ToJoin</span><span class='op'>&lt;</span>(<span class='ident'>A1</span>::<span class='ident'>Value</span>, <span class='ident'>A2</span>::<span class='ident'>Value</span>), <span class='ident'>E</span><span class='op'>&gt;</span> <span class='kw'>for</span> (<span class='ident'>A1</span>, <span class='ident'>A2</span>)
+        <span class='kw'>where</span> <span class='ident'>E</span>: <span class='ident'>Send</span>,
+              <span class='ident'>A1</span>::<span class='ident'>Value</span>: <span class='ident'>Send</span>,
+              <span class='ident'>A2</span>::<span class='ident'>Value</span>: <span class='ident'>Send</span> {
 
-    <span class='kw'>fn</span> <span class='ident'>join</span>(<span class='self'>self</span>, <span class='ident'>complete</span>: <span class='ident'>Complete</span><span class='op'>&lt;</span>(<span class='ident'>T1</span>, <span class='ident'>T2</span>), <span class='ident'>E</span><span class='op'>&gt;</span>) {
+    <span class='kw'>fn</span> <span class='ident'>join</span>(<span class='self'>self</span>, <span class='ident'>complete</span>: <span class='ident'>Complete</span><span class='op'>&lt;</span>(<span class='op'>&lt;</span><span class='ident'>A1</span> <span class='kw'>as</span> <span class='ident'>Async</span><span class='op'>&gt;</span>::<span class='ident'>Value</span>, <span class='op'>&lt;</span><span class='ident'>A2</span> <span class='kw'>as</span> <span class='ident'>Async</span><span class='op'>&gt;</span>::<span class='ident'>Value</span>), <span class='ident'>E</span><span class='op'>&gt;</span>) {
         <span class='kw'>let</span> (<span class='ident'>a1</span>, <span class='ident'>a2</span>) <span class='op'>=</span> <span class='self'>self</span>;
         <span class='kw'>let</span> <span class='ident'>p</span> <span class='op'>=</span> <span class='ident'>Progress</span>::<span class='ident'>new</span>((<span class='prelude-val'>None</span>, <span class='prelude-val'>None</span>), <span class='ident'>complete</span>, <span class='number'>2</span>);
 
@@ -300,16 +293,13 @@
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A1</span>, <span class='ident'>T1</span>, <span class='ident'>A2</span>, <span class='ident'>T2</span>, <span class='ident'>A3</span>, <span class='ident'>T3</span>, <span class='ident'>E</span><span class='op'>&gt;</span> <span class='ident'>ToJoin</span><span class='op'>&lt;</span>(<span class='ident'>T1</span>, <span class='ident'>T2</span>, <span class='ident'>T3</span>), <span class='ident'>E</span><span class='op'>&gt;</span> <span class='kw'>for</span> (<span class='ident'>A1</span>, <span class='ident'>A2</span>, <span class='ident'>A3</span>)
-        <span class='kw'>where</span> <span class='ident'>A1</span>: <span class='ident'>Async</span><span class='op'>&lt;</span><span class='ident'>T1</span>, <span class='ident'>E</span><span class='op'>&gt;</span>,
-              <span class='ident'>A2</span>: <span class='ident'>Async</span><span class='op'>&lt;</span><span class='ident'>T2</span>, <span class='ident'>E</span><span class='op'>&gt;</span>,
-              <span class='ident'>A3</span>: <span class='ident'>Async</span><span class='op'>&lt;</span><span class='ident'>T3</span>, <span class='ident'>E</span><span class='op'>&gt;</span>,
-              <span class='ident'>T1</span>: <span class='ident'>Send</span>,
-              <span class='ident'>T2</span>: <span class='ident'>Send</span>,
-              <span class='ident'>T3</span>: <span class='ident'>Send</span>,
-              <span class='ident'>E</span>: <span class='ident'>Send</span> {
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A1</span>: <span class='ident'>Async</span><span class='op'>&lt;</span><span class='ident'>Error</span><span class='op'>=</span><span class='ident'>E</span><span class='op'>&gt;</span>, <span class='ident'>A2</span>: <span class='ident'>Async</span><span class='op'>&lt;</span><span class='ident'>Error</span><span class='op'>=</span><span class='ident'>E</span><span class='op'>&gt;</span>, <span class='ident'>A3</span>: <span class='ident'>Async</span><span class='op'>&lt;</span><span class='ident'>Error</span><span class='op'>=</span><span class='ident'>E</span><span class='op'>&gt;</span>, <span class='ident'>E</span><span class='op'>&gt;</span> <span class='ident'>ToJoin</span><span class='op'>&lt;</span>(<span class='ident'>A1</span>::<span class='ident'>Value</span>, <span class='ident'>A2</span>::<span class='ident'>Value</span>, <span class='ident'>A3</span>::<span class='ident'>Value</span>), <span class='ident'>E</span><span class='op'>&gt;</span> <span class='kw'>for</span> (<span class='ident'>A1</span>, <span class='ident'>A2</span>, <span class='ident'>A3</span>)
+        <span class='kw'>where</span> <span class='ident'>E</span>: <span class='ident'>Send</span>,
+              <span class='ident'>A1</span>::<span class='ident'>Value</span>: <span class='ident'>Send</span>,
+              <span class='ident'>A2</span>::<span class='ident'>Value</span>: <span class='ident'>Send</span>,
+              <span class='ident'>A3</span>::<span class='ident'>Value</span>: <span class='ident'>Send</span> {
 
-    <span class='kw'>fn</span> <span class='ident'>join</span>(<span class='self'>self</span>, <span class='ident'>complete</span>: <span class='ident'>Complete</span><span class='op'>&lt;</span>(<span class='ident'>T1</span>, <span class='ident'>T2</span>, <span class='ident'>T3</span>), <span class='ident'>E</span><span class='op'>&gt;</span>) {
+    <span class='kw'>fn</span> <span class='ident'>join</span>(<span class='self'>self</span>, <span class='ident'>complete</span>: <span class='ident'>Complete</span><span class='op'>&lt;</span>(<span class='ident'>A1</span>::<span class='ident'>Value</span>, <span class='ident'>A2</span>::<span class='ident'>Value</span>, <span class='ident'>A3</span>::<span class='ident'>Value</span>), <span class='ident'>E</span><span class='op'>&gt;</span>) {
         <span class='kw'>let</span> (<span class='ident'>a1</span>, <span class='ident'>a2</span>, <span class='ident'>a3</span>) <span class='op'>=</span> <span class='self'>self</span>;
         <span class='kw'>let</span> <span class='ident'>p</span> <span class='op'>=</span> <span class='ident'>Progress</span>::<span class='ident'>new</span>((<span class='prelude-val'>None</span>, <span class='prelude-val'>None</span>, <span class='prelude-val'>None</span>), <span class='ident'>complete</span>, <span class='number'>3</span>);
 
