@@ -388,6 +388,17 @@
 <span id="346">346</span>
 <span id="347">347</span>
 <span id="348">348</span>
+<span id="349">349</span>
+<span id="350">350</span>
+<span id="351">351</span>
+<span id="352">352</span>
+<span id="353">353</span>
+<span id="354">354</span>
+<span id="355">355</span>
+<span id="356">356</span>
+<span id="357">357</span>
+<span id="358">358</span>
+<span id="359">359</span>
 </pre><pre class='rust '>
 <span class='doccomment'>//! # Futures &amp; Streams</span>
 <span class='doccomment'>//!</span>
@@ -447,6 +458,9 @@
 
     <span class='doccomment'>/// Returns true if `take` will succeed.</span>
     <span class='kw'>fn</span> <span class='ident'>is_ready</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span>;
+
+    <span class='doccomment'>/// Returns true if the async value is ready and has failed</span>
+    <span class='kw'>fn</span> <span class='ident'>is_err</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span>;
 
     <span class='doccomment'>/// Get the underlying value if present</span>
     <span class='kw'>fn</span> <span class='ident'>poll</span>(<span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>AsyncResult</span><span class='op'>&lt;</span><span class='ident'>Self</span>::<span class='ident'>Value</span>, <span class='ident'>Self</span>::<span class='ident'>Error</span><span class='op'>&gt;</span>, <span class='ident'>Self</span><span class='op'>&gt;</span>;
@@ -618,6 +632,10 @@
         <span class='boolval'>true</span>
     }
 
+    <span class='kw'>fn</span> <span class='ident'>is_err</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
+        <span class='boolval'>false</span>
+    }
+
     <span class='kw'>fn</span> <span class='ident'>poll</span>(<span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>AsyncResult</span><span class='op'>&lt;</span>(), ()<span class='op'>&gt;</span>, ()<span class='op'>&gt;</span> {
         <span class='prelude-val'>Ok</span>(<span class='prelude-val'>Ok</span>(<span class='self'>self</span>))
     }
@@ -639,6 +657,10 @@
 
     <span class='kw'>fn</span> <span class='ident'>is_ready</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
         <span class='boolval'>true</span>
+    }
+
+    <span class='kw'>fn</span> <span class='ident'>is_err</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
+        <span class='self'>self</span>.<span class='ident'>is_err</span>()
     }
 
     <span class='kw'>fn</span> <span class='ident'>poll</span>(<span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>AsyncResult</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;</span>, <span class='ident'>AsyncResult</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;&gt;</span> {

@@ -368,6 +368,22 @@
 <span id="326">326</span>
 <span id="327">327</span>
 <span id="328">328</span>
+<span id="329">329</span>
+<span id="330">330</span>
+<span id="331">331</span>
+<span id="332">332</span>
+<span id="333">333</span>
+<span id="334">334</span>
+<span id="335">335</span>
+<span id="336">336</span>
+<span id="337">337</span>
+<span id="338">338</span>
+<span id="339">339</span>
+<span id="340">340</span>
+<span id="341">341</span>
+<span id="342">342</span>
+<span id="343">343</span>
+<span id="344">344</span>
 </pre><pre class='rust '>
 <span class='kw'>use</span> <span class='ident'>super</span>::{<span class='ident'>Async</span>, <span class='ident'>Future</span>, <span class='ident'>Cancel</span>, <span class='ident'>AsyncResult</span>, <span class='ident'>AsyncError</span>};
 <span class='kw'>use</span> <span class='ident'>super</span>::<span class='ident'>core</span>::{<span class='ident'>Core</span>, <span class='ident'>OptionCore</span>, <span class='ident'>FromCore</span>};
@@ -390,6 +406,10 @@
 
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>is_ready</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
         <span class='self'>self</span>.<span class='ident'>core</span>.<span class='ident'>get</span>().<span class='ident'>consumer_is_ready</span>()
+    }
+
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>is_err</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
+        <span class='self'>self</span>.<span class='ident'>core</span>.<span class='ident'>get</span>().<span class='ident'>consumer_is_err</span>()
     }
 
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>poll</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>AsyncResult</span><span class='op'>&lt;</span><span class='ident'>Head</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;</span>, <span class='ident'>E</span><span class='op'>&gt;</span>, <span class='ident'>Stream</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;&gt;</span> {
@@ -492,6 +512,10 @@
         <span class='ident'>Stream</span>::<span class='ident'>is_ready</span>(<span class='self'>self</span>)
     }
 
+    <span class='kw'>fn</span> <span class='ident'>is_err</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
+        <span class='ident'>Stream</span>::<span class='ident'>is_err</span>(<span class='self'>self</span>)
+    }
+
     <span class='kw'>fn</span> <span class='ident'>poll</span>(<span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>AsyncResult</span><span class='op'>&lt;</span><span class='ident'>Head</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;</span>, <span class='ident'>E</span><span class='op'>&gt;</span>, <span class='ident'>Stream</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;&gt;</span> {
         <span class='ident'>Stream</span>::<span class='ident'>poll</span>(<span class='self'>self</span>)
     }
@@ -583,6 +607,10 @@
         <span class='self'>self</span>.<span class='ident'>core</span>.<span class='ident'>get</span>().<span class='ident'>producer_is_ready</span>()
     }
 
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>is_err</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
+        <span class='self'>self</span>.<span class='ident'>core</span>.<span class='ident'>get</span>().<span class='ident'>producer_is_err</span>()
+    }
+
     <span class='kw'>fn</span> <span class='ident'>poll</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>AsyncResult</span><span class='op'>&lt;</span><span class='ident'>Generate</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;</span>, ()<span class='op'>&gt;</span>, <span class='ident'>Generate</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;&gt;</span> {
         <span class='macro'>debug</span><span class='macro'>!</span>(<span class='string'>&quot;Generate::poll; is_ready={}&quot;</span>, <span class='self'>self</span>.<span class='ident'>is_ready</span>());
 
@@ -612,6 +640,10 @@
 
     <span class='kw'>fn</span> <span class='ident'>is_ready</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
         <span class='ident'>Generate</span>::<span class='ident'>is_ready</span>(<span class='self'>self</span>)
+    }
+
+    <span class='kw'>fn</span> <span class='ident'>is_err</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
+        <span class='ident'>Generate</span>::<span class='ident'>is_err</span>(<span class='self'>self</span>)
     }
 
     <span class='kw'>fn</span> <span class='ident'>poll</span>(<span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>AsyncResult</span><span class='op'>&lt;</span><span class='ident'>Generate</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;</span>, ()<span class='op'>&gt;</span>, <span class='ident'>Generate</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;&gt;</span> {

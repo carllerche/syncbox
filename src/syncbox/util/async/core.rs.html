@@ -1073,6 +1073,26 @@
 <span id="1031">1031</span>
 <span id="1032">1032</span>
 <span id="1033">1033</span>
+<span id="1034">1034</span>
+<span id="1035">1035</span>
+<span id="1036">1036</span>
+<span id="1037">1037</span>
+<span id="1038">1038</span>
+<span id="1039">1039</span>
+<span id="1040">1040</span>
+<span id="1041">1041</span>
+<span id="1042">1042</span>
+<span id="1043">1043</span>
+<span id="1044">1044</span>
+<span id="1045">1045</span>
+<span id="1046">1046</span>
+<span id="1047">1047</span>
+<span id="1048">1048</span>
+<span id="1049">1049</span>
+<span id="1050">1050</span>
+<span id="1051">1051</span>
+<span id="1052">1052</span>
+<span id="1053">1053</span>
 </pre><pre class='rust '>
 <span class='attribute'>#[<span class='ident'>allow</span>(<span class='ident'>dead_code</span>)]</span>
 
@@ -1113,6 +1133,10 @@
         <span class='self'>self</span>.<span class='ident'>inner</span>().<span class='ident'>consumer_is_ready</span>()
     }
 
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>consumer_is_err</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
+        <span class='self'>self</span>.<span class='ident'>inner</span>().<span class='ident'>consumer_is_err</span>()
+    }
+
     <span class='doccomment'>/// Returns the underlying value if it has been realized, None otherwise.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>consumer_poll</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>AsyncResult</span><span class='op'>&lt;</span><span class='ident'>A</span>::<span class='ident'>Value</span>, <span class='ident'>A</span>::<span class='ident'>Error</span><span class='op'>&gt;&gt;</span> {
         <span class='self'>self</span>.<span class='ident'>inner</span>().<span class='ident'>consumer_poll</span>()
@@ -1149,6 +1173,10 @@
 
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>producer_is_ready</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
         <span class='self'>self</span>.<span class='ident'>inner</span>().<span class='ident'>producer_is_ready</span>()
+    }
+
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>producer_is_err</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
+        <span class='self'>self</span>.<span class='ident'>inner</span>().<span class='ident'>producer_is_err</span>()
     }
 
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>producer_poll</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>AsyncResult</span><span class='op'>&lt;</span><span class='ident'>A</span>::<span class='ident'>Producer</span>, ()<span class='op'>&gt;&gt;</span> {
@@ -1362,6 +1390,14 @@
         <span class='self'>self</span>.<span class='ident'>state</span>.<span class='ident'>load</span>(<span class='ident'>Relaxed</span>).<span class='ident'>is_ready</span>()
     }
 
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>consumer_is_err</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
+        <span class='kw'>if</span> <span class='op'>!</span><span class='self'>self</span>.<span class='ident'>state</span>.<span class='ident'>load</span>(<span class='ident'>Acquire</span>).<span class='ident'>is_ready</span>() {
+            <span class='kw'>return</span> <span class='boolval'>false</span>;
+        }
+
+        <span class='self'>self</span>.<span class='ident'>val</span>.<span class='ident'>is_err</span>()
+    }
+
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>consumer_poll</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>AsyncResult</span><span class='op'>&lt;</span><span class='ident'>A</span>::<span class='ident'>Value</span>, <span class='ident'>A</span>::<span class='ident'>Error</span><span class='op'>&gt;&gt;</span> {
         <span class='kw'>let</span> <span class='ident'>curr</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>state</span>.<span class='ident'>load</span>(<span class='ident'>Relaxed</span>);
 
@@ -1553,6 +1589,10 @@
     <span class='kw'>fn</span> <span class='ident'>producer_is_ready</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
         <span class='kw'>let</span> <span class='ident'>curr</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>state</span>.<span class='ident'>load</span>(<span class='ident'>Relaxed</span>);
         <span class='ident'>curr</span>.<span class='ident'>is_producer_ready</span>()
+    }
+
+    <span class='kw'>fn</span> <span class='ident'>producer_is_err</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
+        <span class='macro'>unimplemented</span><span class='macro'>!</span>();
     }
 
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>producer_poll</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>AsyncResult</span><span class='op'>&lt;</span><span class='ident'>A</span>::<span class='ident'>Producer</span>, ()<span class='op'>&gt;&gt;</span> {
