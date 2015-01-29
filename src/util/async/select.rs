@@ -482,7 +482,6 @@ impl State {
  *
  */
 
-
 impl<A1: Async<Error=E>, A2: Async<Error=E>, E: Send> Select<E> for (A1, A2) {
     fn select(self, complete: Complete<(u32, (A1, A2)), E>) {
         let (a1, a2) = self;

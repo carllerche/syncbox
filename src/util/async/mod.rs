@@ -24,7 +24,7 @@
 
 pub use self::future::{Future, Complete};
 pub use self::stream::{Stream, StreamIter, Generate};
-pub use self::join::{join, ToJoin};
+pub use self::join::{join, Join};
 pub use self::select::{select, Select};
 
 use util::Run;
@@ -40,8 +40,6 @@ use self::AsyncError::*;
 // * Allow Async::or & Async::or_else to change the error type
 //
 // * Improve performance / reduce allocations
-//
-// * Rename ToJoin -> Join & use associated types
 
 mod core;
 mod future;

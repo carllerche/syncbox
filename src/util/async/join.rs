@@ -4,7 +4,7 @@ use std::sync::Arc;
 use std::sync::atomic::{self, AtomicInt};
 use std::sync::atomic::Ordering;
 
-pub fn join<J: ToJoin<T, E>, T: Send, E: Send>(asyncs: J) -> Future<T, E> {
+pub fn join<J: Join<T, E>, T: Send, E: Send>(asyncs: J) -> Future<T, E> {
     let (future, complete) = Future::pair();
 
     // Don't do any work until the consumer registers interest in the completed
@@ -18,74 +18,8 @@ pub fn join<J: ToJoin<T, E>, T: Send, E: Send>(asyncs: J) -> Future<T, E> {
     future
 }
 
-pub trait ToJoin<T, E> : Send {
+pub trait Join<T, E> : Send {
     fn join(self, complete: Complete<T, E>);
-}
-
-macro_rules! expr {
-    ($e: expr) => { $e };
-}
-
-macro_rules! component {
-    ($async:ident, $progress:ident, $id:tt) => {{
-        let $progress = $progress.clone();
-
-        $async.receive(move |res| {
-            debug!(concat!("dependent future complete; id=", $id, "; success={}"), res.is_ok());
-
-            // Get a pointer to the value staging area (Option<T>). Values will
-            // be stored here until the join is complete
-            let slot = expr!(&mut $progress.vals_mut().$id);
-
-            match res {
-                Ok(v) => {
-                    // Set the value
-                    *slot = Some(v);
-
-                    // Track that the value has been received
-                    if $progress.dec() == 0 {
-                        debug!("last future completed -- completing join");
-                        // If all values have been received, successfully
-                        // complete the future
-                        $progress.succeed();
-                    }
-                }
-                Err(e) => {
-                    $progress.fail(e);
-                }
-            }
-        });
-    }};
-}
-
-impl<A1: Async<Error=E>, A2: Async<Error=E>, E> ToJoin<(A1::Value, A2::Value), E> for (A1, A2)
-        where E: Send,
-              A1::Value: Send,
-              A2::Value: Send {
-
-    fn join(self, complete: Complete<(<A1 as Async>::Value, <A2 as Async>::Value), E>) {
-        let (a1, a2) = self;
-        let p = Progress::new((None, None), complete, 2);
-
-        component!(a1, p, 0);
-        component!(a2, p, 1);
-    }
-}
-
-impl<A1: Async<Error=E>, A2: Async<Error=E>, A3: Async<Error=E>, E> ToJoin<(A1::Value, A2::Value, A3::Value), E> for (A1, A2, A3)
-        where E: Send,
-              A1::Value: Send,
-              A2::Value: Send,
-              A3::Value: Send {
-
-    fn join(self, complete: Complete<(A1::Value, A2::Value, A3::Value), E>) {
-        let (a1, a2, a3) = self;
-        let p = Progress::new((None, None, None), complete, 3);
-
-        component!(a1, p, 0);
-        component!(a2, p, 1);
-        component!(a3, p, 2);
-    }
 }
 
 trait Partial<R> {
@@ -175,4 +109,76 @@ struct ProgressInner<P: Partial<R>, R: Send, E: Send> {
 }
 
 unsafe impl<P: Partial<R>, R: Send, E: Send> Sync for UnsafeCell<ProgressInner<P, R, E>> {
+}
+
+macro_rules! expr {
+    ($e: expr) => { $e };
+}
+
+macro_rules! component {
+    ($async:ident, $progress:ident, $id:tt) => {{
+        let $progress = $progress.clone();
+
+        $async.receive(move |res| {
+            debug!(concat!("dependent future complete; id=", $id, "; success={}"), res.is_ok());
+
+            // Get a pointer to the value staging area (Option<T>). Values will
+            // be stored here until the join is complete
+            let slot = expr!(&mut $progress.vals_mut().$id);
+
+            match res {
+                Ok(v) => {
+                    // Set the value
+                    *slot = Some(v);
+
+                    // Track that the value has been received
+                    if $progress.dec() == 0 {
+                        debug!("last future completed -- completing join");
+                        // If all values have been received, successfully
+                        // complete the future
+                        $progress.succeed();
+                    }
+                }
+                Err(e) => {
+                    $progress.fail(e);
+                }
+            }
+        });
+    }};
+}
+
+/*
+ *
+ * ===== Join for Tuples =====
+ *
+ */
+
+impl<A1: Async<Error=E>, A2: Async<Error=E>, E> Join<(A1::Value, A2::Value), E> for (A1, A2)
+        where E: Send,
+              A1::Value: Send,
+              A2::Value: Send {
+
+    fn join(self, complete: Complete<(<A1 as Async>::Value, <A2 as Async>::Value), E>) {
+        let (a1, a2) = self;
+        let p = Progress::new((None, None), complete, 2);
+
+        component!(a1, p, 0);
+        component!(a2, p, 1);
+    }
+}
+
+impl<A1: Async<Error=E>, A2: Async<Error=E>, A3: Async<Error=E>, E> Join<(A1::Value, A2::Value, A3::Value), E> for (A1, A2, A3)
+        where E: Send,
+              A1::Value: Send,
+              A2::Value: Send,
+              A3::Value: Send {
+
+    fn join(self, complete: Complete<(A1::Value, A2::Value, A3::Value), E>) {
+        let (a1, a2, a3) = self;
+        let p = Progress::new((None, None, None), complete, 3);
+
+        component!(a1, p, 0);
+        component!(a2, p, 1);
+        component!(a3, p, 2);
+    }
 }
