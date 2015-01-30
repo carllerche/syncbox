@@ -218,6 +218,12 @@
 <span id="176">176</span>
 <span id="177">177</span>
 <span id="178">178</span>
+<span id="179">179</span>
+<span id="180">180</span>
+<span id="181">181</span>
+<span id="182">182</span>
+<span id="183">183</span>
+<span id="184">184</span>
 </pre><pre class='rust '>
 <span class='kw'>use</span> <span class='ident'>super</span>::{<span class='ident'>Async</span>, <span class='ident'>Future</span>, <span class='ident'>Complete</span>, <span class='ident'>AsyncError</span>};
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>cell</span>::<span class='ident'>UnsafeCell</span>;
@@ -225,7 +231,7 @@
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::<span class='ident'>atomic</span>::{<span class='self'>self</span>, <span class='ident'>AtomicInt</span>};
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::<span class='ident'>atomic</span>::<span class='ident'>Ordering</span>;
 
-<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>join</span><span class='op'>&lt;</span><span class='ident'>J</span>: <span class='ident'>ToJoin</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;</span>, <span class='ident'>T</span>: <span class='ident'>Send</span>, <span class='ident'>E</span>: <span class='ident'>Send</span><span class='op'>&gt;</span>(<span class='ident'>asyncs</span>: <span class='ident'>J</span>) <span class='op'>-&gt;</span> <span class='ident'>Future</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;</span> {
+<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>join</span><span class='op'>&lt;</span><span class='ident'>J</span>: <span class='ident'>Join</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;</span>, <span class='ident'>T</span>: <span class='ident'>Send</span>, <span class='ident'>E</span>: <span class='ident'>Send</span><span class='op'>&gt;</span>(<span class='ident'>asyncs</span>: <span class='ident'>J</span>) <span class='op'>-&gt;</span> <span class='ident'>Future</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;</span> {
     <span class='kw'>let</span> (<span class='ident'>future</span>, <span class='ident'>complete</span>) <span class='op'>=</span> <span class='ident'>Future</span>::<span class='ident'>pair</span>();
 
     <span class='comment'>// Don&#39;t do any work until the consumer registers interest in the completed</span>
@@ -239,74 +245,8 @@
     <span class='ident'>future</span>
 }
 
-<span class='kw'>pub</span> <span class='kw'>trait</span> <span class='ident'>ToJoin</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;</span> : <span class='ident'>Send</span> {
+<span class='kw'>pub</span> <span class='kw'>trait</span> <span class='ident'>Join</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;</span> : <span class='ident'>Send</span> {
     <span class='kw'>fn</span> <span class='ident'>join</span>(<span class='self'>self</span>, <span class='ident'>complete</span>: <span class='ident'>Complete</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;</span>);
-}
-
-<span class='macro'>macro_rules</span><span class='macro'>!</span> <span class='ident'>expr</span> {
-    (<span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>e</span>: <span class='ident'>expr</span>) <span class='op'>=&gt;</span> { <span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>e</span> };
-}
-
-<span class='macro'>macro_rules</span><span class='macro'>!</span> <span class='ident'>component</span> {
-    (<span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>async</span>:<span class='ident'>ident</span>, <span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>progress</span>:<span class='ident'>ident</span>, <span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>id</span>:<span class='ident'>tt</span>) <span class='op'>=&gt;</span> {{
-        <span class='kw'>let</span> <span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>progress</span> <span class='op'>=</span> <span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>progress</span>.<span class='ident'>clone</span>();
-
-        <span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>async</span>.<span class='ident'>receive</span>(<span class='kw'>move</span> <span class='op'>|</span><span class='ident'>res</span><span class='op'>|</span> {
-            <span class='macro'>debug</span><span class='macro'>!</span>(<span class='macro'>concat</span><span class='macro'>!</span>(<span class='string'>&quot;dependent future complete; id=&quot;</span>, <span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>id</span>, <span class='string'>&quot;; success={}&quot;</span>), <span class='ident'>res</span>.<span class='ident'>is_ok</span>());
-
-            <span class='comment'>// Get a pointer to the value staging area (Option&lt;T&gt;). Values will</span>
-            <span class='comment'>// be stored here until the join is complete</span>
-            <span class='kw'>let</span> <span class='ident'>slot</span> <span class='op'>=</span> <span class='macro'>expr</span><span class='macro'>!</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>progress</span>.<span class='ident'>vals_mut</span>().<span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>id</span>);
-
-            <span class='kw'>match</span> <span class='ident'>res</span> {
-                <span class='prelude-val'>Ok</span>(<span class='ident'>v</span>) <span class='op'>=&gt;</span> {
-                    <span class='comment'>// Set the value</span>
-                    <span class='op'>*</span><span class='ident'>slot</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='ident'>v</span>);
-
-                    <span class='comment'>// Track that the value has been received</span>
-                    <span class='kw'>if</span> <span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>progress</span>.<span class='ident'>dec</span>() <span class='op'>==</span> <span class='number'>0</span> {
-                        <span class='macro'>debug</span><span class='macro'>!</span>(<span class='string'>&quot;last future completed -- completing join&quot;</span>);
-                        <span class='comment'>// If all values have been received, successfully</span>
-                        <span class='comment'>// complete the future</span>
-                        <span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>progress</span>.<span class='ident'>succeed</span>();
-                    }
-                }
-                <span class='prelude-val'>Err</span>(<span class='ident'>e</span>) <span class='op'>=&gt;</span> {
-                    <span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>progress</span>.<span class='ident'>fail</span>(<span class='ident'>e</span>);
-                }
-            }
-        });
-    }};
-}
-
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A1</span>: <span class='ident'>Async</span><span class='op'>&lt;</span><span class='ident'>Error</span><span class='op'>=</span><span class='ident'>E</span><span class='op'>&gt;</span>, <span class='ident'>A2</span>: <span class='ident'>Async</span><span class='op'>&lt;</span><span class='ident'>Error</span><span class='op'>=</span><span class='ident'>E</span><span class='op'>&gt;</span>, <span class='ident'>E</span><span class='op'>&gt;</span> <span class='ident'>ToJoin</span><span class='op'>&lt;</span>(<span class='ident'>A1</span>::<span class='ident'>Value</span>, <span class='ident'>A2</span>::<span class='ident'>Value</span>), <span class='ident'>E</span><span class='op'>&gt;</span> <span class='kw'>for</span> (<span class='ident'>A1</span>, <span class='ident'>A2</span>)
-        <span class='kw'>where</span> <span class='ident'>E</span>: <span class='ident'>Send</span>,
-              <span class='ident'>A1</span>::<span class='ident'>Value</span>: <span class='ident'>Send</span>,
-              <span class='ident'>A2</span>::<span class='ident'>Value</span>: <span class='ident'>Send</span> {
-
-    <span class='kw'>fn</span> <span class='ident'>join</span>(<span class='self'>self</span>, <span class='ident'>complete</span>: <span class='ident'>Complete</span><span class='op'>&lt;</span>(<span class='op'>&lt;</span><span class='ident'>A1</span> <span class='kw'>as</span> <span class='ident'>Async</span><span class='op'>&gt;</span>::<span class='ident'>Value</span>, <span class='op'>&lt;</span><span class='ident'>A2</span> <span class='kw'>as</span> <span class='ident'>Async</span><span class='op'>&gt;</span>::<span class='ident'>Value</span>), <span class='ident'>E</span><span class='op'>&gt;</span>) {
-        <span class='kw'>let</span> (<span class='ident'>a1</span>, <span class='ident'>a2</span>) <span class='op'>=</span> <span class='self'>self</span>;
-        <span class='kw'>let</span> <span class='ident'>p</span> <span class='op'>=</span> <span class='ident'>Progress</span>::<span class='ident'>new</span>((<span class='prelude-val'>None</span>, <span class='prelude-val'>None</span>), <span class='ident'>complete</span>, <span class='number'>2</span>);
-
-        <span class='macro'>component</span><span class='macro'>!</span>(<span class='ident'>a1</span>, <span class='ident'>p</span>, <span class='number'>0</span>);
-        <span class='macro'>component</span><span class='macro'>!</span>(<span class='ident'>a2</span>, <span class='ident'>p</span>, <span class='number'>1</span>);
-    }
-}
-
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A1</span>: <span class='ident'>Async</span><span class='op'>&lt;</span><span class='ident'>Error</span><span class='op'>=</span><span class='ident'>E</span><span class='op'>&gt;</span>, <span class='ident'>A2</span>: <span class='ident'>Async</span><span class='op'>&lt;</span><span class='ident'>Error</span><span class='op'>=</span><span class='ident'>E</span><span class='op'>&gt;</span>, <span class='ident'>A3</span>: <span class='ident'>Async</span><span class='op'>&lt;</span><span class='ident'>Error</span><span class='op'>=</span><span class='ident'>E</span><span class='op'>&gt;</span>, <span class='ident'>E</span><span class='op'>&gt;</span> <span class='ident'>ToJoin</span><span class='op'>&lt;</span>(<span class='ident'>A1</span>::<span class='ident'>Value</span>, <span class='ident'>A2</span>::<span class='ident'>Value</span>, <span class='ident'>A3</span>::<span class='ident'>Value</span>), <span class='ident'>E</span><span class='op'>&gt;</span> <span class='kw'>for</span> (<span class='ident'>A1</span>, <span class='ident'>A2</span>, <span class='ident'>A3</span>)
-        <span class='kw'>where</span> <span class='ident'>E</span>: <span class='ident'>Send</span>,
-              <span class='ident'>A1</span>::<span class='ident'>Value</span>: <span class='ident'>Send</span>,
-              <span class='ident'>A2</span>::<span class='ident'>Value</span>: <span class='ident'>Send</span>,
-              <span class='ident'>A3</span>::<span class='ident'>Value</span>: <span class='ident'>Send</span> {
-
-    <span class='kw'>fn</span> <span class='ident'>join</span>(<span class='self'>self</span>, <span class='ident'>complete</span>: <span class='ident'>Complete</span><span class='op'>&lt;</span>(<span class='ident'>A1</span>::<span class='ident'>Value</span>, <span class='ident'>A2</span>::<span class='ident'>Value</span>, <span class='ident'>A3</span>::<span class='ident'>Value</span>), <span class='ident'>E</span><span class='op'>&gt;</span>) {
-        <span class='kw'>let</span> (<span class='ident'>a1</span>, <span class='ident'>a2</span>, <span class='ident'>a3</span>) <span class='op'>=</span> <span class='self'>self</span>;
-        <span class='kw'>let</span> <span class='ident'>p</span> <span class='op'>=</span> <span class='ident'>Progress</span>::<span class='ident'>new</span>((<span class='prelude-val'>None</span>, <span class='prelude-val'>None</span>, <span class='prelude-val'>None</span>), <span class='ident'>complete</span>, <span class='number'>3</span>);
-
-        <span class='macro'>component</span><span class='macro'>!</span>(<span class='ident'>a1</span>, <span class='ident'>p</span>, <span class='number'>0</span>);
-        <span class='macro'>component</span><span class='macro'>!</span>(<span class='ident'>a2</span>, <span class='ident'>p</span>, <span class='number'>1</span>);
-        <span class='macro'>component</span><span class='macro'>!</span>(<span class='ident'>a3</span>, <span class='ident'>p</span>, <span class='number'>2</span>);
-    }
 }
 
 <span class='kw'>trait</span> <span class='ident'>Partial</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span> {
@@ -396,6 +336,78 @@
 }
 
 <span class='kw'>unsafe</span> <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>P</span>: <span class='ident'>Partial</span><span class='op'>&lt;</span><span class='ident'>R</span><span class='op'>&gt;</span>, <span class='ident'>R</span>: <span class='ident'>Send</span>, <span class='ident'>E</span>: <span class='ident'>Send</span><span class='op'>&gt;</span> <span class='ident'>Sync</span> <span class='kw'>for</span> <span class='ident'>UnsafeCell</span><span class='op'>&lt;</span><span class='ident'>ProgressInner</span><span class='op'>&lt;</span><span class='ident'>P</span>, <span class='ident'>R</span>, <span class='ident'>E</span><span class='op'>&gt;&gt;</span> {
+}
+
+<span class='macro'>macro_rules</span><span class='macro'>!</span> <span class='ident'>expr</span> {
+    (<span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>e</span>: <span class='ident'>expr</span>) <span class='op'>=&gt;</span> { <span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>e</span> };
+}
+
+<span class='macro'>macro_rules</span><span class='macro'>!</span> <span class='ident'>component</span> {
+    (<span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>async</span>:<span class='ident'>ident</span>, <span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>progress</span>:<span class='ident'>ident</span>, <span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>id</span>:<span class='ident'>tt</span>) <span class='op'>=&gt;</span> {{
+        <span class='kw'>let</span> <span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>progress</span> <span class='op'>=</span> <span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>progress</span>.<span class='ident'>clone</span>();
+
+        <span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>async</span>.<span class='ident'>receive</span>(<span class='kw'>move</span> <span class='op'>|</span><span class='ident'>res</span><span class='op'>|</span> {
+            <span class='macro'>debug</span><span class='macro'>!</span>(<span class='macro'>concat</span><span class='macro'>!</span>(<span class='string'>&quot;dependent future complete; id=&quot;</span>, <span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>id</span>, <span class='string'>&quot;; success={}&quot;</span>), <span class='ident'>res</span>.<span class='ident'>is_ok</span>());
+
+            <span class='comment'>// Get a pointer to the value staging area (Option&lt;T&gt;). Values will</span>
+            <span class='comment'>// be stored here until the join is complete</span>
+            <span class='kw'>let</span> <span class='ident'>slot</span> <span class='op'>=</span> <span class='macro'>expr</span><span class='macro'>!</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>progress</span>.<span class='ident'>vals_mut</span>().<span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>id</span>);
+
+            <span class='kw'>match</span> <span class='ident'>res</span> {
+                <span class='prelude-val'>Ok</span>(<span class='ident'>v</span>) <span class='op'>=&gt;</span> {
+                    <span class='comment'>// Set the value</span>
+                    <span class='op'>*</span><span class='ident'>slot</span> <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='ident'>v</span>);
+
+                    <span class='comment'>// Track that the value has been received</span>
+                    <span class='kw'>if</span> <span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>progress</span>.<span class='ident'>dec</span>() <span class='op'>==</span> <span class='number'>0</span> {
+                        <span class='macro'>debug</span><span class='macro'>!</span>(<span class='string'>&quot;last future completed -- completing join&quot;</span>);
+                        <span class='comment'>// If all values have been received, successfully</span>
+                        <span class='comment'>// complete the future</span>
+                        <span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>progress</span>.<span class='ident'>succeed</span>();
+                    }
+                }
+                <span class='prelude-val'>Err</span>(<span class='ident'>e</span>) <span class='op'>=&gt;</span> {
+                    <span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>progress</span>.<span class='ident'>fail</span>(<span class='ident'>e</span>);
+                }
+            }
+        });
+    }};
+}
+
+<span class='comment'>/*
+ *
+ * ===== Join for Tuples =====
+ *
+ */</span>
+
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A1</span>: <span class='ident'>Async</span><span class='op'>&lt;</span><span class='ident'>Error</span><span class='op'>=</span><span class='ident'>E</span><span class='op'>&gt;</span>, <span class='ident'>A2</span>: <span class='ident'>Async</span><span class='op'>&lt;</span><span class='ident'>Error</span><span class='op'>=</span><span class='ident'>E</span><span class='op'>&gt;</span>, <span class='ident'>E</span><span class='op'>&gt;</span> <span class='ident'>Join</span><span class='op'>&lt;</span>(<span class='ident'>A1</span>::<span class='ident'>Value</span>, <span class='ident'>A2</span>::<span class='ident'>Value</span>), <span class='ident'>E</span><span class='op'>&gt;</span> <span class='kw'>for</span> (<span class='ident'>A1</span>, <span class='ident'>A2</span>)
+        <span class='kw'>where</span> <span class='ident'>E</span>: <span class='ident'>Send</span>,
+              <span class='ident'>A1</span>::<span class='ident'>Value</span>: <span class='ident'>Send</span>,
+              <span class='ident'>A2</span>::<span class='ident'>Value</span>: <span class='ident'>Send</span> {
+
+    <span class='kw'>fn</span> <span class='ident'>join</span>(<span class='self'>self</span>, <span class='ident'>complete</span>: <span class='ident'>Complete</span><span class='op'>&lt;</span>(<span class='op'>&lt;</span><span class='ident'>A1</span> <span class='kw'>as</span> <span class='ident'>Async</span><span class='op'>&gt;</span>::<span class='ident'>Value</span>, <span class='op'>&lt;</span><span class='ident'>A2</span> <span class='kw'>as</span> <span class='ident'>Async</span><span class='op'>&gt;</span>::<span class='ident'>Value</span>), <span class='ident'>E</span><span class='op'>&gt;</span>) {
+        <span class='kw'>let</span> (<span class='ident'>a1</span>, <span class='ident'>a2</span>) <span class='op'>=</span> <span class='self'>self</span>;
+        <span class='kw'>let</span> <span class='ident'>p</span> <span class='op'>=</span> <span class='ident'>Progress</span>::<span class='ident'>new</span>((<span class='prelude-val'>None</span>, <span class='prelude-val'>None</span>), <span class='ident'>complete</span>, <span class='number'>2</span>);
+
+        <span class='macro'>component</span><span class='macro'>!</span>(<span class='ident'>a1</span>, <span class='ident'>p</span>, <span class='number'>0</span>);
+        <span class='macro'>component</span><span class='macro'>!</span>(<span class='ident'>a2</span>, <span class='ident'>p</span>, <span class='number'>1</span>);
+    }
+}
+
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A1</span>: <span class='ident'>Async</span><span class='op'>&lt;</span><span class='ident'>Error</span><span class='op'>=</span><span class='ident'>E</span><span class='op'>&gt;</span>, <span class='ident'>A2</span>: <span class='ident'>Async</span><span class='op'>&lt;</span><span class='ident'>Error</span><span class='op'>=</span><span class='ident'>E</span><span class='op'>&gt;</span>, <span class='ident'>A3</span>: <span class='ident'>Async</span><span class='op'>&lt;</span><span class='ident'>Error</span><span class='op'>=</span><span class='ident'>E</span><span class='op'>&gt;</span>, <span class='ident'>E</span><span class='op'>&gt;</span> <span class='ident'>Join</span><span class='op'>&lt;</span>(<span class='ident'>A1</span>::<span class='ident'>Value</span>, <span class='ident'>A2</span>::<span class='ident'>Value</span>, <span class='ident'>A3</span>::<span class='ident'>Value</span>), <span class='ident'>E</span><span class='op'>&gt;</span> <span class='kw'>for</span> (<span class='ident'>A1</span>, <span class='ident'>A2</span>, <span class='ident'>A3</span>)
+        <span class='kw'>where</span> <span class='ident'>E</span>: <span class='ident'>Send</span>,
+              <span class='ident'>A1</span>::<span class='ident'>Value</span>: <span class='ident'>Send</span>,
+              <span class='ident'>A2</span>::<span class='ident'>Value</span>: <span class='ident'>Send</span>,
+              <span class='ident'>A3</span>::<span class='ident'>Value</span>: <span class='ident'>Send</span> {
+
+    <span class='kw'>fn</span> <span class='ident'>join</span>(<span class='self'>self</span>, <span class='ident'>complete</span>: <span class='ident'>Complete</span><span class='op'>&lt;</span>(<span class='ident'>A1</span>::<span class='ident'>Value</span>, <span class='ident'>A2</span>::<span class='ident'>Value</span>, <span class='ident'>A3</span>::<span class='ident'>Value</span>), <span class='ident'>E</span><span class='op'>&gt;</span>) {
+        <span class='kw'>let</span> (<span class='ident'>a1</span>, <span class='ident'>a2</span>, <span class='ident'>a3</span>) <span class='op'>=</span> <span class='self'>self</span>;
+        <span class='kw'>let</span> <span class='ident'>p</span> <span class='op'>=</span> <span class='ident'>Progress</span>::<span class='ident'>new</span>((<span class='prelude-val'>None</span>, <span class='prelude-val'>None</span>, <span class='prelude-val'>None</span>), <span class='ident'>complete</span>, <span class='number'>3</span>);
+
+        <span class='macro'>component</span><span class='macro'>!</span>(<span class='ident'>a1</span>, <span class='ident'>p</span>, <span class='number'>0</span>);
+        <span class='macro'>component</span><span class='macro'>!</span>(<span class='ident'>a2</span>, <span class='ident'>p</span>, <span class='number'>1</span>);
+        <span class='macro'>component</span><span class='macro'>!</span>(<span class='ident'>a3</span>, <span class='ident'>p</span>, <span class='number'>2</span>);
+    }
 }
 </pre>
 </section>

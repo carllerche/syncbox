@@ -384,8 +384,20 @@
 <span id="342">342</span>
 <span id="343">343</span>
 <span id="344">344</span>
+<span id="345">345</span>
+<span id="346">346</span>
+<span id="347">347</span>
+<span id="348">348</span>
+<span id="349">349</span>
+<span id="350">350</span>
+<span id="351">351</span>
+<span id="352">352</span>
+<span id="353">353</span>
+<span id="354">354</span>
+<span id="355">355</span>
+<span id="356">356</span>
 </pre><pre class='rust '>
-<span class='kw'>use</span> <span class='ident'>super</span>::{<span class='ident'>Async</span>, <span class='ident'>Future</span>, <span class='ident'>Cancel</span>, <span class='ident'>AsyncResult</span>, <span class='ident'>AsyncError</span>};
+<span class='kw'>use</span> <span class='ident'>util</span>::<span class='ident'>async</span>::{<span class='self'>self</span>, <span class='ident'>Async</span>, <span class='ident'>Future</span>, <span class='ident'>Cancel</span>, <span class='ident'>AsyncResult</span>, <span class='ident'>AsyncError</span>};
 <span class='kw'>use</span> <span class='ident'>super</span>::<span class='ident'>core</span>::{<span class='ident'>Core</span>, <span class='ident'>OptionCore</span>, <span class='ident'>FromCore</span>};
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>fmt</span>;
 
@@ -496,10 +508,22 @@
         <span class='macro'>unimplemented</span><span class='macro'>!</span>();
     }
 
-    <span class='comment'>// TODO: Figure out what to do when the condition errors</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>take_until</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span>(<span class='self'>self</span>, <span class='ident'>_cond</span>: <span class='ident'>A</span>) <span class='op'>-&gt;</span> <span class='ident'>Stream</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;</span>
-            <span class='kw'>where</span> <span class='ident'>A</span>: <span class='ident'>Async</span> {
-        <span class='macro'>unimplemented</span><span class='macro'>!</span>();
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>take_until</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span>(<span class='self'>self</span>, <span class='ident'>cond</span>: <span class='ident'>A</span>) <span class='op'>-&gt;</span> <span class='ident'>Stream</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;</span>
+            <span class='kw'>where</span> <span class='ident'>A</span>: <span class='ident'>Async</span><span class='op'>&lt;</span><span class='ident'>Error</span><span class='op'>=</span><span class='ident'>E</span><span class='op'>&gt;</span> {
+
+        <span class='ident'>async</span>::<span class='ident'>select</span>((<span class='ident'>cond</span>, <span class='self'>self</span>))
+            .<span class='ident'>and_then</span>(<span class='kw'>move</span> <span class='op'>|</span>(<span class='ident'>i</span>, (<span class='ident'>cond</span>, <span class='ident'>stream</span>))<span class='op'>|</span> {
+                <span class='kw'>if</span> <span class='ident'>i</span> <span class='op'>==</span> <span class='number'>0</span> {
+                    <span class='prelude-val'>Ok</span>(<span class='prelude-val'>None</span>)
+                } <span class='kw'>else</span> {
+                    <span class='kw'>match</span> <span class='ident'>stream</span>.<span class='ident'>expect</span>() {
+                        <span class='prelude-val'>Ok</span>(<span class='prelude-val'>Some</span>((<span class='ident'>v</span>, <span class='ident'>rest</span>))) <span class='op'>=&gt;</span> {
+                            <span class='prelude-val'>Ok</span>(<span class='prelude-val'>Some</span>((<span class='ident'>v</span>, <span class='ident'>rest</span>.<span class='ident'>take_until</span>(<span class='ident'>cond</span>))))
+                        }
+                        _ <span class='op'>=&gt;</span> <span class='prelude-val'>Ok</span>(<span class='prelude-val'>None</span>),
+                    }
+                }
+            }).<span class='ident'>as_stream</span>()
     }
 }
 

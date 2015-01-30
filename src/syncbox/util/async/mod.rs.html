@@ -397,8 +397,6 @@
 <span id="355">355</span>
 <span id="356">356</span>
 <span id="357">357</span>
-<span id="358">358</span>
-<span id="359">359</span>
 </pre><pre class='rust '>
 <span class='doccomment'>//! # Futures &amp; Streams</span>
 <span class='doccomment'>//!</span>
@@ -426,7 +424,7 @@
 
 <span class='kw'>pub</span> <span class='kw'>use</span> <span class='self'>self</span>::<span class='ident'>future</span>::{<span class='ident'>Future</span>, <span class='ident'>Complete</span>};
 <span class='kw'>pub</span> <span class='kw'>use</span> <span class='self'>self</span>::<span class='ident'>stream</span>::{<span class='ident'>Stream</span>, <span class='ident'>StreamIter</span>, <span class='ident'>Generate</span>};
-<span class='kw'>pub</span> <span class='kw'>use</span> <span class='self'>self</span>::<span class='ident'>join</span>::{<span class='ident'>join</span>, <span class='ident'>ToJoin</span>};
+<span class='kw'>pub</span> <span class='kw'>use</span> <span class='self'>self</span>::<span class='ident'>join</span>::{<span class='ident'>join</span>, <span class='ident'>Join</span>};
 <span class='kw'>pub</span> <span class='kw'>use</span> <span class='self'>self</span>::<span class='ident'>select</span>::{<span class='ident'>select</span>, <span class='ident'>Select</span>};
 
 <span class='kw'>use</span> <span class='ident'>util</span>::<span class='ident'>Run</span>;
@@ -442,8 +440,6 @@
 <span class='comment'>// * Allow Async::or &amp; Async::or_else to change the error type</span>
 <span class='comment'>//</span>
 <span class='comment'>// * Improve performance / reduce allocations</span>
-<span class='comment'>//</span>
-<span class='comment'>// * Rename ToJoin -&gt; Join &amp; use associated types</span>
 
 <span class='kw'>mod</span> <span class='ident'>core</span>;
 <span class='kw'>mod</span> <span class='ident'>future</span>;
