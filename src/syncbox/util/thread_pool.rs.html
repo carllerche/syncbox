@@ -1459,7 +1459,7 @@
 <span class='kw'>const</span> <span class='ident'>LIFECYCLE_MASK</span>: <span class='ident'>u32</span> <span class='op'>=</span> <span class='number'>7</span>;
 <span class='kw'>const</span> <span class='ident'>CAPACITY</span>: <span class='ident'>u32</span> <span class='op'>=</span> (<span class='number'>1</span> <span class='op'>&lt;&lt;</span> (<span class='number'>32</span> <span class='op'>-</span> <span class='number'>3</span>)) <span class='op'>-</span> <span class='number'>1</span>;
 
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Show</span>, <span class='ident'>Copy</span>, <span class='ident'>Eq</span>, <span class='ident'>PartialEq</span>, <span class='ident'>Ord</span>, <span class='ident'>PartialOrd</span>, <span class='ident'>FromPrimitive</span>)]</span>
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Debug</span>, <span class='ident'>Copy</span>, <span class='ident'>Eq</span>, <span class='ident'>PartialEq</span>, <span class='ident'>Ord</span>, <span class='ident'>PartialOrd</span>, <span class='ident'>FromPrimitive</span>)]</span>
 <span class='kw'>enum</span> <span class='ident'>Lifecycle</span> {
     <span class='ident'>RUNNING</span>    <span class='op'>=</span> <span class='number'>0</span>,
     <span class='ident'>SHUTDOWN</span>   <span class='op'>=</span> <span class='number'>1</span>,

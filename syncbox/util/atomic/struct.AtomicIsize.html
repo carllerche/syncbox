@@ -44,11 +44,11 @@
 <h1 class='fqn'><span class='in-band'>Struct <a href='../../index.html'>syncbox</a>::<wbr><a href='../index.html'>util</a>::<wbr><a href='index.html'>atomic</a>::<wbr><a class='struct' href=''>AtomicIsize</a><wbr><a class='stability Stable' title=''>Stable</a></span><span class='out-of-band'><span id='render-detail'>
             <a id="collapse-all" href="#">[-]
             </a>&nbsp;<a id="expand-all" href="#">[+]</a>
-        </span><a id='src-78039' href='http://doc.rust-lang.org/nightly/core/atomic/struct.AtomicIsize.html?gotosrc=78039'>[src]</a></span></h1>
+        </span><a id='src-79904' href='http://doc.rust-lang.org/nightly/core/atomic/struct.AtomicIsize.html?gotosrc=79904'>[src]</a></span></h1>
 <pre class='rust struct'>pub struct AtomicIsize {
     // some fields omitted
 }</pre><div class='docblock'><p>A signed integer type which can be safely shared between threads.</p>
-</div><h2 id='methods'>Methods</h2><h3 class='impl'><a class='stability Stable' title='Stable'></a><code>impl <a class='struct' href='../../../syncbox/util/atomic/struct.AtomicIsize.html' title='syncbox::util::atomic::AtomicIsize'>AtomicIsize</a></code></h3><div class='impl-items'><h4 id='method.new' class='method'><a class='stability Unstable' title='Unstable'></a><code>fn <a href='#method.new' class='fnname'>new</a>(v: <a href='http://doc.rust-lang.org/nightly/std/primitive.isize.html'>isize</a>) -&gt; <a class='struct' href='../../../syncbox/util/atomic/struct.AtomicIsize.html' title='syncbox::util::atomic::AtomicIsize'>AtomicIsize</a></code></h4>
+</div><h2 id='methods'>Methods</h2><h3 class='impl'><a class='stability Stable' title='Stable'></a><code>impl <a class='struct' href='../../../syncbox/util/atomic/struct.AtomicIsize.html' title='syncbox::util::atomic::AtomicIsize'>AtomicIsize</a></code></h3><div class='impl-items'><h4 id='method.new' class='method'><a class='stability Stable' title='Stable'></a><code>fn <a href='#method.new' class='fnname'>new</a>(v: <a href='http://doc.rust-lang.org/nightly/std/primitive.isize.html'>isize</a>) -&gt; <a class='struct' href='../../../syncbox/util/atomic/struct.AtomicIsize.html' title='syncbox::util::atomic::AtomicIsize'>AtomicIsize</a></code></h4>
 <div class='docblock'><p>Creates a new <code>AtomicIsize</code>.</p>
 
 <h1 id="examples" class='section-header'><a
@@ -57,7 +57,7 @@
 
 <span class='kw'>let</span> <span class='ident'>atomic_forty_two</span>  <span class='op'>=</span> <span class='ident'>AtomicIsize</span>::<span class='ident'>new</span>(<span class='number'>42</span>);
 </pre>
-</div><h4 id='method.load' class='method'><a class='stability Unstable' title='Unstable'></a><code>fn <a href='#method.load' class='fnname'>load</a>(&amp;self, order: <a class='enum' href='../../../syncbox/util/atomic/enum.Ordering.html' title='syncbox::util::atomic::Ordering'>Ordering</a>) -&gt; <a href='http://doc.rust-lang.org/nightly/std/primitive.isize.html'>isize</a></code></h4>
+</div><h4 id='method.load' class='method'><a class='stability Stable' title='Stable'></a><code>fn <a href='#method.load' class='fnname'>load</a>(&amp;self, order: <a class='enum' href='../../../syncbox/util/atomic/enum.Ordering.html' title='syncbox::util::atomic::Ordering'>Ordering</a>) -&gt; <a href='http://doc.rust-lang.org/nightly/std/primitive.isize.html'>isize</a></code></h4>
 <div class='docblock'><p>Loads a value from the isize.</p>
 
 <p><code>load</code> takes an <code>Ordering</code> argument which describes the memory ordering of this operation.</p>
@@ -74,7 +74,7 @@
 
 <span class='kw'>let</span> <span class='ident'>value</span> <span class='op'>=</span> <span class='ident'>some_isize</span>.<span class='ident'>load</span>(<span class='ident'>Ordering</span>::<span class='ident'>Relaxed</span>);
 </pre>
-</div><h4 id='method.store' class='method'><a class='stability Unstable' title='Unstable'></a><code>fn <a href='#method.store' class='fnname'>store</a>(&amp;self, val: <a href='http://doc.rust-lang.org/nightly/std/primitive.isize.html'>isize</a>, order: <a class='enum' href='../../../syncbox/util/atomic/enum.Ordering.html' title='syncbox::util::atomic::Ordering'>Ordering</a>)</code></h4>
+</div><h4 id='method.store' class='method'><a class='stability Stable' title='Stable'></a><code>fn <a href='#method.store' class='fnname'>store</a>(&amp;self, val: <a href='http://doc.rust-lang.org/nightly/std/primitive.isize.html'>isize</a>, order: <a class='enum' href='../../../syncbox/util/atomic/enum.Ordering.html' title='syncbox::util::atomic::Ordering'>Ordering</a>)</code></h4>
 <div class='docblock'><p>Stores a value into the isize.</p>
 
 <p><code>store</code> takes an <code>Ordering</code> argument which describes the memory ordering of this operation.</p>
@@ -91,7 +91,7 @@
 <h1 id="panics" class='section-header'><a
                            href="#panics">Panics</a></h1>
 <p>Panics if <code>order</code> is <code>Acquire</code> or <code>AcqRel</code>.</p>
-</div><h4 id='method.swap' class='method'><a class='stability Unstable' title='Unstable'></a><code>fn <a href='#method.swap' class='fnname'>swap</a>(&amp;self, val: <a href='http://doc.rust-lang.org/nightly/std/primitive.isize.html'>isize</a>, order: <a class='enum' href='../../../syncbox/util/atomic/enum.Ordering.html' title='syncbox::util::atomic::Ordering'>Ordering</a>) -&gt; <a href='http://doc.rust-lang.org/nightly/std/primitive.isize.html'>isize</a></code></h4>
+</div><h4 id='method.swap' class='method'><a class='stability Stable' title='Stable'></a><code>fn <a href='#method.swap' class='fnname'>swap</a>(&amp;self, val: <a href='http://doc.rust-lang.org/nightly/std/primitive.isize.html'>isize</a>, order: <a class='enum' href='../../../syncbox/util/atomic/enum.Ordering.html' title='syncbox::util::atomic::Ordering'>Ordering</a>) -&gt; <a href='http://doc.rust-lang.org/nightly/std/primitive.isize.html'>isize</a></code></h4>
 <div class='docblock'><p>Stores a value into the isize, returning the old value.</p>
 
 <p><code>swap</code> takes an <code>Ordering</code> argument which describes the memory ordering of this operation.</p>
@@ -104,7 +104,7 @@
 
 <span class='kw'>let</span> <span class='ident'>value</span> <span class='op'>=</span> <span class='ident'>some_isize</span>.<span class='ident'>swap</span>(<span class='number'>10</span>, <span class='ident'>Ordering</span>::<span class='ident'>Relaxed</span>);
 </pre>
-</div><h4 id='method.compare_and_swap' class='method'><a class='stability Unstable' title='Unstable'></a><code>fn <a href='#method.compare_and_swap' class='fnname'>compare_and_swap</a>(&amp;self, old: <a href='http://doc.rust-lang.org/nightly/std/primitive.isize.html'>isize</a>, new: <a href='http://doc.rust-lang.org/nightly/std/primitive.isize.html'>isize</a>, order: <a class='enum' href='../../../syncbox/util/atomic/enum.Ordering.html' title='syncbox::util::atomic::Ordering'>Ordering</a>) -&gt; <a href='http://doc.rust-lang.org/nightly/std/primitive.isize.html'>isize</a></code></h4>
+</div><h4 id='method.compare_and_swap' class='method'><a class='stability Stable' title='Stable'></a><code>fn <a href='#method.compare_and_swap' class='fnname'>compare_and_swap</a>(&amp;self, old: <a href='http://doc.rust-lang.org/nightly/std/primitive.isize.html'>isize</a>, new: <a href='http://doc.rust-lang.org/nightly/std/primitive.isize.html'>isize</a>, order: <a class='enum' href='../../../syncbox/util/atomic/enum.Ordering.html' title='syncbox::util::atomic::Ordering'>Ordering</a>) -&gt; <a href='http://doc.rust-lang.org/nightly/std/primitive.isize.html'>isize</a></code></h4>
 <div class='docblock'><p>Stores a value into the isize if the current value is the same as the expected value.</p>
 
 <p>If the return value is equal to <code>old</code> then the value was updated.</p>
@@ -120,7 +120,7 @@ this operation.</p>
 
 <span class='kw'>let</span> <span class='ident'>value</span> <span class='op'>=</span> <span class='ident'>some_isize</span>.<span class='ident'>compare_and_swap</span>(<span class='number'>5</span>, <span class='number'>10</span>, <span class='ident'>Ordering</span>::<span class='ident'>Relaxed</span>);
 </pre>
-</div><h4 id='method.fetch_add' class='method'><a class='stability Unstable' title='Unstable'></a><code>fn <a href='#method.fetch_add' class='fnname'>fetch_add</a>(&amp;self, val: <a href='http://doc.rust-lang.org/nightly/std/primitive.isize.html'>isize</a>, order: <a class='enum' href='../../../syncbox/util/atomic/enum.Ordering.html' title='syncbox::util::atomic::Ordering'>Ordering</a>) -&gt; <a href='http://doc.rust-lang.org/nightly/std/primitive.isize.html'>isize</a></code></h4>
+</div><h4 id='method.fetch_add' class='method'><a class='stability Stable' title='Stable'></a><code>fn <a href='#method.fetch_add' class='fnname'>fetch_add</a>(&amp;self, val: <a href='http://doc.rust-lang.org/nightly/std/primitive.isize.html'>isize</a>, order: <a class='enum' href='../../../syncbox/util/atomic/enum.Ordering.html' title='syncbox::util::atomic::Ordering'>Ordering</a>) -&gt; <a href='http://doc.rust-lang.org/nightly/std/primitive.isize.html'>isize</a></code></h4>
 <div class='docblock'><p>Add an isize to the current value, returning the previous value.</p>
 
 <h1 id="examples" class='section-header'><a
@@ -131,7 +131,7 @@ this operation.</p>
 <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='number'>0</span>, <span class='ident'>foo</span>.<span class='ident'>fetch_add</span>(<span class='number'>10</span>, <span class='ident'>Ordering</span>::<span class='ident'>SeqCst</span>));
 <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='number'>10</span>, <span class='ident'>foo</span>.<span class='ident'>load</span>(<span class='ident'>Ordering</span>::<span class='ident'>SeqCst</span>));
 </pre>
-</div><h4 id='method.fetch_sub' class='method'><a class='stability Unstable' title='Unstable'></a><code>fn <a href='#method.fetch_sub' class='fnname'>fetch_sub</a>(&amp;self, val: <a href='http://doc.rust-lang.org/nightly/std/primitive.isize.html'>isize</a>, order: <a class='enum' href='../../../syncbox/util/atomic/enum.Ordering.html' title='syncbox::util::atomic::Ordering'>Ordering</a>) -&gt; <a href='http://doc.rust-lang.org/nightly/std/primitive.isize.html'>isize</a></code></h4>
+</div><h4 id='method.fetch_sub' class='method'><a class='stability Stable' title='Stable'></a><code>fn <a href='#method.fetch_sub' class='fnname'>fetch_sub</a>(&amp;self, val: <a href='http://doc.rust-lang.org/nightly/std/primitive.isize.html'>isize</a>, order: <a class='enum' href='../../../syncbox/util/atomic/enum.Ordering.html' title='syncbox::util::atomic::Ordering'>Ordering</a>) -&gt; <a href='http://doc.rust-lang.org/nightly/std/primitive.isize.html'>isize</a></code></h4>
 <div class='docblock'><p>Subtract an isize from the current value, returning the previous value.</p>
 
 <h1 id="examples" class='section-header'><a
@@ -142,7 +142,7 @@ this operation.</p>
 <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='number'>0</span>, <span class='ident'>foo</span>.<span class='ident'>fetch_sub</span>(<span class='number'>10</span>, <span class='ident'>Ordering</span>::<span class='ident'>SeqCst</span>));
 <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='op'>-</span><span class='number'>10</span>, <span class='ident'>foo</span>.<span class='ident'>load</span>(<span class='ident'>Ordering</span>::<span class='ident'>SeqCst</span>));
 </pre>
-</div><h4 id='method.fetch_and' class='method'><a class='stability Unstable' title='Unstable'></a><code>fn <a href='#method.fetch_and' class='fnname'>fetch_and</a>(&amp;self, val: <a href='http://doc.rust-lang.org/nightly/std/primitive.isize.html'>isize</a>, order: <a class='enum' href='../../../syncbox/util/atomic/enum.Ordering.html' title='syncbox::util::atomic::Ordering'>Ordering</a>) -&gt; <a href='http://doc.rust-lang.org/nightly/std/primitive.isize.html'>isize</a></code></h4>
+</div><h4 id='method.fetch_and' class='method'><a class='stability Stable' title='Stable'></a><code>fn <a href='#method.fetch_and' class='fnname'>fetch_and</a>(&amp;self, val: <a href='http://doc.rust-lang.org/nightly/std/primitive.isize.html'>isize</a>, order: <a class='enum' href='../../../syncbox/util/atomic/enum.Ordering.html' title='syncbox::util::atomic::Ordering'>Ordering</a>) -&gt; <a href='http://doc.rust-lang.org/nightly/std/primitive.isize.html'>isize</a></code></h4>
 <div class='docblock'><p>Bitwise and with the current isize, returning the previous value.</p>
 
 <h1 id="examples" class='section-header'><a
@@ -153,7 +153,7 @@ this operation.</p>
 <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='number'>0b101101</span>, <span class='ident'>foo</span>.<span class='ident'>fetch_and</span>(<span class='number'>0b110011</span>, <span class='ident'>Ordering</span>::<span class='ident'>SeqCst</span>));
 <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='number'>0b100001</span>, <span class='ident'>foo</span>.<span class='ident'>load</span>(<span class='ident'>Ordering</span>::<span class='ident'>SeqCst</span>));
 </pre>
-</div><h4 id='method.fetch_or' class='method'><a class='stability Unstable' title='Unstable'></a><code>fn <a href='#method.fetch_or' class='fnname'>fetch_or</a>(&amp;self, val: <a href='http://doc.rust-lang.org/nightly/std/primitive.isize.html'>isize</a>, order: <a class='enum' href='../../../syncbox/util/atomic/enum.Ordering.html' title='syncbox::util::atomic::Ordering'>Ordering</a>) -&gt; <a href='http://doc.rust-lang.org/nightly/std/primitive.isize.html'>isize</a></code></h4>
+</div><h4 id='method.fetch_or' class='method'><a class='stability Stable' title='Stable'></a><code>fn <a href='#method.fetch_or' class='fnname'>fetch_or</a>(&amp;self, val: <a href='http://doc.rust-lang.org/nightly/std/primitive.isize.html'>isize</a>, order: <a class='enum' href='../../../syncbox/util/atomic/enum.Ordering.html' title='syncbox::util::atomic::Ordering'>Ordering</a>) -&gt; <a href='http://doc.rust-lang.org/nightly/std/primitive.isize.html'>isize</a></code></h4>
 <div class='docblock'><p>Bitwise or with the current isize, returning the previous value.</p>
 
 <h1 id="examples" class='section-header'><a
@@ -164,7 +164,7 @@ this operation.</p>
 <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='number'>0b101101</span>, <span class='ident'>foo</span>.<span class='ident'>fetch_or</span>(<span class='number'>0b110011</span>, <span class='ident'>Ordering</span>::<span class='ident'>SeqCst</span>));
 <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='number'>0b111111</span>, <span class='ident'>foo</span>.<span class='ident'>load</span>(<span class='ident'>Ordering</span>::<span class='ident'>SeqCst</span>));
 </pre>
-</div><h4 id='method.fetch_xor' class='method'><a class='stability Unstable' title='Unstable'></a><code>fn <a href='#method.fetch_xor' class='fnname'>fetch_xor</a>(&amp;self, val: <a href='http://doc.rust-lang.org/nightly/std/primitive.isize.html'>isize</a>, order: <a class='enum' href='../../../syncbox/util/atomic/enum.Ordering.html' title='syncbox::util::atomic::Ordering'>Ordering</a>) -&gt; <a href='http://doc.rust-lang.org/nightly/std/primitive.isize.html'>isize</a></code></h4>
+</div><h4 id='method.fetch_xor' class='method'><a class='stability Stable' title='Stable'></a><code>fn <a href='#method.fetch_xor' class='fnname'>fetch_xor</a>(&amp;self, val: <a href='http://doc.rust-lang.org/nightly/std/primitive.isize.html'>isize</a>, order: <a class='enum' href='../../../syncbox/util/atomic/enum.Ordering.html' title='syncbox::util::atomic::Ordering'>Ordering</a>) -&gt; <a href='http://doc.rust-lang.org/nightly/std/primitive.isize.html'>isize</a></code></h4>
 <div class='docblock'><p>Bitwise xor with the current isize, returning the previous value.</p>
 
 <h1 id="examples" class='section-header'><a
