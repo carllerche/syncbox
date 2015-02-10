@@ -8,7 +8,8 @@
 #![feature(unsafe_destructor)]
 
 // Embrace edge
-#![allow(unstable)]
+#![feature(core, alloc, std_misc)]
+#![cfg_attr(test, feature(io))]
 
 extern crate alloc;
 

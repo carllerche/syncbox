@@ -20,7 +20,6 @@
 //! A stream is like a feature, except that instead of representing a single
 //! value, it represents a sequence of values.
 //!
-#![experimental]
 
 pub use self::future::{Future, Complete};
 pub use self::stream::{Stream, StreamIter, Generate};

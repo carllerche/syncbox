@@ -1018,7 +1018,7 @@ impl fmt::Debug for State {
 
 type Callback<A> = Box<BoxedReceive<Core<A>>>;
 
-#[derive(Show, FromPrimitive, PartialEq, Eq)]
+#[derive(Debug, FromPrimitive, PartialEq, Eq)]
 enum Lifecycle {
     // INITIAL - In the initial state. Has not been realized and neither the
     // consumer nor the producer have registered interest.

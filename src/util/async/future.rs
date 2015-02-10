@@ -103,7 +103,7 @@ impl<T: Send, E: Send> Future<T, E> {
 
         // Complete the future with the provided function once consumer
         // interest has been registered.
-        complete.receive(move |:c: AsyncResult<Complete<T, E>, ()>| {
+        complete.receive(move |c: AsyncResult<Complete<T, E>, ()>| {
             if let Ok(c) = c {
                 f().receive(move |res| {
                     match res {

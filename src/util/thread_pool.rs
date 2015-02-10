@@ -661,7 +661,7 @@ const LIFECYCLE_BITS: u32 = 3;
 const LIFECYCLE_MASK: u32 = 7;
 const CAPACITY: u32 = (1 << (32 - 3)) - 1;
 
-#[derive(Show, Copy, Eq, PartialEq, Ord, PartialOrd, FromPrimitive)]
+#[derive(Debug, Copy, Eq, PartialEq, Ord, PartialOrd, FromPrimitive)]
 enum Lifecycle {
     RUNNING    = 0,
     SHUTDOWN   = 1,
