@@ -6,6 +6,7 @@
 #![feature(int_uint)]
 #![feature(unboxed_closures)]
 #![feature(unsafe_destructor)]
+#![feature(unsafe_no_drop_flag)]
 
 // Embrace edge
 #![feature(core, alloc, std_misc)]
