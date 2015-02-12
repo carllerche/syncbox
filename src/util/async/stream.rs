@@ -10,11 +10,11 @@ pub struct Stream<T: Send, E: Send> {
 }
 
 impl<T: Send, E: Send> Stream<T, E> {
-    pub fn pair() -> (Stream<T, E>, Generate<T, E>) {
+    pub fn pair() -> (Stream<T, E>, Sender<T, E>) {
         let core = Core::new();
         let stream = Stream { core: OptionCore::new(core.clone()) };
 
-        (stream, Generate { core: OptionCore::new(core) })
+        (stream, Sender { core: OptionCore::new(core) })
     }
 
     pub fn is_ready(&self) -> bool {
@@ -206,11 +206,11 @@ impl<T: Send, E: Send> Cancel<Stream<T, E>> for CancelStream<T, E> {
     }
 }
 
-pub struct Generate<T: Send, E: Send> {
+pub struct Sender<T: Send, E: Send> {
     core: OptionCore<Stream<T, E>>,
 }
 
-impl<T: Send, E: Send> Generate<T, E> {
+impl<T: Send, E: Send> Sender<T, E> {
     pub fn send(&self, val: T) {
         let rest = Stream { core: self.core.clone() };
         self.core.get().complete(Ok(Some((val, rest))), false);
@@ -236,71 +236,71 @@ impl<T: Send, E: Send> Generate<T, E> {
         self.core.get().producer_is_err()
     }
 
-    fn poll(mut self) -> Result<AsyncResult<Generate<T, E>, ()>, Generate<T, E>> {
-        debug!("Generate::poll; is_ready={}", self.is_ready());
+    fn poll(mut self) -> Result<AsyncResult<Sender<T, E>, ()>, Sender<T, E>> {
+        debug!("Sender::poll; is_ready={}", self.is_ready());
 
         let core = self.core.take();
 
         match core.producer_poll() {
             Some(res) => Ok(res),
-            None => Err(Generate { core: OptionCore::new(core) })
+            None => Err(Sender { core: OptionCore::new(core) })
         }
     }
 
-    pub fn ready<F: FnOnce(Generate<T, E>) + Send>(mut self, f: F) {
+    pub fn ready<F: FnOnce(Sender<T, E>) + Send>(mut self, f: F) {
         self.core.take().producer_ready(f);
     }
 
-    pub fn await(self) -> AsyncResult<Generate<T, E>, ()> {
+    pub fn await(self) -> AsyncResult<Sender<T, E>, ()> {
         self.core.get().producer_await();
-        self.poll().ok().expect("Generate not ready")
+        self.poll().ok().expect("Sender not ready")
     }
 }
 
 
-impl<T: Send, E: Send> Async for Generate<T, E> {
-    type Value = Generate<T, E>;
+impl<T: Send, E: Send> Async for Sender<T, E> {
+    type Value = Sender<T, E>;
     type Error = ();
-    type Cancel = CancelGenerate;
+    type Cancel = CancelSender;
 
     fn is_ready(&self) -> bool {
-        Generate::is_ready(self)
+        Sender::is_ready(self)
     }
 
     fn is_err(&self) -> bool {
-        Generate::is_err(self)
+        Sender::is_err(self)
     }
 
-    fn poll(self) -> Result<AsyncResult<Generate<T, E>, ()>, Generate<T, E>> {
-        Generate::poll(self)
+    fn poll(self) -> Result<AsyncResult<Sender<T, E>, ()>, Sender<T, E>> {
+        Sender::poll(self)
     }
 
-    fn ready<F: FnOnce(Generate<T, E>) + Send>(self, f: F) -> CancelGenerate {
-        Generate::ready(self, f);
-        CancelGenerate
+    fn ready<F: FnOnce(Sender<T, E>) + Send>(self, f: F) -> CancelSender {
+        Sender::ready(self, f);
+        CancelSender
     }
 }
 
 impl<T: Send, E: Send> FromCore for Stream<T, E> {
-    type Producer = Generate<T, E>;
+    type Producer = Sender<T, E>;
 
     fn consumer(core: Core<Stream<T, E>>) -> Stream<T, E> {
         Stream { core: OptionCore::new(core) }
     }
 
-    fn producer(core: Core<Stream<T, E>>) -> Generate<T, E> {
-        Generate { core: OptionCore::new(core) }
+    fn producer(core: Core<Stream<T, E>>) -> Sender<T, E> {
+        Sender { core: OptionCore::new(core) }
     }
 }
 
-impl<T: Send, E: Send> fmt::Debug for Generate<T, E> {
+impl<T: Send, E: Send> fmt::Debug for Sender<T, E> {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmt, "Generate<?>")
+        write!(fmt, "Sender<?>")
     }
 }
 
 #[unsafe_destructor]
-impl<T: Send, E: Send> Drop for Generate<T, E> {
+impl<T: Send, E: Send> Drop for Sender<T, E> {
     fn drop(&mut self) {
         if self.core.is_some() {
             self.core.take().complete(Err(AsyncError::canceled()), true);
@@ -308,10 +308,10 @@ impl<T: Send, E: Send> Drop for Generate<T, E> {
     }
 }
 
-pub struct CancelGenerate;
+pub struct CancelSender;
 
-impl<T: Send, E: Send> Cancel<Generate<T, E>> for CancelGenerate {
-    fn cancel(self) -> Option<Generate<T, E>> {
+impl<T: Send, E: Send> Cancel<Sender<T, E>> for CancelSender {
+    fn cancel(self) -> Option<Sender<T, E>> {
         None
     }
 }

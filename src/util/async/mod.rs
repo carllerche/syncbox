@@ -22,7 +22,7 @@
 //!
 
 pub use self::future::{Future, Complete};
-pub use self::stream::{Stream, StreamIter, Generate};
+pub use self::stream::{Stream, StreamIter, Sender};
 pub use self::join::{join, Join};
 pub use self::select::{select, Select};
 

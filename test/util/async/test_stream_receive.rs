@@ -1,5 +1,5 @@
 use syncbox::util::async::*;
-use std::sync::mpsc::{channel, Sender};
+use std::sync::mpsc::{self, channel};
 use super::{spawn, sleep};
 
 #[test]
@@ -21,7 +21,7 @@ pub fn test_one_shot_stream_await() {
 
     sleep(50);
 
-    debug!(" ~~ Generate::send(\"hello\") ~~");
+    debug!(" ~~ Sender::send(\"hello\") ~~");
     producer.send("hello");
     assert_eq!("hello", rx.recv().unwrap());
 }
@@ -51,7 +51,9 @@ pub fn test_stream_receive_before_produce_interest_async() {
     let (tx, rx) = channel();
     let (eof_t, eof_r) = channel();
 
-    fn do_receive(stream: Stream<&'static str, ()>, tx: Sender<&'static str>, eof: Sender<bool>) {
+    fn do_receive(stream: Stream<&'static str, ()>,
+                  tx: mpsc::Sender<&'static str>,
+                  eof: mpsc::Sender<bool>) {
         stream.receive(move |res| {
             match res {
                 Ok(Some((h, rest))) => {
@@ -69,7 +71,7 @@ pub fn test_stream_receive_before_produce_interest_async() {
     // Transfer the producer out
     let (txp, rxp) = channel();
 
-    debug!(" ~~ Generate::receive ~~");
+    debug!(" ~~ Sender::receive ~~");
     producer.receive(move |p| {
         let p = p.unwrap();
         p.send("hello");
@@ -83,7 +85,7 @@ pub fn test_stream_receive_before_produce_interest_async() {
     let (txp, rxp2) = channel();
 
     // Get the producer, wait for readiness, and write another message
-    debug!(" ~~ Generate::receive ~~");
+    debug!(" ~~ Sender::receive ~~");
     rxp.recv().unwrap().receive(move |p| {
         let p = p.unwrap();
         p.send("world");
@@ -95,7 +97,7 @@ pub fn test_stream_receive_before_produce_interest_async() {
     // Receive the second message
     assert_eq!("world", rx.recv().unwrap());
 
-    debug!(" ~~ Generate::receive ~~");
+    debug!(" ~~ Sender::receive ~~");
     rxp2.recv().unwrap().receive(move |p| {
         p.unwrap().done();
     });
@@ -110,7 +112,7 @@ pub fn test_stream_produce_interest_before_receive_async() {
     let (mut stream, producer) = Stream::<&'static str, ()>::pair();
     let (txp, rxp) = channel();
 
-    debug!(" ~~ Generate::receive #1 ~~");
+    debug!(" ~~ Sender::receive #1 ~~");
     producer.receive(move |p| {
         let p = p.unwrap();
         p.send("hello");
@@ -132,7 +134,7 @@ pub fn test_stream_produce_interest_before_receive_async() {
 
     let (txp2, rxp2) = channel();
 
-    debug!(" ~~ Generate::receive #2 ~~");
+    debug!(" ~~ Sender::receive #2 ~~");
     rxp.recv().unwrap().receive(move |p| {
         let p = p.unwrap();
         p.send("world");
@@ -171,7 +173,7 @@ pub fn test_stream_produce_before_receive_async() {
 
 #[test]
 pub fn test_stream_send_then_done_before_receive() {
-    // Currently, Generate::done() cannot be called before the previous
+    // Currently, Sender::done() cannot be called before the previous
     // value is consumed. It would be ideal to be able to signal that the
     // stream is done without having to do another producer callback
     // iteration.
@@ -182,7 +184,7 @@ pub fn test_recursive_receive() {
     let (s, p) = Stream::<uint, ()>::pair();
     let (tx, rx) = channel();
 
-    fn consume(s: Stream<uint, ()>, tx: Sender<uint>) {
+    fn consume(s: Stream<uint, ()>, tx: mpsc::Sender<uint>) {
         debug!(" ~~~~ CONSUME ENTER ~~~~~ ");
         s.receive(move |res| {
             debug!(" ~~~ CONSUME CALLBACK ENTER ~~~~~ ");
@@ -195,7 +197,7 @@ pub fn test_recursive_receive() {
         debug!(" ~~~~ CONSUME EXIT ~~~~~ ");
     }
 
-    fn produce(p: Generate<uint, ()>, n: uint) {
+    fn produce(p: Sender<uint, ()>, n: uint) {
         debug!(" ~~~~ PRODUCE ENTER ~~~~~ ");
         if n > 20_000 {
             p.done();

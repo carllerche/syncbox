@@ -1,5 +1,5 @@
 use syncbox::util::async::*;
-use std::sync::mpsc::{channel, Sender};
+use std::sync::mpsc::{self, channel};
 use super::{nums};
 
 #[test]
@@ -7,7 +7,7 @@ pub fn test_stream_map_async() {
     let s = nums(0, 5).map(move |i| 2 * i);
     let (tx, rx) = channel();
 
-    fn receive(s: Stream<uint, ()>, tx: Sender<uint>) {
+    fn receive(s: Stream<uint, ()>, tx: mpsc::Sender<uint>) {
         debug!("Stream::receive");
         s.receive(move |res| {
             res.map(move |head| {
