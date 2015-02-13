@@ -1,15 +1,27 @@
-use util::async::{self, Async, Future, Cancel, AsyncResult, AsyncError};
-use super::core::{self, Core, FromCore};
+use util::async::{self, receipt, Async, Future, Cancel, Receipt, AsyncResult, AsyncError};
+use super::core::{self, Core};
 use std::fmt;
 
-pub type Head<T, E> = Option<(T, Stream<T, E>)>;
+/*
+ *
+ * ===== Stream =====
+ *
+ */
 
 #[unsafe_no_drop_flag]
 pub struct Stream<T: Send, E: Send> {
-    core: Option<Core<Stream<T, E>>>,
+    core: Option<Core<Head<T, E>, E>>,
 }
 
+/// Convenience type alias for the realized head of a stream
+pub type Head<T, E> = Option<(T, Stream<T, E>)>;
+
+// Shorthand for the core type for Streams
+type StreamCore<T, E> = Core<Head<T, E>, E>;
+
 impl<T: Send, E: Send> Stream<T, E> {
+
+    /// Creates a new `Stream`, returning it with the associated `Sender`.
     pub fn pair() -> (Sender<T, E>, Stream<T, E>) {
         let core = Core::new();
         let stream = Stream { core: Some(core.clone()) };
@@ -17,36 +29,7 @@ impl<T: Send, E: Send> Stream<T, E> {
         (Sender { core: Some(core) }, stream)
     }
 
-    pub fn is_ready(&self) -> bool {
-        core::get(&self.core).consumer_is_ready()
-    }
-
-    pub fn is_err(&self) -> bool {
-        core::get(&self.core).consumer_is_err()
-    }
-
-    pub fn poll(mut self) -> Result<AsyncResult<Head<T, E>, E>, Stream<T, E>> {
-        let core = core::take(&mut self.core);
-
-        match core.consumer_poll() {
-            Some(res) => Ok(res),
-            None => Err(Stream { core: Some(core) })
-        }
-    }
-
-    pub fn ready<F: FnOnce(Stream<T, E>) + Send>(mut self, f: F) -> CancelStream<T, E> {
-        let core = core::take(&mut self.core);
-
-        match core.consumer_ready(f) {
-            Some(count) => CancelStream::new(core, count),
-            None => CancelStream::none(),
-        }
-    }
-
-    pub fn await(mut self) -> AsyncResult<Head<T, E>, E> {
-        core::take(&mut self.core).consumer_await()
-    }
-
+    /// Synchronously iterate over the `Stream`
     pub fn iter(mut self) -> StreamIter<T, E> {
         StreamIter { core: Some(core::take(&mut self.core)) }
     }
@@ -126,31 +109,52 @@ impl<T: Send, E: Send> Stream<T, E> {
                 }
             }).as_stream()
     }
+
+    /*
+     *
+     * ===== Internal Helpers =====
+     *
+     */
+
+    fn from_core(core: StreamCore<T, E>) -> Stream<T, E> {
+        Stream { core: Some(core) }
+    }
 }
 
 impl<T: Send, E: Send> Async for Stream<T, E> {
-    type Value = Head<T, E>;
-    type Error = E;
-    type Cancel = CancelStream<T, E>;
+
+    type Value  = Head<T, E>;
+    type Error  = E;
+    type Cancel = Receipt<Stream<T, E>>;
 
     fn is_ready(&self) -> bool {
-        Stream::is_ready(self)
+        core::get(&self.core).consumer_is_ready()
     }
 
     fn is_err(&self) -> bool {
-        Stream::is_err(self)
+        core::get(&self.core).consumer_is_err()
     }
 
-    fn poll(self) -> Result<AsyncResult<Head<T, E>, E>, Stream<T, E>> {
-        Stream::poll(self)
+    fn poll(mut self) -> Result<AsyncResult<Head<T, E>, E>, Stream<T, E>> {
+        let core = core::take(&mut self.core);
+
+        match core.consumer_poll() {
+            Some(res) => Ok(res),
+            None => Err(Stream { core: Some(core) })
+        }
     }
 
-    fn ready<F: FnOnce(Stream<T, E>) + Send>(self, f: F) -> CancelStream<T, E> {
-        Stream::ready(self, f)
+    fn ready<F: FnOnce(Stream<T, E>) + Send>(mut self, f: F) -> Receipt<Stream<T, E>> {
+        let core = core::take(&mut self.core);
+
+        match core.consumer_ready(move |core| f(Stream::from_core(core))) {
+            Some(count) => receipt::new(core, count),
+            None => receipt::none(),
+        }
     }
 
-    fn await(self) -> AsyncResult<Head<T, E>, E> {
-        Stream::await(self)
+    fn await(mut self) -> AsyncResult<Head<T, E>, E> {
+        core::take(&mut self.core).consumer_await()
     }
 }
 
@@ -169,30 +173,9 @@ impl<T: Send, E: Send> Drop for Stream<T, E> {
     }
 }
 
-pub struct CancelStream<T: Send, E: Send> {
-    core: Option<Core<Stream<T, E>>>,
-    count: u64,
-}
-
-impl<T: Send, E: Send> CancelStream<T, E> {
-    fn new(core: Core<Stream<T, E>>, count: u64) -> CancelStream<T, E> {
-        CancelStream {
-            core: Some(core),
-            count: count,
-        }
-    }
-
-    fn none() -> CancelStream<T, E> {
-        CancelStream {
-            core: None,
-            count: 0,
-        }
-    }
-}
-
-impl<T: Send, E: Send> Cancel<Stream<T, E>> for CancelStream<T, E> {
+impl<T: Send, E: Send> Cancel<Stream<T, E>> for Receipt<Stream<T, E>> {
     fn cancel(self) -> Option<Stream<T, E>> {
-        let CancelStream { core, count } = self;
+        let (core, count) = receipt::parts(self);
 
         if !core.is_some() {
             return None;
@@ -206,16 +189,44 @@ impl<T: Send, E: Send> Cancel<Stream<T, E>> for CancelStream<T, E> {
     }
 }
 
+/*
+ *
+ * ===== Sender =====
+ *
+ */
+
+/// The sending half of `Stream::pair()`. Can only be owned by a single task at
+/// a time.
 pub struct Sender<T: Send, E: Send> {
-    core: Option<Core<Stream<T, E>>>,
+    core: Option<StreamCore<T, E>>,
 }
 
 impl<T: Send, E: Send> Sender<T, E> {
-    pub fn send(&self, val: T) {
-        let rest = Stream { core: self.core.clone() };
-        core::get(&self.core).complete(Ok(Some((val, rest))), false);
+
+    // TODO: This fn would be nice to have, but isn't possible with the current
+    // implementation of `send()` which requires the value slot of `Stream` to
+    // always be available.
+    //
+    // I initially thought that `try_send` would be possible to implement if
+    // the consumer was currently waiting for a value, but this doesn't work in
+    // sync mode since the value is temporarily stored in the stream's value
+    // slot and there would be a potential race condition.
+    //
+    // pub fn try_send(&self, val: T) -> Result<(), T>;
+
+    /// Attempts to send a value to its `Stream`. Consumes self and returns a
+    /// future representing the operation completing successfully and interest
+    /// in the next value being expressed.
+    pub fn send(mut self, val: T) -> BusySender<T, E> {
+        let core = core::take(&mut self.core);
+        let val = Some((val, Stream { core: Some(core.clone()) }));
+
+        // Complete the value
+        core.complete(Ok(val), false);
+        BusySender { core: Some(core) }
     }
 
+    /// Cleanly terminate the stream
     pub fn done(self) {
         self.receive(move |res| {
             if let Ok(mut p) = res {
@@ -228,11 +239,28 @@ impl<T: Send, E: Send> Sender<T, E> {
         core::take(&mut self.core).complete(Err(AsyncError::wrap(err)), true);
     }
 
-    pub fn is_ready(&self) -> bool {
+    /*
+     *
+     * ===== Internal Helpers =====
+     *
+     */
+
+    fn from_core(core: StreamCore<T, E>) -> Sender<T, E> {
+        Sender { core: Some(core) }
+    }
+}
+
+impl<T: Send, E: Send> Async for Sender<T, E> {
+
+    type Value  = Sender<T, E>;
+    type Error  = ();
+    type Cancel = Receipt<Sender<T, E>>;
+
+    fn is_ready(&self) -> bool {
         core::get(&self.core).producer_is_ready()
     }
 
-    pub fn is_err(&self) -> bool {
+    fn is_err(&self) -> bool {
         core::get(&self.core).producer_is_err()
     }
 
@@ -242,55 +270,75 @@ impl<T: Send, E: Send> Sender<T, E> {
         let core = core::take(&mut self.core);
 
         match core.producer_poll() {
-            Some(res) => Ok(res),
+            Some(res) => Ok(res.map(Sender::from_core)),
             None => Err(Sender { core: Some(core) })
         }
     }
 
-    pub fn ready<F: FnOnce(Sender<T, E>) + Send>(mut self, f: F) {
-        core::take(&mut self.core).producer_ready(f);
-    }
+    fn ready<F: FnOnce(Sender<T, E>) + Send>(mut self, f: F) -> Receipt<Sender<T, E>> {
+        core::take(&mut self.core).producer_ready(move |core| {
+            f(Sender::from_core(core))
+        });
 
-    pub fn await(self) -> AsyncResult<Sender<T, E>, ()> {
-        core::get(&self.core).producer_await();
-        self.poll().ok().expect("Sender not ready")
+        receipt::none()
     }
 }
 
+/*
+ *
+ * ===== BusySender =====
+ *
+ */
 
-impl<T: Send, E: Send> Async for Sender<T, E> {
+pub struct BusySender<T: Send, E: Send> {
+    core: Option<StreamCore<T, E>>,
+}
+
+impl<T: Send, E: Send> BusySender<T, E> {
+    /*
+     *
+     * ===== Internal Helpers =====
+     *
+     */
+
+    fn from_core(core: StreamCore<T, E>) -> BusySender<T, E> {
+        BusySender { core: Some(core) }
+    }
+}
+
+impl<T: Send, E: Send> Async for BusySender<T, E> {
     type Value = Sender<T, E>;
     type Error = ();
-    type Cancel = CancelSender;
+    type Cancel = Receipt<BusySender<T, E>>;
 
     fn is_ready(&self) -> bool {
-        Sender::is_ready(self)
+        core::get(&self.core).consumer_is_ready()
     }
 
     fn is_err(&self) -> bool {
-        Sender::is_err(self)
+        core::get(&self.core).consumer_is_err()
     }
 
-    fn poll(self) -> Result<AsyncResult<Sender<T, E>, ()>, Sender<T, E>> {
-        Sender::poll(self)
+    fn poll(mut self) -> Result<AsyncResult<Sender<T, E>, ()>, BusySender<T, E>> {
+        debug!("Sender::poll; is_ready={}", self.is_ready());
+
+        let core = core::take(&mut self.core);
+
+        match core.producer_poll() {
+            Some(res) => Ok(res.map(Sender::from_core)),
+            None => Err(BusySender { core: Some(core) })
+        }
     }
 
-    fn ready<F: FnOnce(Sender<T, E>) + Send>(self, f: F) -> CancelSender {
-        Sender::ready(self, f);
-        CancelSender
-    }
-}
+    fn ready<F: FnOnce(BusySender<T, E>) + Send>(mut self, f: F) -> Receipt<BusySender<T, E>> {
+        core::take(&mut self.core).producer_ready(move |core| {
+            f(BusySender::from_core(core))
+        });
 
-impl<T: Send, E: Send> FromCore for Stream<T, E> {
-    type Producer = Sender<T, E>;
-
-    fn consumer(core: Core<Stream<T, E>>) -> Stream<T, E> {
-        Stream { core: Some(core) }
+        receipt::none()
     }
 
-    fn producer(core: Core<Stream<T, E>>) -> Sender<T, E> {
-        Sender { core: Some(core) }
-    }
+
 }
 
 impl<T: Send, E: Send> fmt::Debug for Sender<T, E> {
@@ -308,17 +356,39 @@ impl<T: Send, E: Send> Drop for Sender<T, E> {
     }
 }
 
-pub struct CancelSender;
+/*
+ *
+ * ===== Receipt<Sender<T, E>> =====
+ *
+ */
 
-impl<T: Send, E: Send> Cancel<Sender<T, E>> for CancelSender {
+impl<T: Send, E: Send> Cancel<Sender<T, E>> for Receipt<Sender<T, E>> {
     fn cancel(self) -> Option<Sender<T, E>> {
         None
     }
 }
 
+/*
+ *
+ * ===== Receipt<BusySender<T, E>> =====
+ *
+ */
+
+impl<T: Send, E: Send> Cancel<BusySender<T, E>> for Receipt<BusySender<T, E>> {
+    fn cancel(self) -> Option<BusySender<T, E>> {
+        None
+    }
+}
+
+/*
+ *
+ * ===== StreamIter =====
+ *
+ */
+
 #[unsafe_no_drop_flag]
 pub struct StreamIter<T: Send, E: Send> {
-    core: Option<Core<Stream<T, E>>>,
+    core: Option<StreamCore<T, E>>,
 }
 
 impl<T: Send, E: Send> Iterator for StreamIter<T, E> {
@@ -350,7 +420,6 @@ impl<T: Send, E: Send> Drop for StreamIter<T, E> {
     }
 }
 
-pub fn from_core<T: Send, E: Send>(core: Core<Future<Head<T, E>, E>>) -> Stream<T, E> {
-    use std::mem;
-    Stream { core: Some(unsafe { mem::transmute(core) })}
+pub fn from_core<T: Send, E: Send>(core: StreamCore<T, E>) -> Stream<T, E> {
+    Stream { core: Some(core) }
 }

@@ -1,6 +1,5 @@
-use super::{Async, Stream, Cancel, AsyncResult, AsyncError};
-use super::stream;
-use super::core::{self, Core, FromCore};
+use super::{receipt, stream, Async, Stream, Cancel, Receipt, AsyncResult, AsyncError};
+use super::core::{self, Core};
 use std::fmt;
 
 /* TODO:
@@ -9,7 +8,7 @@ use std::fmt;
 
 #[unsafe_no_drop_flag]
 pub struct Future<T: Send, E: Send> {
-    core: Option<Core<Future<T, E>>>,
+    core: Option<Core<T, E>>,
 }
 
 impl<T: Send, E: Send> Future<T, E> {
@@ -117,53 +116,52 @@ impl<T: Send, E: Send> Future<T, E> {
         future
     }
 
-    pub fn is_ready(&self) -> bool {
-        core::get(&self.core).consumer_is_ready()
-    }
-
-    pub fn is_err(&self) -> bool {
-        core::get(&self.core).consumer_is_err()
-    }
-
-    pub fn poll(mut self) -> Result<AsyncResult<T, E>, Future<T, E>> {
-        let core = core::take(&mut self.core);
-
-        match core.consumer_poll() {
-            Some(res) => Ok(res),
-            None => Err(Future { core: Some(core) })
-        }
-    }
-
-    pub fn expect(self) -> AsyncResult<T, E> {
-        Async::expect(self)
-    }
-
-    pub fn ready<F: FnOnce(Future<T, E>) + Send>(mut self, f: F) -> CancelFuture<T, E> {
-        let core = core::take(&mut self.core);
-
-        match core.consumer_ready(f) {
-            Some(count) => CancelFuture::new(core, count),
-            None => CancelFuture::none(),
-        }
-    }
-
-    pub fn receive<F>(self, f: F)
-            where F: FnOnce(AsyncResult<T, E>) + Send {
-        Async::receive(self, f);
-    }
-
-    pub fn await(mut self) -> AsyncResult<T, E> {
-        core::take(&mut self.core).consumer_await()
-    }
-
     /*
      *
      * ===== Computation Builders =====
      *
      */
 
-    pub fn map<F: FnOnce(T) -> U + Send, U: Send>(self, _f: F) -> Future<U, E> {
-        unimplemented!();
+    pub fn map<F, U>(self, f: F) -> Future<U, E>
+        where F: FnOnce(T) -> U + Send,
+              U: Send {
+        self.and_then(move |val| Ok(f(val)))
+    }
+
+    /*
+     *
+     * ===== Internal Helpers =====
+     *
+     */
+
+    fn from_core(core: Core<T, E>) -> Future<T, E> {
+        Future { core: Some(core) }
+    }
+}
+
+impl<T: Send> Future<T, ()> {
+    /// Returns a `Future` representing the completion of the given closure.
+    /// The closure will be executed on a newly spawned thread.
+    ///
+    /// ```
+    /// use syncbox::util::async::*;
+    ///
+    /// let future = Future::spawn(|| {
+    ///     // Represents an expensive computation
+    ///     (0..100).fold(0, |v, i| v + 1)
+    /// });
+    ///
+    /// assert_eq!(100, future.await().unwrap());
+    pub fn spawn<F>(f: F) -> Future<T, ()>
+        where F: FnOnce() -> T + Send {
+
+        use std::thread::Thread;
+        let (complete, future) = Future::pair();
+
+        // Spawn the thread
+        Thread::spawn(move || complete.complete(f()));
+
+        future
     }
 }
 
@@ -175,28 +173,40 @@ impl<T: Send, E: Send> Future<Option<(T, Stream<T, E>)>, E> {
 }
 
 impl<T: Send, E: Send> Async for Future<T, E> {
+
     type Value = T;
     type Error = E;
-    type Cancel = CancelFuture<T, E>;
+    type Cancel = Receipt<Future<T, E>>;
+
 
     fn is_ready(&self) -> bool {
-        Future::is_ready(self)
+        core::get(&self.core).consumer_is_ready()
     }
 
     fn is_err(&self) -> bool {
-        Future::is_err(self)
+        core::get(&self.core).consumer_is_err()
     }
 
-    fn poll(self) -> Result<AsyncResult<T, E>, Future<T, E>> {
-        Future::poll(self)
+    fn poll(mut self) -> Result<AsyncResult<T, E>, Future<T, E>> {
+        let core = core::take(&mut self.core);
+
+        match core.consumer_poll() {
+            Some(res) => Ok(res),
+            None => Err(Future { core: Some(core) })
+        }
     }
 
-    fn ready<F: FnOnce(Future<T, E>) + Send>(self, f: F) -> CancelFuture<T, E> {
-        Future::ready(self, f)
+    fn ready<F: FnOnce(Future<T, E>) + Send>(mut self, f: F) -> Receipt<Future<T, E>> {
+        let core = core::take(&mut self.core);
+
+        match core.consumer_ready(move |core| f(Future::from_core(core))) {
+            Some(count) => receipt::new(core, count),
+            None => receipt::none(),
+        }
     }
 
-    fn await(self) -> AsyncResult<T, E> {
-        Future::await(self)
+    fn await(mut self) -> AsyncResult<T, E> {
+        core::take(&mut self.core).consumer_await()
     }
 }
 
@@ -215,31 +225,9 @@ impl<T: Send, E: Send> Drop for Future<T, E> {
     }
 }
 
-// The lack of drop is explicit
-pub struct CancelFuture<T: Send, E: Send> {
-    core: Option<Core<Future<T, E>>>,
-    count: u64,
-}
-
-impl<T: Send, E: Send> CancelFuture<T, E> {
-    fn new(core: Core<Future<T, E>>, count: u64) -> CancelFuture<T, E> {
-        CancelFuture {
-            core: Some(core),
-            count: count,
-        }
-    }
-
-    fn none() -> CancelFuture<T, E> {
-        CancelFuture {
-            core: None,
-            count: 0,
-        }
-    }
-}
-
-impl<T: Send, E: Send> Cancel<Future<T, E>> for CancelFuture<T, E> {
+impl<T: Send, E: Send> Cancel<Future<T, E>> for Receipt<Future<T, E>> {
     fn cancel(self) -> Option<Future<T, E>> {
-        let CancelFuture { core, count } = self;
+        let (core, count) = receipt::parts(self);
 
         if !core.is_some() {
             return None;
@@ -282,7 +270,7 @@ impl<T: Send, E: Send> Cancel<Future<T, E>> for CancelFuture<T, E> {
 /// ```
 #[unsafe_no_drop_flag]
 pub struct Complete<T: Send, E: Send> {
-    core: Option<Core<Future<T, E>>>,
+    core: Option<Core<T, E>>,
 }
 
 impl<T: Send, E: Send> Complete<T, E> {
@@ -311,25 +299,36 @@ impl<T: Send, E: Send> Complete<T, E> {
         let core = core::take(&mut self.core);
 
         match core.producer_poll() {
-            Some(res) => Ok(res),
+            Some(res) => Ok(res.map(Complete::from_core)),
             None => Err(Complete { core: Some(core) })
         }
     }
 
     pub fn ready<F: FnOnce(Complete<T, E>) + Send>(mut self, f: F) {
-        core::take(&mut self.core).producer_ready(f);
+        core::take(&mut self.core)
+            .producer_ready(move |core| f(Complete::from_core(core)));
     }
 
     pub fn await(self) -> AsyncResult<Complete<T, E>, ()> {
         core::get(&self.core).producer_await();
         self.poll().ok().expect("Complete not ready")
     }
+
+    /*
+     *
+     * ===== Internal Helpers =====
+     *
+     */
+
+    fn from_core(core: Core<T, E>) -> Complete<T, E> {
+        Complete { core: Some(core) }
+    }
 }
 
 impl<T: Send, E: Send> Async for Complete<T, E> {
     type Value = Complete<T, E>;
     type Error = ();
-    type Cancel = CancelComplete;
+    type Cancel = Receipt<Complete<T, E>>;
 
     fn is_ready(&self) -> bool {
         Complete::is_ready(self)
@@ -343,21 +342,9 @@ impl<T: Send, E: Send> Async for Complete<T, E> {
         Complete::poll(self)
     }
 
-    fn ready<F: FnOnce(Complete<T, E>) + Send>(self, f: F) -> CancelComplete {
+    fn ready<F: FnOnce(Complete<T, E>) + Send>(self, f: F) -> Receipt<Complete<T, E>> {
         Complete::ready(self, f);
-        CancelComplete
-    }
-}
-
-impl<T: Send, E: Send> FromCore for Future<T, E> {
-    type Producer = Complete<T, E>;
-
-    fn consumer(core: Core<Future<T, E>>) -> Future<T, E> {
-        Future { core: Some(core) }
-    }
-
-    fn producer(core: Core<Future<T, E>>) -> Complete<T, E> {
-        Complete { core: Some(core) }
+        receipt::none()
     }
 }
 
@@ -377,9 +364,7 @@ impl<T: Send, E: Send> fmt::Debug for Complete<T, E> {
     }
 }
 
-pub struct CancelComplete;
-
-impl<T: Send, E: Send> Cancel<Complete<T, E>> for CancelComplete {
+impl<T: Send, E: Send> Cancel<Complete<T, E>> for Receipt<Complete<T, E>> {
     fn cancel(self) -> Option<Complete<T, E>> {
         None
     }

@@ -1,4 +1,4 @@
-use syncbox::util::async::{self, Future};
+use syncbox::util::async::{self, Async, Future};
 use std::sync::mpsc::channel;
 
 #[test]

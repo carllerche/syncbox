@@ -1,19 +1,44 @@
-//! # Futures & Streams
+//! Composable primitives for asynchronous computations
 //!
 //! The async module contains utilities for managing asynchronous computations.
 //! These utilities are primarily based around `Future` and `Stream` types as
-//! well as functions that allow describing computations on these types.
+//! well as functions that allow composing computations on these types.
 //!
 //! ## Future
 //!
-//! A future represents a value that will be provided sometime in the future.
-//! The value may be computed concurrently in another thread or may be provided
-//! upon completion of an asynchronous callback. The abstraction allows
-//! describing computations to perform on the value once it is realized as well
-//! as how to handle errors.
-//!
-//! One way to think of a Future is as a Result where the value is
+//! A `Future` is a proxy representing the result of a computation which may
+//! not be complete.  The computation may be running concurrently in another
+//! thread or may be triggered upon completion of an asynchronous callback. One
+//! way to think of a `Future` is as a `Result` where the value is
 //! asynchronously computed.
+//!
+//! For example:
+//!
+//! ```
+//! use syncbox::util::async::*;
+//!
+//! // Run a computation in another thread
+//! let future1 = Future::spawn(|| {
+//!     // Represents an expensive computation, but for now just return a
+//!     // number
+//!     42
+//! });
+//!
+//! // Run another computation
+//! let future2 = Future::spawn(|| {
+//!     // Another expensive computation
+//!     18
+//! });
+//!
+//! let res = join((
+//!         future1.map(|v| v * 2),
+//!         future2.map(|v| v + 5)))
+//!     .and_then(|(v1, v2)| v1 - v2)
+//!     .await().unwrap();
+//!
+//! assert_eq!(61, res);
+//!
+//! ```
 //!
 //! ## Stream
 //!
@@ -24,6 +49,7 @@
 pub use self::future::{Future, Complete};
 pub use self::stream::{Stream, StreamIter, Sender};
 pub use self::join::{join, Join};
+pub use self::receipt::Receipt;
 pub use self::select::{select, Select};
 
 use util::Run;
@@ -43,12 +69,14 @@ use self::AsyncError::*;
 mod core;
 mod future;
 mod join;
+mod receipt;
 mod select;
 mod stream;
 
+/// A value representing an asynchronous computation
 pub trait Async : Send + Sized {
-    type Value: Send;
-    type Error: Send;
+    type Value:  Send;
+    type Error:  Send;
     type Cancel: Cancel<Self>;
 
     /// Returns true if `take` will succeed.
@@ -218,33 +246,6 @@ pub trait Cancel<A: Send> : Send {
  *
  */
 
-impl Async for () {
-    type Value = ();
-    type Error = ();
-    type Cancel = Option<()>;
-
-    fn is_ready(&self) -> bool {
-        true
-    }
-
-    fn is_err(&self) -> bool {
-        false
-    }
-
-    fn poll(self) -> Result<AsyncResult<(), ()>, ()> {
-        Ok(Ok(self))
-    }
-
-    fn ready<F: FnOnce(()) + Send>(self, f: F) -> Option<()> {
-        f(self);
-        None
-    }
-
-    fn await(self) -> AsyncResult<(), ()> {
-        Ok(self)
-    }
-}
-
 impl<T: Send, E: Send> Async for AsyncResult<T, E> {
     type Value = T;
     type Error = E;
@@ -276,6 +277,69 @@ impl<A: Send> Cancel<A> for Option<A> {
     fn cancel(self) -> Option<A> {
         self
     }
+}
+
+/*
+ *
+ * ===== Async implementations =====
+ *
+ */
+
+macro_rules! async_impl_body {
+    ($ty:ty) => (
+        fn is_ready(&self) -> bool {
+            true
+        }
+
+        fn is_err(&self) -> bool {
+            false
+        }
+
+        fn poll(self) -> Result<AsyncResult<$ty, ()>, $ty> {
+            Ok(Ok(self))
+        }
+
+        fn ready<F: FnOnce($ty) + Send>(self, f: F) -> Option<$ty> {
+            f(self);
+            None
+        }
+
+        fn await(self) -> AsyncResult<$ty, ()> {
+            Ok(self)
+        }
+    );
+}
+
+macro_rules! async_impl {
+    ($ty:ty) => (
+        impl Async for $ty {
+            type Value  = $ty;
+            type Error  = ();
+            type Cancel = Option<$ty>;
+
+            async_impl_body!($ty);
+        }
+    );
+
+    ($ty:ty, $($rest:tt),*) => (
+        async_impl!($ty);
+        async_impl!($($rest),*);
+    );
+}
+
+// For now, implement on as many concrete types as possible. One day, Rust will
+// support specialization (hopefully) and this won't be necessary.
+async_impl!(
+    (), bool, String,
+    u8, u16, u32, u64, usize,
+    i8, i16, i32, i64, isize);
+
+impl<E: Send> Async for Vec<E> {
+    type Value = Vec<E>;
+    type Error = ();
+    type Cancel = Option<Vec<E>>;
+
+    async_impl_body!(Vec<E>);
 }
 
 /*

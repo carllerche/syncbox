@@ -5,9 +5,9 @@ use syncbox::util::async::*;
 pub fn test_await_in_receive() {
     debug!("starting");
 
-    let (p, s) = Stream::<uint, ()>::pair();
+    let (tx, rx) = Stream::<uint, ()>::pair();
 
-    s.receive(move |res| {
+    rx.receive(move |res| {
         if let Some((_, rest)) = res.unwrap() {
             // Calling await from within a receive callback creates a deadlock
             // situation when there only is a single thread involved. To avoid
@@ -16,15 +16,14 @@ pub fn test_await_in_receive() {
         }
     });
 
-    fn produce(p: Sender<uint, ()>, n: uint) {
+    fn produce(tx: Sender<uint, ()>, n: uint) {
         if n > 100_000 { return; }
 
-        p.receive(move |res| {
-            let p = res.unwrap();
-            p.send(n);
-            produce(p, n + 1);
+        tx.receive(move |res| {
+            let tx = res.unwrap();
+            tx.send(n).and_then(move |tx| produce(tx, n + 1));
         });
     }
 
-    produce(p, 1);
+    produce(tx, 1);
 }

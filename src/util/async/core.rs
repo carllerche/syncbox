@@ -1,5 +1,3 @@
-#[allow(dead_code)]
-
 use self::Lifecycle::*;
 use super::{Async, BoxedReceive, AsyncResult, AsyncError};
 use util::atomic::{self, AtomicU64, AtomicUsize, Ordering};
@@ -18,18 +16,18 @@ use alloc::heap;
 
 // Core implementation of Future & Stream
 #[unsafe_no_drop_flag]
-pub struct Core<A: Async + FromCore> {
-    ptr: NonZero<*mut CoreInner<A>>,
+pub struct Core<T: Send, E: Send> {
+    ptr: NonZero<*mut CoreInner<T, E>>,
 }
 
-impl<A: Async + FromCore> Core<A> {
-    pub fn new() -> Core<A> {
-        let ptr = Box::new(CoreInner::<A>::new());
+impl<T: Send, E: Send> Core<T, E> {
+    pub fn new() -> Core<T, E> {
+        let ptr = Box::new(CoreInner::<T, E>::new());
         Core { ptr: unsafe { NonZero::new(mem::transmute(ptr)) }}
     }
 
-    pub fn with_value(val: AsyncResult<A::Value, A::Error>) -> Core<A> {
-        let ptr = Box::new(CoreInner::<A>::with_value(val));
+    pub fn with_value(val: AsyncResult<T, E>) -> Core<T, E> {
+        let ptr = Box::new(CoreInner::<T, E>::with_value(val));
         Core { ptr: unsafe { mem::transmute(ptr) }}
     }
 
@@ -43,12 +41,12 @@ impl<A: Async + FromCore> Core<A> {
     }
 
     /// Returns the underlying value if it has been realized, None otherwise.
-    pub fn consumer_poll(&self) -> Option<AsyncResult<A::Value, A::Error>> {
+    pub fn consumer_poll(&self) -> Option<AsyncResult<T, E>> {
         self.inner().consumer_poll()
     }
 
     /// Blocks the thread until calling `consumer_poll` will return a value.
-    pub fn consumer_await(&self) -> AsyncResult<A::Value, A::Error> {
+    pub fn consumer_await(&self) -> AsyncResult<T, E> {
         debug!("Core::consumer_await");
 
         // Ensure not already consuming
@@ -68,8 +66,8 @@ impl<A: Async + FromCore> Core<A> {
 
     /// Registers a callback that will be invoked when calling `consumer_poll`
     /// will return a value.
-    pub fn consumer_ready<F: FnOnce(A) + Send>(&self, f: F) -> Option<u64> {
-        self.inner().consumer_ready(move |core| f(FromCore::consumer(core)))
+    pub fn consumer_ready<F: FnOnce(Core<T, E>) + Send>(&self, f: F) -> Option<u64> {
+        self.inner().consumer_ready(f)
     }
 
     pub fn consumer_ready_cancel(&self, count: u64) -> bool {
@@ -84,7 +82,7 @@ impl<A: Async + FromCore> Core<A> {
         self.inner().producer_is_err()
     }
 
-    pub fn producer_poll(&self) -> Option<AsyncResult<A::Producer, ()>> {
+    pub fn producer_poll(&self) -> Option<AsyncResult<Core<T, E>, ()>> {
         self.inner().producer_poll()
     }
 
@@ -105,11 +103,11 @@ impl<A: Async + FromCore> Core<A> {
         }
     }
 
-    pub fn producer_ready<F: FnOnce(A::Producer) + Send>(&self, f: F) {
-        self.inner().producer_ready(move |core| f(FromCore::producer(core)));
+    pub fn producer_ready<F: FnOnce(Core<T, E>) + Send>(&self, f: F) {
+        self.inner().producer_ready(f);
     }
 
-    pub fn complete(&self, val: AsyncResult<A::Value, A::Error>, last: bool) {
+    pub fn complete(&self, val: AsyncResult<T, E>, last: bool) {
         self.inner().complete(val, last);
     }
 
@@ -118,25 +116,25 @@ impl<A: Async + FromCore> Core<A> {
     }
 
     #[inline]
-    fn inner(&self) -> &CoreInner<A> {
+    fn inner(&self) -> &CoreInner<T, E> {
         unsafe { &**self.ptr }
     }
 
     #[inline]
-    fn inner_mut(&mut self) -> &mut CoreInner<A> {
+    fn inner_mut(&mut self) -> &mut CoreInner<T, E> {
         unsafe { &mut **self.ptr }
     }
 }
 
-impl<A: Async + FromCore> Clone for Core<A> {
-    fn clone(&self) -> Core<A> {
+impl<T: Send, E: Send> Clone for Core<T, E> {
+    fn clone(&self) -> Core<T, E> {
         // Increments ref count and returns a new core
         self.inner().core()
     }
 }
 
 #[unsafe_destructor]
-impl<A: Async + FromCore> Drop for Core<A> {
+impl<T: Send, E: Send> Drop for Core<T, E> {
     fn drop(&mut self) {
         // Handle memory already zeroed out
         if self.ptr.is_null() { return; }
@@ -175,55 +173,39 @@ impl<A: Async + FromCore> Drop for Core<A> {
 
             heap::deallocate(
                 *self.ptr as *mut u8,
-                mem::size_of::<CoreInner<A>>(),
-                mem::min_align_of::<CoreInner<A>>());
+                mem::size_of::<CoreInner<T, E>>(),
+                mem::min_align_of::<CoreInner<T, E>>());
         }
     }
 }
 
-unsafe impl<A: Async + FromCore> Send for Core<A> {
-}
+unsafe impl<T: Send, E: Send> Send for Core<T, E> { }
 
-
-pub fn get<A: Async + FromCore>(core: &Option<Core<A>>) -> &Core<A> {
+pub fn get<T: Send, E: Send>(core: &Option<Core<T, E>>) -> &Core<T, E> {
     core.as_ref().expect("expected future core")
 }
 
-pub fn take<A: Async + FromCore>(core: &mut Option<Core<A>>) -> Core<A> {
+pub fn take<T: Send, E: Send>(core: &mut Option<Core<T, E>>) -> Core<T, E> {
     core.take().expect("expected future core")
 }
 
 /*
  *
- * ===== FromCore =====
- *
- */
-
-pub trait FromCore {
-    type Producer: Send;
-
-    fn consumer(core: Core<Self>) -> Self;
-
-    fn producer(core: Core<Self>) -> Self::Producer;
-}
-
-/*
- *
- * ===== CoreInner<T> =====
+ * ===== CoreInner =====
  *
  */
 
 
-struct CoreInner<A: Async + FromCore> {
+struct CoreInner<T: Send, E: Send> {
     refs: AtomicUsize,
     state: AtomicState,
-    consumer_wait: Option<Callback<A>>,
-    producer_wait: Option<Callback<A>>,
-    val: AsyncResult<A::Value, A::Error>, // May be uninitialized
+    consumer_wait: Option<Callback<T, E>>,
+    producer_wait: Option<Callback<T, E>>,
+    val: AsyncResult<T, E>, // May be uninitialized
 }
 
-impl<A: Async + FromCore> CoreInner<A> {
-    fn new() -> CoreInner<A> {
+impl<T: Send, E: Send> CoreInner<T, E> {
+    fn new() -> CoreInner<T, E> {
         CoreInner {
             refs: AtomicUsize::new(1),
             state: AtomicState::new(),
@@ -233,7 +215,7 @@ impl<A: Async + FromCore> CoreInner<A> {
         }
     }
 
-    fn with_value(val: AsyncResult<A::Value, A::Error>) -> CoreInner<A> {
+    fn with_value(val: AsyncResult<T, E>) -> CoreInner<T, E> {
         CoreInner {
             refs: AtomicUsize::new(1),
             state: AtomicState::of(Ready),
@@ -255,7 +237,7 @@ impl<A: Async + FromCore> CoreInner<A> {
         self.val.is_err()
     }
 
-    pub fn consumer_poll(&self) -> Option<AsyncResult<A::Value, A::Error>> {
+    pub fn consumer_poll(&self) -> Option<AsyncResult<T, E>> {
         let curr = self.state.load(Relaxed);
 
         debug!("Core::consumer_poll; state={:?}", curr);
@@ -267,7 +249,7 @@ impl<A: Async + FromCore> CoreInner<A> {
         Some(self.consume_val(curr))
     }
 
-    fn consumer_ready<F: FnOnce(Core<A>) + Send>(&self, f: F) -> Option<u64> {
+    fn consumer_ready<F: FnOnce(Core<T, E>) + Send>(&self, f: F) -> Option<u64> {
         let mut curr = self.state.load(Relaxed);
 
         debug!("Core::consumer_ready; state={:?}", curr);
@@ -452,7 +434,7 @@ impl<A: Async + FromCore> CoreInner<A> {
         unimplemented!();
     }
 
-    pub fn producer_poll(&self) -> Option<AsyncResult<A::Producer, ()>> {
+    pub fn producer_poll(&self) -> Option<AsyncResult<Core<T, E>, ()>> {
         let curr = self.state.load(Relaxed);
 
         debug!("Core::producer_poll; state={:?}", curr);
@@ -465,10 +447,10 @@ impl<A: Async + FromCore> CoreInner<A> {
             return Some(Err(AsyncError::canceled()));
         }
 
-        Some(Ok(FromCore::producer(self.core())))
+        Some(Ok(self.core()))
     }
 
-    fn producer_ready<F: FnOnce(Core<A>) + Send>(&self, f: F) {
+    fn producer_ready<F: FnOnce(Core<T, E>) + Send>(&self, f: F) {
         let mut curr = self.state.load(Relaxed);
 
         debug!("Core::producer_ready; state={:?}", curr);
@@ -604,7 +586,7 @@ impl<A: Async + FromCore> CoreInner<A> {
         }
     }
 
-    fn complete(&self, val: AsyncResult<A::Value, A::Error>, last: bool) {
+    fn complete(&self, val: AsyncResult<T, E>, last: bool) {
         let mut curr = self.state.load(Relaxed);
         let mut next;
 
@@ -718,7 +700,7 @@ impl<A: Async + FromCore> CoreInner<A> {
         }
     }
 
-    fn consume_val(&self, mut curr: State) -> AsyncResult<A::Value, A::Error> {
+    fn consume_val(&self, mut curr: State) -> AsyncResult<T, E> {
         // Ensure that the memory is synced
         atomic::fence(Acquire);
 
@@ -747,38 +729,38 @@ impl<A: Async + FromCore> CoreInner<A> {
         }
     }
 
-    unsafe fn put_val(&self, val: AsyncResult<A::Value, A::Error>) {
+    unsafe fn put_val(&self, val: AsyncResult<T, E>) {
         ptr::write(mem::transmute(&self.val), val);
     }
 
-    unsafe fn take_val(&self) -> AsyncResult<A::Value, A::Error> {
+    unsafe fn take_val(&self) -> AsyncResult<T, E> {
         ptr::read(&self.val)
     }
 
-    fn put_consumer_wait(&self, cb: Callback<A>) {
+    fn put_consumer_wait(&self, cb: Callback<T, E>) {
         unsafe {
-            let s: &mut CoreInner<A> = mem::transmute(self);
+            let s: &mut CoreInner<T, E> = mem::transmute(self);
             s.consumer_wait = Some(cb);
         }
     }
 
-    fn take_consumer_wait(&self) -> Callback<A> {
+    fn take_consumer_wait(&self) -> Callback<T, E> {
         unsafe {
-            let s: &mut CoreInner<A> = mem::transmute(self);
+            let s: &mut CoreInner<T, E> = mem::transmute(self);
             s.consumer_wait.take().expect("consumer_wait is none")
         }
     }
 
-    fn put_producer_wait(&self, cb: Callback<A>) {
+    fn put_producer_wait(&self, cb: Callback<T, E>) {
         unsafe {
-            let s: &mut CoreInner<A> = mem::transmute(self);
+            let s: &mut CoreInner<T, E> = mem::transmute(self);
             s.producer_wait = Some(cb);
         }
     }
 
-    fn take_producer_wait(&self) -> Callback<A> {
+    fn take_producer_wait(&self) -> Callback<T, E> {
         unsafe {
-            let s: &mut CoreInner<A> = mem::transmute(self);
+            let s: &mut CoreInner<T, E> = mem::transmute(self);
             s.producer_wait.take().expect("producer_wait is none")
         }
     }
@@ -791,7 +773,7 @@ impl<A: Async + FromCore> CoreInner<A> {
         self.refs.fetch_sub(1, order)
     }
 
-    fn core(&self) -> Core<A> {
+    fn core(&self) -> Core<T, E> {
         // Using a relaxed ordering is alright here, as knowledge of the original reference
         // prevents other threads from erroneously deleting the object.
         //
@@ -805,6 +787,8 @@ impl<A: Async + FromCore> CoreInner<A> {
         Core { ptr: unsafe { mem::transmute(self) } }
     }
 }
+
+unsafe impl<T: Send, E: Send> Send for CoreInner<T, E> { }
 
 struct AtomicState {
     atomic: AtomicU64,
@@ -925,7 +909,7 @@ impl State {
     }
 
     fn is_producer_ready(&self) -> bool {
-        self.is_consumer_wait() || self.is_ready() || self.is_canceled()
+        self.is_consumer_wait() || self.is_canceled()
     }
 
     fn is_canceled(&self) -> bool {
@@ -969,7 +953,7 @@ impl fmt::Debug for State {
     }
 }
 
-type Callback<A> = Box<BoxedReceive<Core<A>>>;
+type Callback<T, E> = Box<BoxedReceive<Core<T, E>>>;
 
 #[derive(Debug, FromPrimitive, PartialEq, Eq)]
 enum Lifecycle {
