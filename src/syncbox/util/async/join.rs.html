@@ -232,7 +232,7 @@
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::<span class='ident'>atomic</span>::<span class='ident'>Ordering</span>;
 
 <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>join</span><span class='op'>&lt;</span><span class='ident'>J</span>: <span class='ident'>Join</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;</span>, <span class='ident'>T</span>: <span class='ident'>Send</span>, <span class='ident'>E</span>: <span class='ident'>Send</span><span class='op'>&gt;</span>(<span class='ident'>asyncs</span>: <span class='ident'>J</span>) <span class='op'>-&gt;</span> <span class='ident'>Future</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;</span> {
-    <span class='kw'>let</span> (<span class='ident'>future</span>, <span class='ident'>complete</span>) <span class='op'>=</span> <span class='ident'>Future</span>::<span class='ident'>pair</span>();
+    <span class='kw'>let</span> (<span class='ident'>complete</span>, <span class='ident'>future</span>) <span class='op'>=</span> <span class='ident'>Future</span>::<span class='ident'>pair</span>();
 
     <span class='comment'>// Don&#39;t do any work until the consumer registers interest in the completed</span>
     <span class='comment'>// value.</span>

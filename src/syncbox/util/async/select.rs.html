@@ -607,7 +607,7 @@
 <span class='kw'>use</span> <span class='ident'>super</span>::<span class='ident'>AsyncError</span>::<span class='ident'>ExecutionError</span>;
 
 <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>select</span><span class='op'>&lt;</span><span class='ident'>S</span>: <span class='ident'>Select</span><span class='op'>&lt;</span><span class='ident'>E</span><span class='op'>&gt;</span>, <span class='ident'>E</span>: <span class='ident'>Send</span><span class='op'>&gt;</span>(<span class='ident'>asyncs</span>: <span class='ident'>S</span>) <span class='op'>-&gt;</span> <span class='ident'>Future</span><span class='op'>&lt;</span>(<span class='ident'>u32</span>, <span class='ident'>S</span>), <span class='ident'>E</span><span class='op'>&gt;</span> {
-    <span class='kw'>let</span> (<span class='ident'>res</span>, <span class='ident'>complete</span>) <span class='op'>=</span> <span class='ident'>Future</span>::<span class='ident'>pair</span>();
+    <span class='kw'>let</span> (<span class='ident'>complete</span>, <span class='ident'>res</span>) <span class='op'>=</span> <span class='ident'>Future</span>::<span class='ident'>pair</span>();
 
     <span class='comment'>// Don&#39;t do any work until the consumer registers interest in the completed</span>
     <span class='comment'>// value.</span>

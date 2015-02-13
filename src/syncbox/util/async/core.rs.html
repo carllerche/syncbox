@@ -1046,53 +1046,6 @@
 <span id="1004">1004</span>
 <span id="1005">1005</span>
 <span id="1006">1006</span>
-<span id="1007">1007</span>
-<span id="1008">1008</span>
-<span id="1009">1009</span>
-<span id="1010">1010</span>
-<span id="1011">1011</span>
-<span id="1012">1012</span>
-<span id="1013">1013</span>
-<span id="1014">1014</span>
-<span id="1015">1015</span>
-<span id="1016">1016</span>
-<span id="1017">1017</span>
-<span id="1018">1018</span>
-<span id="1019">1019</span>
-<span id="1020">1020</span>
-<span id="1021">1021</span>
-<span id="1022">1022</span>
-<span id="1023">1023</span>
-<span id="1024">1024</span>
-<span id="1025">1025</span>
-<span id="1026">1026</span>
-<span id="1027">1027</span>
-<span id="1028">1028</span>
-<span id="1029">1029</span>
-<span id="1030">1030</span>
-<span id="1031">1031</span>
-<span id="1032">1032</span>
-<span id="1033">1033</span>
-<span id="1034">1034</span>
-<span id="1035">1035</span>
-<span id="1036">1036</span>
-<span id="1037">1037</span>
-<span id="1038">1038</span>
-<span id="1039">1039</span>
-<span id="1040">1040</span>
-<span id="1041">1041</span>
-<span id="1042">1042</span>
-<span id="1043">1043</span>
-<span id="1044">1044</span>
-<span id="1045">1045</span>
-<span id="1046">1046</span>
-<span id="1047">1047</span>
-<span id="1048">1048</span>
-<span id="1049">1049</span>
-<span id="1050">1050</span>
-<span id="1051">1051</span>
-<span id="1052">1052</span>
-<span id="1053">1053</span>
 </pre><pre class='rust '>
 <span class='attribute'>#[<span class='ident'>allow</span>(<span class='ident'>dead_code</span>)]</span>
 
@@ -1103,6 +1056,7 @@
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>num</span>::<span class='ident'>FromPrimitive</span>;
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::<span class='ident'>atomic</span>::<span class='ident'>Ordering</span>::{<span class='ident'>Acquire</span>, <span class='ident'>Relaxed</span>, <span class='ident'>Release</span>};
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>thread</span>::<span class='ident'>Thread</span>;
+<span class='kw'>use</span> <span class='ident'>core</span>::<span class='ident'>nonzero</span>::<span class='ident'>NonZero</span>;
 <span class='kw'>use</span> <span class='ident'>alloc</span>::<span class='ident'>heap</span>;
 
 <span class='comment'>/*
@@ -1114,13 +1068,13 @@
 <span class='comment'>// Core implementation of Future &amp; Stream</span>
 <span class='attribute'>#[<span class='ident'>unsafe_no_drop_flag</span>]</span>
 <span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Core</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Async</span> <span class='op'>+</span> <span class='ident'>FromCore</span><span class='op'>&gt;</span> {
-    <span class='ident'>ptr</span>: <span class='op'>*</span><span class='kw-2'>mut</span> <span class='ident'>CoreInner</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span>,
+    <span class='ident'>ptr</span>: <span class='ident'>NonZero</span><span class='op'>&lt;</span><span class='op'>*</span><span class='kw-2'>mut</span> <span class='ident'>CoreInner</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;&gt;</span>,
 }
 
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Async</span> <span class='op'>+</span> <span class='ident'>FromCore</span><span class='op'>&gt;</span> <span class='ident'>Core</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>() <span class='op'>-&gt;</span> <span class='ident'>Core</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
         <span class='kw'>let</span> <span class='ident'>ptr</span> <span class='op'>=</span> <span class='ident'>Box</span>::<span class='ident'>new</span>(<span class='ident'>CoreInner</span>::<span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span>::<span class='ident'>new</span>());
-        <span class='ident'>Core</span> { <span class='ident'>ptr</span>: <span class='kw'>unsafe</span> { <span class='ident'>mem</span>::<span class='ident'>transmute</span>(<span class='ident'>ptr</span>) }}
+        <span class='ident'>Core</span> { <span class='ident'>ptr</span>: <span class='kw'>unsafe</span> { <span class='ident'>NonZero</span>::<span class='ident'>new</span>(<span class='ident'>mem</span>::<span class='ident'>transmute</span>(<span class='ident'>ptr</span>)) }}
     }
 
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>with_value</span>(<span class='ident'>val</span>: <span class='ident'>AsyncResult</span><span class='op'>&lt;</span><span class='ident'>A</span>::<span class='ident'>Value</span>, <span class='ident'>A</span>::<span class='ident'>Error</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>Core</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
@@ -1214,16 +1168,12 @@
 
     <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>fn</span> <span class='ident'>inner</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='ident'>CoreInner</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
-        <span class='kw'>unsafe</span> { <span class='kw-2'>&amp;</span><span class='op'>*</span><span class='self'>self</span>.<span class='ident'>ptr</span> }
+        <span class='kw'>unsafe</span> { <span class='kw-2'>&amp;</span><span class='op'>*</span><span class='op'>*</span><span class='self'>self</span>.<span class='ident'>ptr</span> }
     }
 
     <span class='attribute'>#[<span class='ident'>inline</span>]</span>
     <span class='kw'>fn</span> <span class='ident'>inner_mut</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>CoreInner</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
-        <span class='kw'>unsafe</span> { <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='op'>*</span><span class='self'>self</span>.<span class='ident'>ptr</span> }
-    }
-
-    <span class='kw'>fn</span> <span class='ident'>is_null</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
-        <span class='self'>self</span>.<span class='ident'>ptr</span>.<span class='ident'>is_null</span>()
+        <span class='kw'>unsafe</span> { <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='op'>*</span><span class='op'>*</span><span class='self'>self</span>.<span class='ident'>ptr</span> }
     }
 }
 
@@ -1273,7 +1223,7 @@
             <span class='kw'>let</span> _ <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>inner_mut</span>().<span class='ident'>producer_wait</span>.<span class='ident'>take</span>();
 
             <span class='ident'>heap</span>::<span class='ident'>deallocate</span>(
-                <span class='self'>self</span>.<span class='ident'>ptr</span> <span class='kw'>as</span> <span class='op'>*</span><span class='kw-2'>mut</span> <span class='ident'>u8</span>,
+                <span class='op'>*</span><span class='self'>self</span>.<span class='ident'>ptr</span> <span class='kw'>as</span> <span class='op'>*</span><span class='kw-2'>mut</span> <span class='ident'>u8</span>,
                 <span class='ident'>mem</span>::<span class='ident'>size_of</span>::<span class='op'>&lt;</span><span class='ident'>CoreInner</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;&gt;</span>(),
                 <span class='ident'>mem</span>::<span class='ident'>min_align_of</span>::<span class='op'>&lt;</span><span class='ident'>CoreInner</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;&gt;</span>());
         }
@@ -1283,57 +1233,13 @@
 <span class='kw'>unsafe</span> <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Async</span> <span class='op'>+</span> <span class='ident'>FromCore</span><span class='op'>&gt;</span> <span class='ident'>Send</span> <span class='kw'>for</span> <span class='ident'>Core</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
 }
 
-<span class='comment'>/*
- *
- * ===== OptionCore =====
- *
- */</span>
 
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>OptionCore</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Async</span> <span class='op'>+</span> <span class='ident'>FromCore</span><span class='op'>&gt;</span> {
-    <span class='ident'>core</span>: <span class='ident'>Core</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span>,
+<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Async</span> <span class='op'>+</span> <span class='ident'>FromCore</span><span class='op'>&gt;</span>(<span class='ident'>core</span>: <span class='kw-2'>&amp;</span><span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Core</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;&gt;</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='ident'>Core</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
+    <span class='ident'>core</span>.<span class='ident'>as_ref</span>().<span class='ident'>expect</span>(<span class='string'>&quot;expected future core&quot;</span>)
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Async</span> <span class='op'>+</span> <span class='ident'>FromCore</span><span class='op'>&gt;</span> <span class='ident'>OptionCore</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
-    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>(<span class='ident'>core</span>: <span class='ident'>Core</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>OptionCore</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
-        <span class='ident'>OptionCore</span> { <span class='ident'>core</span>: <span class='ident'>core</span> }
-    }
-
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>none</span>() <span class='op'>-&gt;</span> <span class='ident'>OptionCore</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
-        <span class='kw'>let</span> <span class='ident'>core</span> <span class='op'>=</span> <span class='kw'>unsafe</span> { <span class='ident'>mem</span>::<span class='ident'>transmute</span>(<span class='number'>0u64</span>) };
-        <span class='ident'>OptionCore</span> { <span class='ident'>core</span>: <span class='ident'>core</span> }
-    }
-
-    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>is_some</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
-        <span class='op'>!</span><span class='self'>self</span>.<span class='ident'>core</span>.<span class='ident'>is_null</span>()
-    }
-
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='kw-2'>&amp;</span><span class='ident'>Core</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
-        <span class='macro'>assert</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>is_some</span>(), <span class='string'>&quot;Core has already been consumed&quot;</span>);
-        <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>core</span>
-    }
-
-    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>take</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>Core</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
-        <span class='macro'>assert</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>is_some</span>(), <span class='string'>&quot;Core has already been consumed&quot;</span>);
-        <span class='kw'>unsafe</span> { <span class='ident'>mem</span>::<span class='ident'>replace</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.<span class='ident'>core</span>, <span class='ident'>mem</span>::<span class='ident'>zeroed</span>()) }
-    }
-}
-
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Async</span> <span class='op'>+</span> <span class='ident'>FromCore</span><span class='op'>&gt;</span> <span class='ident'>Clone</span> <span class='kw'>for</span> <span class='ident'>OptionCore</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
-    <span class='kw'>fn</span> <span class='ident'>clone</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>OptionCore</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
-        <span class='ident'>OptionCore</span> { <span class='ident'>core</span>: <span class='self'>self</span>.<span class='ident'>core</span>.<span class='ident'>clone</span>() }
-    }
-}
-
-<span class='attribute'>#[<span class='ident'>unsafe_destructor</span>]</span>
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Async</span> <span class='op'>+</span> <span class='ident'>FromCore</span><span class='op'>&gt;</span> <span class='ident'>Drop</span> <span class='kw'>for</span> <span class='ident'>OptionCore</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
-    <span class='kw'>fn</span> <span class='ident'>drop</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) {
-        <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>is_some</span>() {
-            <span class='kw'>let</span> _ <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>take</span>();
-        }
-    }
+<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>take</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Async</span> <span class='op'>+</span> <span class='ident'>FromCore</span><span class='op'>&gt;</span>(<span class='ident'>core</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Core</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>Core</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
+    <span class='ident'>core</span>.<span class='ident'>take</span>().<span class='ident'>expect</span>(<span class='string'>&quot;expected future core&quot;</span>)
 }
 
 <span class='comment'>/*
