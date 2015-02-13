@@ -5,7 +5,7 @@ use syncbox::util::async::*;
 pub fn test_await_in_receive() {
     debug!("starting");
 
-    let (s, p) = Stream::<uint, ()>::pair();
+    let (p, s) = Stream::<uint, ()>::pair();
 
     s.receive(move |res| {
         if let Some((_, rest)) = res.unwrap() {

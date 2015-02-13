@@ -9,7 +9,7 @@ use std::{fmt, u32};
 use super::AsyncError::ExecutionError;
 
 pub fn select<S: Select<E>, E: Send>(asyncs: S) -> Future<(u32, S), E> {
-    let (res, complete) = Future::pair();
+    let (complete, res) = Future::pair();
 
     // Don't do any work until the consumer registers interest in the completed
     // value.

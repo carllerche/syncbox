@@ -2,7 +2,7 @@ use syncbox::util::async::*;
 
 #[test]
 pub fn test_stream_iter_async_producer() {
-    let (stream, producer) = Stream::pair();
+    let (producer, stream) = Stream::pair();
 
     fn gen(p: Sender<uint, ()>, i: uint) {
         p.receive(move |p| {

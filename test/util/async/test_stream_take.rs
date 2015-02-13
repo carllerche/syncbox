@@ -17,7 +17,7 @@ pub fn test_stream_take() {
 
 #[test]
 pub fn test_stream_take_until() {
-    let (f, c) = Future::<&'static str, ()>::pair();
+    let (c, f) = Future::<&'static str, ()>::pair();
     let stream = nums(0, 1_000_000).take_until(f);
 
     let mut iter = stream.iter();

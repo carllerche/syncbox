@@ -13,11 +13,11 @@ pub struct Future<T: Send, E: Send> {
 }
 
 impl<T: Send, E: Send> Future<T, E> {
-    pub fn pair() -> (Future<T, E>, Complete<T, E>) {
+    pub fn pair() -> (Complete<T, E>, Future<T, E>) {
         let core = Core::new();
         let future = Future { core: Some(core.clone()) };
 
-        (future, Complete { core: Some(core) })
+        (Complete { core: Some(core) }, future)
     }
 
     /// Returns a future that will immediately succeed with the supplied value.
@@ -99,7 +99,7 @@ impl<T: Send, E: Send> Future<T, E> {
         where F: FnOnce() -> R + Send,
               R: Async<Value=T, Error=E> {
 
-        let (future, complete) = Future::pair();
+        let (complete, future) = Future::pair();
 
         // Complete the future with the provided function once consumer
         // interest has been registered.
@@ -259,17 +259,17 @@ impl<T: Send, E: Send> Cancel<Future<T, E>> for CancelFuture<T, E> {
 /// use syncbox::util::async::*;
 /// use syncbox::util::async::AsyncError::*;
 ///
-/// let (future, completer) = Future::<u32, &'static str>::pair();
+/// let (tx, future) = Future::<u32, &'static str>::pair();
 ///
 /// future.and_then(|v| {
 ///     assert!(v == 1);
 ///     Ok(v + v)
 /// });
 ///
-/// completer.complete(1);
+/// tx.complete(1);
 ///
-/// let (future, completer) = Future::<u32, &'static str>::pair();
-/// completer.fail("failed");
+/// let (tx, future) = Future::<u32, &'static str>::pair();
+/// tx.fail("failed");
 ///
 /// future.or_else(|err| {
 ///     match err {

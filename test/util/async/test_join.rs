@@ -4,8 +4,8 @@ use super::{sleep, spawn};
 
 #[test]
 pub fn test_joining_two_futures_async() {
-    let (f1, c1) = Future::<i32, ()>::pair();
-    let (f2, c2) = Future::<i32, ()>::pair();
+    let (c1, f1) = Future::<i32, ()>::pair();
+    let (c2, f2) = Future::<i32, ()>::pair();
     let (tx, rx) = channel();
 
     join((f1, f2)).receive(move |res| {
@@ -23,8 +23,8 @@ pub fn test_joining_two_futures_async() {
 
 #[test]
 pub fn test_joining_two_futures_sync() {
-    let (f1, c1) = Future::<i32, ()>::pair();
-    let (f2, c2) = Future::<i32, ()>::pair();
+    let (c1, f1) = Future::<i32, ()>::pair();
+    let (c2, f2) = Future::<i32, ()>::pair();
 
     spawn(move || {
         sleep(50);
@@ -42,8 +42,8 @@ pub fn test_joining_two_futures_sync() {
 
 #[test]
 pub fn test_lazily_propagates_interest() {
-    let (f1, c1) = Future::<i32, ()>::pair();
-    let (f2, _c) = Future::<i32, ()>::pair();
+    let (c1, f1) = Future::<i32, ()>::pair();
+    let (_c, f2) = Future::<i32, ()>::pair();
     let (tx, rx) = channel();
 
     c1.receive(move |res| {
@@ -61,8 +61,8 @@ pub fn test_lazily_propagates_interest() {
 
 #[test]
 pub fn test_join_errors_on_failure() {
-    let (f1, c1) = Future::<i32, ()>::pair();
-    let (f2, _c) = Future::<i32, ()>::pair();
+    let (c1, f1) = Future::<i32, ()>::pair();
+    let (_c, f2) = Future::<i32, ()>::pair();
     let (tx, rx) = channel();
 
     join((f1, f2)).receive(move |res| {

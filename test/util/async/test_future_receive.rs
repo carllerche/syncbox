@@ -7,7 +7,7 @@ use std::sync::atomic::Ordering::Relaxed;
 
 #[test]
 pub fn test_complete_before_receive() {
-    let (f, c) = Future::<&'static str, ()>::pair();
+    let (c, f) = Future::<&'static str, ()>::pair();
     let (tx, rx) = channel();
 
     spawn(move || c.complete("zomg"));
@@ -19,7 +19,7 @@ pub fn test_complete_before_receive() {
 
 #[test]
 pub fn test_complete_after_receive() {
-    let (f, c) = Future::<&'static str, ()>::pair();
+    let (c, f) = Future::<&'static str, ()>::pair();
     let (tx, rx) = channel();
 
     spawn(move || {
@@ -33,7 +33,7 @@ pub fn test_complete_after_receive() {
 
 #[test]
 pub fn test_receive_complete_before_consumer_receive() {
-    let (f, c) = Future::<&'static str, ()>::pair();
+    let (c, f) = Future::<&'static str, ()>::pair();
     let w1 = Arc::new(AtomicBool::new(false));
     let w2 = w1.clone();
 
@@ -55,7 +55,7 @@ pub fn test_receive_complete_before_consumer_receive() {
 
 #[test]
 pub fn test_receive_complete_after_consumer_receive() {
-    let (f, c) = Future::<&'static str, ()>::pair();
+    let (c, f) = Future::<&'static str, ()>::pair();
     let w1 = Arc::new(AtomicBool::new(false));
     let w2 = w1.clone();
 
@@ -81,7 +81,7 @@ pub fn test_receive_complete_after_consumer_receive() {
 
 #[test]
 pub fn test_await_complete_before_consumer_receive() {
-    let (f, c) = Future::<&'static str, ()>::pair();
+    let (c, f) = Future::<&'static str, ()>::pair();
     let (tx, rx) = channel();
 
     spawn(move || {
@@ -101,7 +101,7 @@ pub fn test_await_complete_before_consumer_receive() {
 
 #[test]
 pub fn test_await_complete_after_consumer_receive() {
-    let (f, c) = Future::<&'static str, ()>::pair();
+    let (c, f) = Future::<&'static str, ()>::pair();
     let (tx, rx) = channel();
 
     spawn(move || {
@@ -120,7 +120,7 @@ pub fn test_await_complete_after_consumer_receive() {
 
 #[test]
 pub fn test_producer_receive_when_consumer_cb_set() {
-    let (f, c) = Future::<&'static str, ()>::pair();
+    let (c, f) = Future::<&'static str, ()>::pair();
     let (tx, rx) = channel();
     let depth = Arc::new(AtomicUint::new(0));
 
@@ -135,7 +135,7 @@ pub fn test_producer_receive_when_consumer_cb_set() {
 
 #[test]
 pub fn test_producer_receive_when_consumer_waiting() {
-    let (f, c) = Future::<&'static str, ()>::pair();
+    let (c, f) = Future::<&'static str, ()>::pair();
     let depth = Arc::new(AtomicUint::new(0));
 
     waiting(0, depth, c);
@@ -159,7 +159,7 @@ fn waiting(count: uint, d: Arc<AtomicUint>, c: Complete<&'static str, ()>) {
 
 #[test]
 pub fn test_producer_await_when_consumer_receive() {
-    let (f, c) = Future::<&'static str, ()>::pair();
+    let (c, f) = Future::<&'static str, ()>::pair();
     let (tx, rx) = channel();
 
     spawn(move || {
@@ -179,7 +179,7 @@ pub fn test_producer_await_when_consumer_receive() {
 
 #[test]
 pub fn test_canceling_future_before_producer_receive() {
-    let (f, c) = Future::<uint, ()>::pair();
+    let (c, f) = Future::<uint, ()>::pair();
     let (tx, rx) = channel();
 
     drop(f);
@@ -199,7 +199,7 @@ pub fn test_canceling_future_before_producer_receive() {
 
 #[test]
 pub fn test_canceling_future_before_producer_await() {
-    let (f, c) = Future::<uint, ()>::pair();
+    let (c, f) = Future::<uint, ()>::pair();
 
     drop(f);
 
@@ -208,7 +208,7 @@ pub fn test_canceling_future_before_producer_await() {
 
 #[test]
 pub fn test_canceling_future_after_producer_receive() {
-    let (f, c) = Future::<uint, ()>::pair();
+    let (c, f) = Future::<uint, ()>::pair();
     let (tx, rx) = channel();
 
     c.receive(move |c| {
@@ -222,7 +222,7 @@ pub fn test_canceling_future_after_producer_receive() {
 
 #[test]
 pub fn test_canceling_future_after_producer_await() {
-    let (f, c) = Future::<uint, ()>::pair();
+    let (c, f) = Future::<uint, ()>::pair();
     let (tx, rx) = channel();
 
     spawn(move || {
@@ -238,7 +238,7 @@ pub fn test_canceling_future_after_producer_await() {
 
 #[test]
 pub fn test_canceling_producer_then_receive() {
-    let (f, c) = Future::<uint, ()>::pair();
+    let (c, f) = Future::<uint, ()>::pair();
     let (tx, rx) = channel();
 
     drop(c);
@@ -253,7 +253,7 @@ pub fn test_canceling_producer_then_receive() {
 
 #[test]
 pub fn test_producer_fail_consumer_receive() {
-    let (f, c) = Future::<uint, &'static str>::pair();
+    let (c, f) = Future::<uint, &'static str>::pair();
 
     spawn(move || {
         sleep(50);

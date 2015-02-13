@@ -10,11 +10,11 @@ pub struct Stream<T: Send, E: Send> {
 }
 
 impl<T: Send, E: Send> Stream<T, E> {
-    pub fn pair() -> (Stream<T, E>, Sender<T, E>) {
+    pub fn pair() -> (Sender<T, E>, Stream<T, E>) {
         let core = Core::new();
         let stream = Stream { core: Some(core.clone()) };
 
-        (stream, Sender { core: Some(core) })
+        (Sender { core: Some(core) }, stream)
     }
 
     pub fn is_ready(&self) -> bool {

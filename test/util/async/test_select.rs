@@ -3,8 +3,8 @@ use std::sync::mpsc::channel;
 
 #[test]
 pub fn test_selecting_two_futures_async_success() {
-    let (f1, c1) = Future::<i32, ()>::pair();
-    let (f2, c2) = Future::<i32, ()>::pair();
+    let (c1, f1) = Future::<i32, ()>::pair();
+    let (c2, f2) = Future::<i32, ()>::pair();
     let (tx, rx) = channel();
 
     let sel = async::select((f1, f2));
@@ -41,8 +41,8 @@ pub fn test_selecting_two_futures_async_success() {
 
 #[test]
 pub fn test_selecting_two_futures_async_error() {
-    let (f1, c1) = Future::<(), i32>::pair();
-    let (f2, _c) = Future::<(), i32>::pair();
+    let (c1, f1) = Future::<(), i32>::pair();
+    let (_c, f2) = Future::<(), i32>::pair();
     let (tx, rx) = channel();
 
     let sel = async::select((f1, f2));

@@ -3,7 +3,7 @@ use std::sync::mpsc::channel;
 
 #[test]
 pub fn test_stream_cancel_before_send() {
-    let (stream, generate) = Stream::<i32, ()>::pair();
+    let (generate, stream) = Stream::<i32, ()>::pair();
 
     let cancel = stream.ready(move |_| panic!("nope"));
     let stream = cancel.cancel().expect("cancel failed");
@@ -18,7 +18,7 @@ pub fn test_stream_cancel_before_send() {
 
 #[test]
 pub fn test_stream_cancel_after_send() {
-    let (stream, generate) = Stream::<i32, ()>::pair();
+    let (generate, stream) = Stream::<i32, ()>::pair();
     let (tx, rx) = channel();
 
     let cancel = stream.ready(move |s| {

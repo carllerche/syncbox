@@ -117,7 +117,7 @@ pub trait Async : Send + Sized {
                   U::Value: Send, U::Error: Send {
         // TODO: Currently a naive implementation. Improve it by reducing
         // required allocations
-        let (ret, complete) = Future::pair();
+        let (complete, ret) = Future::pair();
 
         complete.receive(move |c| {
             if let Ok(complete) = c {
@@ -149,7 +149,7 @@ pub trait Async : Send + Sized {
     fn and_then<F, U: Async<Error=Self::Error>>(self, f: F) -> Future<U::Value, Self::Error>
             where F: FnOnce(Self::Value) -> U + Send,
                   U::Value: Send {
-        let (ret, complete) = Future::pair();
+        let (complete, ret) = Future::pair();
 
         complete.receive(move |c| {
             if let Ok(complete) = c {
@@ -183,7 +183,7 @@ pub trait Async : Send + Sized {
             where F: FnOnce(AsyncError<Self::Error>) -> A + Send,
                   A: Async<Value=Self::Value, Error=Self::Error> {
 
-        let (ret, complete) = Future::pair();
+        let (complete, ret) = Future::pair();
 
         complete.receive(move |c| {
             if let Ok(complete) = c {

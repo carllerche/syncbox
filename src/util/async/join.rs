@@ -5,7 +5,7 @@ use std::sync::atomic::{self, AtomicInt};
 use std::sync::atomic::Ordering;
 
 pub fn join<J: Join<T, E>, T: Send, E: Send>(asyncs: J) -> Future<T, E> {
-    let (future, complete) = Future::pair();
+    let (complete, future) = Future::pair();
 
     // Don't do any work until the consumer registers interest in the completed
     // value.

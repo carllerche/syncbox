@@ -8,7 +8,7 @@ pub fn test_one_shot_stream_async() {
 
 #[test]
 pub fn test_one_shot_stream_await() {
-    let (stream, producer) = Stream::<&'static str, ()>::pair();
+    let (gen, stream) = Stream::<&'static str, ()>::pair();
     let (tx, rx) = channel();
 
     spawn(move || {
@@ -22,13 +22,13 @@ pub fn test_one_shot_stream_await() {
     sleep(50);
 
     debug!(" ~~ Sender::send(\"hello\") ~~");
-    producer.send("hello");
+    gen.send("hello");
     assert_eq!("hello", rx.recv().unwrap());
 }
 
 #[test]
 pub fn test_one_shot_stream_done() {
-    let (mut stream, produce) = Stream::<&'static str, ()>::pair();
+    let (gen, mut stream) = Stream::<&'static str, ()>::pair();
     let (tx, rx) = channel();
 
     spawn(move || {
@@ -38,16 +38,16 @@ pub fn test_one_shot_stream_done() {
         }
     });
 
-    produce.send("hello");
-    produce.done();
+    gen.send("hello");
+    gen.done();
 
     let vals: Vec<&'static str> = rx.iter().collect();
     assert_eq!(["hello"].as_slice(), vals.as_slice());
 }
 
 #[test]
-pub fn test_stream_receive_before_produce_interest_async() {
-    let (stream, producer) = Stream::pair();
+pub fn test_stream_receive_before_generate_interest_async() {
+    let (gen, stream) = Stream::pair();
     let (tx, rx) = channel();
     let (eof_t, eof_r) = channel();
 
@@ -72,10 +72,10 @@ pub fn test_stream_receive_before_produce_interest_async() {
     let (txp, rxp) = channel();
 
     debug!(" ~~ Sender::receive ~~");
-    producer.receive(move |p| {
-        let p = p.unwrap();
-        p.send("hello");
-        txp.send(p).unwrap();
+    gen.receive(move |gen| {
+        let gen = gen.unwrap();
+        gen.send("hello");
+        txp.send(gen).unwrap();
     });
 
     // Receive the first message
@@ -86,10 +86,10 @@ pub fn test_stream_receive_before_produce_interest_async() {
 
     // Get the producer, wait for readiness, and write another message
     debug!(" ~~ Sender::receive ~~");
-    rxp.recv().unwrap().receive(move |p| {
-        let p = p.unwrap();
-        p.send("world");
-        txp.send(p).unwrap();
+    rxp.recv().unwrap().receive(move |gen| {
+        let gen = gen.unwrap();
+        gen.send("world");
+        txp.send(gen).unwrap();
     });
 
     debug!(" ~~ WAITING ON WORLD ~~");
@@ -109,14 +109,14 @@ pub fn test_stream_receive_before_produce_interest_async() {
 
 #[test]
 pub fn test_stream_produce_interest_before_receive_async() {
-    let (mut stream, producer) = Stream::<&'static str, ()>::pair();
+    let (gen, mut stream) = Stream::<&'static str, ()>::pair();
     let (txp, rxp) = channel();
 
     debug!(" ~~ Sender::receive #1 ~~");
-    producer.receive(move |p| {
-        let p = p.unwrap();
-        p.send("hello");
-        txp.send(p).unwrap();
+    gen.receive(move |gen| {
+        let gen = gen.unwrap();
+        gen.send("hello");
+        txp.send(gen).unwrap();
     });
 
     let (tx, rx) = channel();
@@ -181,7 +181,7 @@ pub fn test_stream_send_then_done_before_receive() {
 
 #[test]
 pub fn test_recursive_receive() {
-    let (s, p) = Stream::<uint, ()>::pair();
+    let (gen, s) = Stream::<uint, ()>::pair();
     let (tx, rx) = channel();
 
     fn consume(s: Stream<uint, ()>, tx: mpsc::Sender<uint>) {
@@ -215,7 +215,7 @@ pub fn test_recursive_receive() {
     }
 
     consume(s, tx);
-    produce(p, 1);
+    produce(gen, 1);
 
     let vals: Vec<uint> = rx.iter().collect();
     assert_eq!(vals.len(), 20_000);

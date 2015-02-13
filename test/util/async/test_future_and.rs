@@ -3,8 +3,8 @@ use std::sync::mpsc::channel;
 
 #[test]
 pub fn test_and_success_async() {
-    let (f1, c1) = Future::<&'static str, ()>::pair();
-    let (f2, c2) = Future::<i32, ()>::pair();
+    let (c1, f1) = Future::<&'static str, ()>::pair();
+    let (c2, f2) = Future::<i32, ()>::pair();
     let (tx1, rx) = channel();
     let tx2 = tx1.clone();
 

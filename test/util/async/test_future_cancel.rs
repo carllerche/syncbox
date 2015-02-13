@@ -3,7 +3,7 @@ use std::sync::mpsc::channel;
 
 #[test]
 pub fn test_future_cancel_ready_before_complete() {
-    let (future, complete) = Future::<i32, ()>::pair();
+    let (complete, future) = Future::<i32, ()>::pair();
 
     let cancel = future.ready(move |_| panic!("nope"));
     let future = cancel.cancel().expect("cancel failed");
@@ -14,7 +14,7 @@ pub fn test_future_cancel_ready_before_complete() {
 
 #[test]
 pub fn test_future_cancel_after_complete() {
-    let (future, complete) = Future::<i32, ()>::pair();
+    let (complete, future) = Future::<i32, ()>::pair();
     let (tx, rx) = channel();
 
     let cancel = future.ready(move |f| {

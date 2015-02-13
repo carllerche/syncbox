@@ -7,7 +7,7 @@ use std::sync::atomic::Ordering::Relaxed;
 
 #[test]
 pub fn test_complete_before_await() {
-    let (f, c) = Future::<&'static str, ()>::pair();
+    let (c, f) = Future::<&'static str, ()>::pair();
     let (tx, rx) = channel();
 
     spawn(move || {
@@ -22,7 +22,7 @@ pub fn test_complete_before_await() {
 
 #[test]
 pub fn test_complete_after_await() {
-    let (f, c) = Future::<&'static str, ()>::pair();
+    let (c, f) = Future::<&'static str, ()>::pair();
     let (tx, rx) = channel();
 
     spawn(move || {
@@ -37,7 +37,7 @@ pub fn test_complete_after_await() {
 
 #[test]
 pub fn test_receive_complete_before_await() {
-    let (f, c) = Future::<&'static str, ()>::pair();
+    let (c, f) = Future::<&'static str, ()>::pair();
     let w1 = Arc::new(AtomicBool::new(false));
     let w2 = w1.clone();
 
@@ -52,7 +52,7 @@ pub fn test_receive_complete_before_await() {
 
 #[test]
 pub fn test_receive_complete_after_await() {
-    let (f, c) = Future::<&'static str, ()>::pair();
+    let (c, f) = Future::<&'static str, ()>::pair();
     let w1 = Arc::new(AtomicBool::new(false));
     let w2 = w1.clone();
 
@@ -70,7 +70,7 @@ pub fn test_receive_complete_after_await() {
 
 #[test]
 pub fn test_await_complete_before_consumer_await() {
-    let (f, c) = Future::<&'static str, ()>::pair();
+    let (c, f) = Future::<&'static str, ()>::pair();
 
     spawn(move || {
         c.await().unwrap().complete("zomg")
@@ -83,7 +83,7 @@ pub fn test_await_complete_before_consumer_await() {
 
 #[test]
 pub fn test_await_complete_after_consumer_await() {
-    let (f, c) = Future::<&'static str, ()>::pair();
+    let (c, f) = Future::<&'static str, ()>::pair();
 
     spawn(move || {
         sleep(50);
@@ -95,7 +95,7 @@ pub fn test_await_complete_after_consumer_await() {
 
 #[test]
 pub fn test_producer_await_when_consumer_await() {
-    let (f, c) = Future::<&'static str, ()>::pair();
+    let (c, f) = Future::<&'static str, ()>::pair();
 
     spawn(move || {
         c.await().unwrap()
@@ -109,7 +109,7 @@ pub fn test_producer_await_when_consumer_await() {
 
 #[test]
 pub fn test_producer_fail_before_consumer_await() {
-    let (f, c) = Future::<uint, &'static str>::pair();
+    let (c, f) = Future::<uint, &'static str>::pair();
 
     c.fail("nope");
 
@@ -120,7 +120,7 @@ pub fn test_producer_fail_before_consumer_await() {
 
 #[test]
 pub fn test_producer_drops_before_consumer_await() {
-    let (f, c) = Future::<uint, ()>::pair();
+    let (c, f) = Future::<uint, ()>::pair();
 
     drop(c);
 
@@ -130,7 +130,7 @@ pub fn test_producer_drops_before_consumer_await() {
 
 #[test]
 pub fn test_producer_drops_after_consumer_await() {
-    let (f, c) = Future::<uint, ()>::pair();
+    let (c, f) = Future::<uint, ()>::pair();
 
     spawn(move || {
         sleep(50);
