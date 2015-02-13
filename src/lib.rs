@@ -13,6 +13,7 @@
 #![cfg_attr(test, feature(io))]
 
 extern crate alloc;
+extern crate core;
 
 #[macro_use]
 extern crate log;

@@ -1,41 +1,41 @@
 use util::async::{self, Async, Future, Cancel, AsyncResult, AsyncError};
-use super::core::{Core, OptionCore, FromCore};
+use super::core::{self, Core, FromCore};
 use std::fmt;
 
 pub type Head<T, E> = Option<(T, Stream<T, E>)>;
 
 #[unsafe_no_drop_flag]
 pub struct Stream<T: Send, E: Send> {
-    core: OptionCore<Stream<T, E>>,
+    core: Option<Core<Stream<T, E>>>,
 }
 
 impl<T: Send, E: Send> Stream<T, E> {
     pub fn pair() -> (Stream<T, E>, Sender<T, E>) {
         let core = Core::new();
-        let stream = Stream { core: OptionCore::new(core.clone()) };
+        let stream = Stream { core: Some(core.clone()) };
 
-        (stream, Sender { core: OptionCore::new(core) })
+        (stream, Sender { core: Some(core) })
     }
 
     pub fn is_ready(&self) -> bool {
-        self.core.get().consumer_is_ready()
+        core::get(&self.core).consumer_is_ready()
     }
 
     pub fn is_err(&self) -> bool {
-        self.core.get().consumer_is_err()
+        core::get(&self.core).consumer_is_err()
     }
 
     pub fn poll(mut self) -> Result<AsyncResult<Head<T, E>, E>, Stream<T, E>> {
-        let core = self.core.take();
+        let core = core::take(&mut self.core);
 
         match core.consumer_poll() {
             Some(res) => Ok(res),
-            None => Err(Stream { core: OptionCore::new(core) })
+            None => Err(Stream { core: Some(core) })
         }
     }
 
     pub fn ready<F: FnOnce(Stream<T, E>) + Send>(mut self, f: F) -> CancelStream<T, E> {
-        let core = self.core.take();
+        let core = core::take(&mut self.core);
 
         match core.consumer_ready(f) {
             Some(count) => CancelStream::new(core, count),
@@ -44,11 +44,11 @@ impl<T: Send, E: Send> Stream<T, E> {
     }
 
     pub fn await(mut self) -> AsyncResult<Head<T, E>, E> {
-        self.core.take().consumer_await()
+        core::take(&mut self.core).consumer_await()
     }
 
     pub fn iter(mut self) -> StreamIter<T, E> {
-        StreamIter { core: OptionCore::new(self.core.take()) }
+        StreamIter { core: Some(core::take(&mut self.core)) }
     }
 
     /*
@@ -164,27 +164,27 @@ impl<T: Send, E: Send> fmt::Debug for Stream<T, E> {
 impl<T: Send, E: Send> Drop for Stream<T, E> {
     fn drop(&mut self) {
         if self.core.is_some() {
-            self.core.take().cancel();
+            core::take(&mut self.core).cancel();
         }
     }
 }
 
 pub struct CancelStream<T: Send, E: Send> {
-    core: OptionCore<Stream<T, E>>,
+    core: Option<Core<Stream<T, E>>>,
     count: u64,
 }
 
 impl<T: Send, E: Send> CancelStream<T, E> {
     fn new(core: Core<Stream<T, E>>, count: u64) -> CancelStream<T, E> {
         CancelStream {
-            core: OptionCore::new(core),
+            core: Some(core),
             count: count,
         }
     }
 
     fn none() -> CancelStream<T, E> {
         CancelStream {
-            core: OptionCore::none(),
+            core: None,
             count: 0,
         }
     }
@@ -198,7 +198,7 @@ impl<T: Send, E: Send> Cancel<Stream<T, E>> for CancelStream<T, E> {
             return None;
         }
 
-        if core.get().consumer_ready_cancel(count) {
+        if core::get(&core).consumer_ready_cancel(count) {
             return Some(Stream { core: core });
         }
 
@@ -207,52 +207,52 @@ impl<T: Send, E: Send> Cancel<Stream<T, E>> for CancelStream<T, E> {
 }
 
 pub struct Sender<T: Send, E: Send> {
-    core: OptionCore<Stream<T, E>>,
+    core: Option<Core<Stream<T, E>>>,
 }
 
 impl<T: Send, E: Send> Sender<T, E> {
     pub fn send(&self, val: T) {
         let rest = Stream { core: self.core.clone() };
-        self.core.get().complete(Ok(Some((val, rest))), false);
+        core::get(&self.core).complete(Ok(Some((val, rest))), false);
     }
 
     pub fn done(self) {
         self.receive(move |res| {
             if let Ok(mut p) = res {
-                p.core.take().complete(Ok(None), true)
+                core::take(&mut p.core).complete(Ok(None), true)
             }
         });
     }
 
     pub fn fail(mut self, err: E) {
-        self.core.take().complete(Err(AsyncError::wrap(err)), true);
+        core::take(&mut self.core).complete(Err(AsyncError::wrap(err)), true);
     }
 
     pub fn is_ready(&self) -> bool {
-        self.core.get().producer_is_ready()
+        core::get(&self.core).producer_is_ready()
     }
 
     pub fn is_err(&self) -> bool {
-        self.core.get().producer_is_err()
+        core::get(&self.core).producer_is_err()
     }
 
     fn poll(mut self) -> Result<AsyncResult<Sender<T, E>, ()>, Sender<T, E>> {
         debug!("Sender::poll; is_ready={}", self.is_ready());
 
-        let core = self.core.take();
+        let core = core::take(&mut self.core);
 
         match core.producer_poll() {
             Some(res) => Ok(res),
-            None => Err(Sender { core: OptionCore::new(core) })
+            None => Err(Sender { core: Some(core) })
         }
     }
 
     pub fn ready<F: FnOnce(Sender<T, E>) + Send>(mut self, f: F) {
-        self.core.take().producer_ready(f);
+        core::take(&mut self.core).producer_ready(f);
     }
 
     pub fn await(self) -> AsyncResult<Sender<T, E>, ()> {
-        self.core.get().producer_await();
+        core::get(&self.core).producer_await();
         self.poll().ok().expect("Sender not ready")
     }
 }
@@ -285,11 +285,11 @@ impl<T: Send, E: Send> FromCore for Stream<T, E> {
     type Producer = Sender<T, E>;
 
     fn consumer(core: Core<Stream<T, E>>) -> Stream<T, E> {
-        Stream { core: OptionCore::new(core) }
+        Stream { core: Some(core) }
     }
 
     fn producer(core: Core<Stream<T, E>>) -> Sender<T, E> {
-        Sender { core: OptionCore::new(core) }
+        Sender { core: Some(core) }
     }
 }
 
@@ -303,7 +303,7 @@ impl<T: Send, E: Send> fmt::Debug for Sender<T, E> {
 impl<T: Send, E: Send> Drop for Sender<T, E> {
     fn drop(&mut self) {
         if self.core.is_some() {
-            self.core.take().complete(Err(AsyncError::canceled()), true);
+            core::take(&mut self.core).complete(Err(AsyncError::canceled()), true);
         }
     }
 }
@@ -318,7 +318,7 @@ impl<T: Send, E: Send> Cancel<Sender<T, E>> for CancelSender {
 
 #[unsafe_no_drop_flag]
 pub struct StreamIter<T: Send, E: Send> {
-    core: OptionCore<Stream<T, E>>,
+    core: Option<Core<Stream<T, E>>>,
 }
 
 impl<T: Send, E: Send> Iterator for StreamIter<T, E> {
@@ -327,13 +327,13 @@ impl<T: Send, E: Send> Iterator for StreamIter<T, E> {
     fn next(&mut self) -> Option<T> {
         use std::mem;
 
-        match self.core.get().consumer_await() {
+        match core::get(&self.core).consumer_await() {
             Ok(Some((h, mut rest))) => {
-                mem::replace(&mut self.core, OptionCore::new(rest.core.take()));
+                mem::replace(&mut self.core, Some(core::take(&mut rest.core)));
                 Some(h)
             }
             Ok(None) => {
-                let _ = self.core.take();
+                let _ = core::take(&mut self.core);
                 None
             }
             Err(_) => unimplemented!(),
@@ -345,12 +345,12 @@ impl<T: Send, E: Send> Iterator for StreamIter<T, E> {
 impl<T: Send, E: Send> Drop for StreamIter<T, E> {
     fn drop(&mut self) {
         if self.core.is_some() {
-            self.core.take().cancel();
+            core::take(&mut self.core).cancel();
         }
     }
 }
 
 pub fn from_core<T: Send, E: Send>(core: Core<Future<Head<T, E>, E>>) -> Stream<T, E> {
     use std::mem;
-    Stream { core: OptionCore::new(unsafe { mem::transmute(core) })}
+    Stream { core: Some(unsafe { mem::transmute(core) })}
 }

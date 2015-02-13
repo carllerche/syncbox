@@ -7,6 +7,7 @@ use std::{fmt, mem, ptr};
 use std::num::FromPrimitive;
 use std::sync::atomic::Ordering::{Acquire, Relaxed, Release};
 use std::thread::Thread;
+use core::nonzero::NonZero;
 use alloc::heap;
 
 /*
@@ -18,13 +19,13 @@ use alloc::heap;
 // Core implementation of Future & Stream
 #[unsafe_no_drop_flag]
 pub struct Core<A: Async + FromCore> {
-    ptr: *mut CoreInner<A>,
+    ptr: NonZero<*mut CoreInner<A>>,
 }
 
 impl<A: Async + FromCore> Core<A> {
     pub fn new() -> Core<A> {
         let ptr = Box::new(CoreInner::<A>::new());
-        Core { ptr: unsafe { mem::transmute(ptr) }}
+        Core { ptr: unsafe { NonZero::new(mem::transmute(ptr)) }}
     }
 
     pub fn with_value(val: AsyncResult<A::Value, A::Error>) -> Core<A> {
@@ -118,16 +119,12 @@ impl<A: Async + FromCore> Core<A> {
 
     #[inline]
     fn inner(&self) -> &CoreInner<A> {
-        unsafe { &*self.ptr }
+        unsafe { &**self.ptr }
     }
 
     #[inline]
     fn inner_mut(&mut self) -> &mut CoreInner<A> {
-        unsafe { &mut *self.ptr }
-    }
-
-    fn is_null(&self) -> bool {
-        self.ptr.is_null()
+        unsafe { &mut **self.ptr }
     }
 }
 
@@ -177,7 +174,7 @@ impl<A: Async + FromCore> Drop for Core<A> {
             let _ = self.inner_mut().producer_wait.take();
 
             heap::deallocate(
-                self.ptr as *mut u8,
+                *self.ptr as *mut u8,
                 mem::size_of::<CoreInner<A>>(),
                 mem::min_align_of::<CoreInner<A>>());
         }
@@ -187,57 +184,13 @@ impl<A: Async + FromCore> Drop for Core<A> {
 unsafe impl<A: Async + FromCore> Send for Core<A> {
 }
 
-/*
- *
- * ===== OptionCore =====
- *
- */
 
-pub struct OptionCore<A: Async + FromCore> {
-    core: Core<A>,
+pub fn get<A: Async + FromCore>(core: &Option<Core<A>>) -> &Core<A> {
+    core.as_ref().expect("expected future core")
 }
 
-impl<A: Async + FromCore> OptionCore<A> {
-    #[inline]
-    pub fn new(core: Core<A>) -> OptionCore<A> {
-        OptionCore { core: core }
-    }
-
-    pub fn none() -> OptionCore<A> {
-        let core = unsafe { mem::transmute(0u64) };
-        OptionCore { core: core }
-    }
-
-    #[inline]
-    pub fn is_some(&self) -> bool {
-        !self.core.is_null()
-    }
-
-    pub fn get(&self) -> &Core<A> {
-        assert!(self.is_some(), "Core has already been consumed");
-        &self.core
-    }
-
-    #[inline]
-    pub fn take(&mut self) -> Core<A> {
-        assert!(self.is_some(), "Core has already been consumed");
-        unsafe { mem::replace(&mut self.core, mem::zeroed()) }
-    }
-}
-
-impl<A: Async + FromCore> Clone for OptionCore<A> {
-    fn clone(&self) -> OptionCore<A> {
-        OptionCore { core: self.core.clone() }
-    }
-}
-
-#[unsafe_destructor]
-impl<A: Async + FromCore> Drop for OptionCore<A> {
-    fn drop(&mut self) {
-        if self.is_some() {
-            let _ = self.take();
-        }
-    }
+pub fn take<A: Async + FromCore>(core: &mut Option<Core<A>>) -> Core<A> {
+    core.take().expect("expected future core")
 }
 
 /*

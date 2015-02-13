@@ -1,6 +1,6 @@
 use super::{Async, Stream, Cancel, AsyncResult, AsyncError};
 use super::stream;
-use super::core::{Core, OptionCore, FromCore};
+use super::core::{self, Core, FromCore};
 use std::fmt;
 
 /* TODO:
@@ -9,15 +9,15 @@ use std::fmt;
 
 #[unsafe_no_drop_flag]
 pub struct Future<T: Send, E: Send> {
-    core: OptionCore<Future<T, E>>,
+    core: Option<Core<Future<T, E>>>,
 }
 
 impl<T: Send, E: Send> Future<T, E> {
     pub fn pair() -> (Future<T, E>, Complete<T, E>) {
         let core = Core::new();
-        let future = Future { core: OptionCore::new(core.clone()) };
+        let future = Future { core: Some(core.clone()) };
 
-        (future, Complete { core: OptionCore::new(core) })
+        (future, Complete { core: Some(core) })
     }
 
     /// Returns a future that will immediately succeed with the supplied value.
@@ -31,7 +31,7 @@ impl<T: Send, E: Send> Future<T, E> {
     /// });
     /// ```
     pub fn of(val: T) -> Future<T, E> {
-        Future { core: OptionCore::new(Core::with_value(Ok(val))) }
+        Future { core: Some(Core::with_value(Ok(val))) }
     }
 
     /// Returns a future that will immediately fail with the supplied error.
@@ -51,7 +51,7 @@ impl<T: Send, E: Send> Future<T, E> {
     /// ```
     pub fn error(err: E) -> Future<T, E> {
         let core = Core::with_value(Err(AsyncError::wrap(err)));
-        Future { core: OptionCore::new(core) }
+        Future { core: Some(core) }
     }
 
     /// Returns a future that will immediately be cancelled
@@ -71,7 +71,7 @@ impl<T: Send, E: Send> Future<T, E> {
     /// ```
     pub fn canceled() -> Future<T, E> {
         let core = Core::with_value(Err(AsyncError::canceled()));
-        Future { core: OptionCore::new(core) }
+        Future { core: Some(core) }
     }
 
     /// Returns a future that won't kick off its async action until
@@ -118,19 +118,19 @@ impl<T: Send, E: Send> Future<T, E> {
     }
 
     pub fn is_ready(&self) -> bool {
-        self.core.get().consumer_is_ready()
+        core::get(&self.core).consumer_is_ready()
     }
 
     pub fn is_err(&self) -> bool {
-        self.core.get().consumer_is_err()
+        core::get(&self.core).consumer_is_err()
     }
 
     pub fn poll(mut self) -> Result<AsyncResult<T, E>, Future<T, E>> {
-        let core = self.core.take();
+        let core = core::take(&mut self.core);
 
         match core.consumer_poll() {
             Some(res) => Ok(res),
-            None => Err(Future { core: OptionCore::new(core) })
+            None => Err(Future { core: Some(core) })
         }
     }
 
@@ -139,7 +139,7 @@ impl<T: Send, E: Send> Future<T, E> {
     }
 
     pub fn ready<F: FnOnce(Future<T, E>) + Send>(mut self, f: F) -> CancelFuture<T, E> {
-        let core = self.core.take();
+        let core = core::take(&mut self.core);
 
         match core.consumer_ready(f) {
             Some(count) => CancelFuture::new(core, count),
@@ -153,7 +153,7 @@ impl<T: Send, E: Send> Future<T, E> {
     }
 
     pub fn await(mut self) -> AsyncResult<T, E> {
-        self.core.take().consumer_await()
+        core::take(&mut self.core).consumer_await()
     }
 
     /*
@@ -170,7 +170,7 @@ impl<T: Send, E: Send> Future<T, E> {
 impl<T: Send, E: Send> Future<Option<(T, Stream<T, E>)>, E> {
     /// An adapter that converts any future into a one-value stream
     pub fn as_stream(mut self) -> Stream<T, E> {
-        stream::from_core(self.core.take())
+        stream::from_core(core::take(&mut self.core))
     }
 }
 
@@ -210,28 +210,28 @@ impl<T: Send, E: Send> fmt::Debug for Future<T, E> {
 impl<T: Send, E: Send> Drop for Future<T, E> {
     fn drop(&mut self) {
         if self.core.is_some() {
-            self.core.take().cancel();
+            core::take(&mut self.core).cancel();
         }
     }
 }
 
 // The lack of drop is explicit
 pub struct CancelFuture<T: Send, E: Send> {
-    core: OptionCore<Future<T, E>>,
+    core: Option<Core<Future<T, E>>>,
     count: u64,
 }
 
 impl<T: Send, E: Send> CancelFuture<T, E> {
     fn new(core: Core<Future<T, E>>, count: u64) -> CancelFuture<T, E> {
         CancelFuture {
-            core: OptionCore::new(core),
+            core: Some(core),
             count: count,
         }
     }
 
     fn none() -> CancelFuture<T, E> {
         CancelFuture {
-            core: OptionCore::none(),
+            core: None,
             count: 0,
         }
     }
@@ -245,7 +245,7 @@ impl<T: Send, E: Send> Cancel<Future<T, E>> for CancelFuture<T, E> {
             return None;
         }
 
-        if core.get().consumer_ready_cancel(count) {
+        if core::get(&core).consumer_ready_cancel(count) {
             return Some(Future { core: core });
         }
 
@@ -282,46 +282,46 @@ impl<T: Send, E: Send> Cancel<Future<T, E>> for CancelFuture<T, E> {
 /// ```
 #[unsafe_no_drop_flag]
 pub struct Complete<T: Send, E: Send> {
-    core: OptionCore<Future<T, E>>,
+    core: Option<Core<Future<T, E>>>,
 }
 
 impl<T: Send, E: Send> Complete<T, E> {
     /// Fulfill the associated promise with a value
     pub fn complete(mut self, val: T) {
-        self.core.take().complete(Ok(val), true);
+        core::take(&mut self.core).complete(Ok(val), true);
     }
 
     /// Reject the associated promise with an error. The error
     /// will be wrapped in an `ExecutionError`.
     pub fn fail(mut self, err: E) {
-        self.core.take().complete(Err(AsyncError::wrap(err)), true);
+        core::take(&mut self.core).complete(Err(AsyncError::wrap(err)), true);
     }
 
     pub fn is_ready(&self) -> bool {
-        self.core.get().producer_is_ready()
+        core::get(&self.core).producer_is_ready()
     }
 
     pub fn is_err(&self) -> bool {
-        self.core.get().producer_is_err()
+        core::get(&self.core).producer_is_err()
     }
 
     fn poll(mut self) -> Result<AsyncResult<Complete<T, E>, ()>, Complete<T, E>> {
         debug!("Complete::poll; is_ready={}", self.is_ready());
 
-        let core = self.core.take();
+        let core = core::take(&mut self.core);
 
         match core.producer_poll() {
             Some(res) => Ok(res),
-            None => Err(Complete { core: OptionCore::new(core) })
+            None => Err(Complete { core: Some(core) })
         }
     }
 
     pub fn ready<F: FnOnce(Complete<T, E>) + Send>(mut self, f: F) {
-        self.core.take().producer_ready(f);
+        core::take(&mut self.core).producer_ready(f);
     }
 
     pub fn await(self) -> AsyncResult<Complete<T, E>, ()> {
-        self.core.get().producer_await();
+        core::get(&self.core).producer_await();
         self.poll().ok().expect("Complete not ready")
     }
 }
@@ -353,11 +353,11 @@ impl<T: Send, E: Send> FromCore for Future<T, E> {
     type Producer = Complete<T, E>;
 
     fn consumer(core: Core<Future<T, E>>) -> Future<T, E> {
-        Future { core: OptionCore::new(core) }
+        Future { core: Some(core) }
     }
 
     fn producer(core: Core<Future<T, E>>) -> Complete<T, E> {
-        Complete { core: OptionCore::new(core) }
+        Complete { core: Some(core) }
     }
 }
 
@@ -366,7 +366,7 @@ impl<T: Send, E: Send> Drop for Complete<T, E> {
     fn drop(&mut self) {
         if self.core.is_some() {
             debug!("Complete::drop -- canceling future");
-            self.core.take().complete(Err(AsyncError::canceled()), true);
+            core::take(&mut self.core).complete(Err(AsyncError::canceled()), true);
         }
     }
 }
@@ -383,4 +383,11 @@ impl<T: Send, E: Send> Cancel<Complete<T, E>> for CancelComplete {
     fn cancel(self) -> Option<Complete<T, E>> {
         None
     }
+}
+
+#[test]
+pub fn test_size_of_future() {
+    use std::mem;
+
+    assert_eq!(mem::size_of::<usize>(), mem::size_of::<Future<String, String>>());
 }
