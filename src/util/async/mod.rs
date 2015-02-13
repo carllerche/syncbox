@@ -190,13 +190,13 @@ pub trait Async : Send + Sized {
     /// then completes with the completion value of that returned future.
     ///
     /// ```
-    /// fn main() {
-    ///   let f = Future::of(1337);
-    ///   f.and_then(|v| { assert_eq!(v, 1337); 1007 }).and_then(|v| assert_eq!(v, 1007)).await();
+    /// use syncbox::util::async::*;
+    /// use syncbox::util::async::AsyncError::*;
+    /// let f = Future::of(1337);
+    /// f.and_then(|v| { assert_eq!(v, 1337); Ok(1007) }).and_then(|v| assert_eq!(v, 1007)).await();
     ///
-    ///   let e = Future::error("failed");
-    ///   f.or_else(|e| assert_eq!(e, "failed")).await();
-    /// }
+    /// let e = Future::error("failed");
+    /// e.or_else(|e| { assert_eq!(e, ExecutionError("failed")); Ok(1337) }).await();
     /// ```
     fn and_then<F, U: Async<Error=Self::Error>>(self, f: F) -> Future<U::Value, Self::Error>
             where F: FnOnce(Self::Value) -> U + Send,
@@ -392,6 +392,7 @@ impl<E: Send> Async for Vec<E> {
 
 pub type AsyncResult<T, E> = Result<T, AsyncError<E>>;
 
+#[derive(Eq, PartialEq)]
 pub enum AsyncError<E: Send> {
     ExecutionError(E),
     CancellationError,
