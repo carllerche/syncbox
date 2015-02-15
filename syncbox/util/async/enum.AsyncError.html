@@ -26,7 +26,7 @@
 
     <section class="sidebar">
         
-        <p class='location'><a href='../../index.html'>syncbox</a>::<wbr><a href='../index.html'>util</a>::<wbr><a href='index.html'>async</a></p><div class='block struct'><h2>Structs</h2><a class='struct ' href='struct.Complete.html' title='An object that is used to fulfill or reject an associated Future.'>Complete</a><a class='struct ' href='struct.Future.html' title=''>Future</a><a class='struct ' href='struct.Sender.html' title=''>Sender</a><a class='struct ' href='struct.Stream.html' title=''>Stream</a><a class='struct ' href='struct.StreamIter.html' title=''>StreamIter</a></div><div class='block enum'><h2>Enums</h2><a class='enum current' href='enum.AsyncError.html' title=''>AsyncError</a></div><div class='block trait'><h2>Traits</h2><a class='trait ' href='trait.Async.html' title=''>Async</a><a class='trait ' href='trait.Cancel.html' title=''>Cancel</a><a class='trait ' href='trait.Join.html' title=''>Join</a><a class='trait ' href='trait.Select.html' title=''>Select</a></div><div class='block fn'><h2>Functions</h2><a class='fn ' href='fn.join.html' title=''>join</a><a class='fn ' href='fn.select.html' title=''>select</a></div>
+        <p class='location'><a href='../../index.html'>syncbox</a>::<wbr><a href='../index.html'>util</a>::<wbr><a href='index.html'>async</a></p><div class='block struct'><h2>Structs</h2><a class='struct ' href='struct.Complete.html' title='An object that is used to fulfill or reject an associated Future.'>Complete</a><a class='struct ' href='struct.Future.html' title=''>Future</a><a class='struct ' href='struct.Receipt.html' title=''>Receipt</a><a class='struct ' href='struct.Sender.html' title='The sending half of `Stream::pair()`. Can only be owned by a single task at a time.'>Sender</a><a class='struct ' href='struct.Stream.html' title=''>Stream</a><a class='struct ' href='struct.StreamIter.html' title=''>StreamIter</a></div><div class='block enum'><h2>Enums</h2><a class='enum current' href='enum.AsyncError.html' title=''>AsyncError</a></div><div class='block trait'><h2>Traits</h2><a class='trait ' href='trait.Async.html' title='A value representing an asynchronous computation'>Async</a><a class='trait ' href='trait.Cancel.html' title=''>Cancel</a><a class='trait ' href='trait.Join.html' title=''>Join</a><a class='trait ' href='trait.Select.html' title=''>Select</a></div><div class='block fn'><h2>Functions</h2><a class='fn ' href='fn.join.html' title=''>join</a><a class='fn ' href='fn.select.html' title=''>select</a></div>
     </section>
 
     <nav class="sub">
@@ -44,7 +44,7 @@
 <h1 class='fqn'><span class='in-band'>Enum <a href='../../index.html'>syncbox</a>::<wbr><a href='../index.html'>util</a>::<wbr><a href='index.html'>async</a>::<wbr><a class='enum' href=''>AsyncError</a><wbr></span><span class='out-of-band'><span id='render-detail'>
             <a id="collapse-all" href="#">[-]
             </a>&nbsp;<a id="expand-all" href="#">[+]</a>
-        </span><a id='src-16344' href='../../../src/syncbox/util/async/mod.rs.html#289-292'>[src]</a></span></h1>
+        </span><a id='src-17670' href='../../../src/syncbox/util/async/mod.rs.html#353-356'>[src]</a></span></h1>
 <pre class='rust enum'>pub enum AsyncError&lt;E: <a class='trait' href='http://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a>&gt; {
     ExecutionError(E),
     CancellationError,

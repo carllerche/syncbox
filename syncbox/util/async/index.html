@@ -26,7 +26,7 @@
 
     <section class="sidebar">
         
-        <p class='location'><a href='../../index.html'>syncbox</a>::<wbr><a href='../index.html'>util</a></p><div class='block mod'><h2>Modules</h2><a class='mod current' href='../async/index.html' title='# Futures &amp; Streams'>async</a><a class='mod ' href='../atomic/index.html' title=''>atomic</a></div><div class='block struct'><h2>Structs</h2><a class='struct ' href='../struct.LinkedQueue.html' title='A queue in which values are contained by a linked list.'>LinkedQueue</a><a class='struct ' href='../struct.ThreadPool.html' title=''>ThreadPool</a></div><div class='block trait'><h2>Traits</h2><a class='trait ' href='../trait.Queue.html' title=''>Queue</a><a class='trait ' href='../trait.Run.html' title=''>Run</a><a class='trait ' href='../trait.SyncQueue.html' title=''>SyncQueue</a></div>
+        <p class='location'><a href='../../index.html'>syncbox</a>::<wbr><a href='../index.html'>util</a></p><div class='block mod'><h2>Modules</h2><a class='mod current' href='../async/index.html' title='Composable primitives for asynchronous computations'>async</a><a class='mod ' href='../atomic/index.html' title=''>atomic</a></div><div class='block struct'><h2>Structs</h2><a class='struct ' href='../struct.LinkedQueue.html' title='A queue in which values are contained by a linked list.'>LinkedQueue</a><a class='struct ' href='../struct.ThreadPool.html' title=''>ThreadPool</a></div><div class='block trait'><h2>Traits</h2><a class='trait ' href='../trait.Queue.html' title=''>Queue</a><a class='trait ' href='../trait.Run.html' title=''>Run</a><a class='trait ' href='../trait.SyncQueue.html' title=''>SyncQueue</a></div>
     </section>
 
     <nav class="sub">
@@ -44,24 +44,46 @@
 <h1 class='fqn'><span class='in-band'>Module <a href='../../index.html'>syncbox</a>::<wbr><a href='../index.html'>util</a>::<wbr><a class='mod' href=''>async</a><wbr></span><span class='out-of-band'><span id='render-detail'>
             <a id="collapse-all" href="#">[-]
             </a>&nbsp;<a id="expand-all" href="#">[+]</a>
-        </span><a id='src-15' href='../../../src/syncbox/util/async/mod.rs.html#1-356'>[src]</a></span></h1>
-<div class='docblock'>
-<h1 id="futures-&amp;-streams" class='section-header'><a
-                           href="#futures-&amp;-streams">Futures &amp; Streams</a></h1>
+        </span><a id='src-15' href='../../../src/syncbox/util/async/mod.rs.html#1-420'>[src]</a></span></h1>
+<div class='docblock'><p>Composable primitives for asynchronous computations</p>
+
 <p>The async module contains utilities for managing asynchronous computations.
 These utilities are primarily based around <code>Future</code> and <code>Stream</code> types as
-well as functions that allow describing computations on these types.</p>
+well as functions that allow composing computations on these types.</p>
 
 <h2 id="future" class='section-header'><a
                            href="#future">Future</a></h2>
-<p>A future represents a value that will be provided sometime in the future.
-The value may be computed concurrently in another thread or may be provided
-upon completion of an asynchronous callback. The abstraction allows
-describing computations to perform on the value once it is realized as well
-as how to handle errors.</p>
-
-<p>One way to think of a Future is as a Result where the value is
+<p>A <code>Future</code> is a proxy representing the result of a computation which may
+not be complete.  The computation may be running concurrently in another
+thread or may be triggered upon completion of an asynchronous callback. One
+way to think of a <code>Future</code> is as a <code>Result</code> where the value is
 asynchronously computed.</p>
+
+<p>For example:</p>
+<pre id='rust-example-rendered' class='rust '>
+<span class='kw'>use</span> <span class='ident'>syncbox</span>::<span class='ident'>util</span>::<span class='ident'>async</span>::<span class='op'>*</span>;
+
+<span class='comment'>// Run a computation in another thread</span>
+<span class='kw'>let</span> <span class='ident'>future1</span> <span class='op'>=</span> <span class='ident'>Future</span>::<span class='ident'>spawn</span>(<span class='op'>||</span> {
+    <span class='comment'>// Represents an expensive computation, but for now just return a</span>
+    <span class='comment'>// number</span>
+    <span class='number'>42</span>
+});
+
+<span class='comment'>// Run another computation</span>
+<span class='kw'>let</span> <span class='ident'>future2</span> <span class='op'>=</span> <span class='ident'>Future</span>::<span class='ident'>spawn</span>(<span class='op'>||</span> {
+    <span class='comment'>// Another expensive computation</span>
+    <span class='number'>18</span>
+});
+
+<span class='kw'>let</span> <span class='ident'>res</span> <span class='op'>=</span> <span class='ident'>join</span>((
+        <span class='ident'>future1</span>.<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>v</span><span class='op'>|</span> <span class='ident'>v</span> <span class='op'>*</span> <span class='number'>2</span>),
+        <span class='ident'>future2</span>.<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>v</span><span class='op'>|</span> <span class='ident'>v</span> <span class='op'>+</span> <span class='number'>5</span>)))
+    .<span class='ident'>and_then</span>(<span class='op'>|</span>(<span class='ident'>v1</span>, <span class='ident'>v2</span>)<span class='op'>|</span> <span class='ident'>v1</span> <span class='op'>-</span> <span class='ident'>v2</span>)
+    .<span class='ident'>await</span>().<span class='ident'>unwrap</span>();
+
+<span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='number'>61</span>, <span class='ident'>res</span>);
+</pre>
 
 <h2 id="stream" class='section-header'><a
                            href="#stream">Stream</a></h2>
@@ -83,9 +105,17 @@ value, it represents a sequence of values.</p>
                     </tr>
                 
                     <tr>
+                        <td><a class='stability Unmarked' title='No stability level'></a><a class='struct' href='struct.Receipt.html'
+                               title='syncbox::util::async::Receipt'>Receipt</a></td>
+                        <td class='docblock short'></td>
+                    </tr>
+                
+                    <tr>
                         <td><a class='stability Unmarked' title='No stability level'></a><a class='struct' href='struct.Sender.html'
                                title='syncbox::util::async::Sender'>Sender</a></td>
-                        <td class='docblock short'></td>
+                        <td class='docblock short'><p>The sending half of <code>Stream::pair()</code>. Can only be owned by a single task at
+a time.</p>
+</td>
                     </tr>
                 
                     <tr>
@@ -111,7 +141,8 @@ value, it represents a sequence of values.</p>
                     <tr>
                         <td><a class='stability Unmarked' title='No stability level'></a><a class='trait' href='trait.Async.html'
                                title='syncbox::util::async::Async'>Async</a></td>
-                        <td class='docblock short'></td>
+                        <td class='docblock short'><p>A value representing an asynchronous computation</p>
+</td>
                     </tr>
                 
                     <tr>

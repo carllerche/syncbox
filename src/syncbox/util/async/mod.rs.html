@@ -396,23 +396,112 @@
 <span id="354">354</span>
 <span id="355">355</span>
 <span id="356">356</span>
+<span id="357">357</span>
+<span id="358">358</span>
+<span id="359">359</span>
+<span id="360">360</span>
+<span id="361">361</span>
+<span id="362">362</span>
+<span id="363">363</span>
+<span id="364">364</span>
+<span id="365">365</span>
+<span id="366">366</span>
+<span id="367">367</span>
+<span id="368">368</span>
+<span id="369">369</span>
+<span id="370">370</span>
+<span id="371">371</span>
+<span id="372">372</span>
+<span id="373">373</span>
+<span id="374">374</span>
+<span id="375">375</span>
+<span id="376">376</span>
+<span id="377">377</span>
+<span id="378">378</span>
+<span id="379">379</span>
+<span id="380">380</span>
+<span id="381">381</span>
+<span id="382">382</span>
+<span id="383">383</span>
+<span id="384">384</span>
+<span id="385">385</span>
+<span id="386">386</span>
+<span id="387">387</span>
+<span id="388">388</span>
+<span id="389">389</span>
+<span id="390">390</span>
+<span id="391">391</span>
+<span id="392">392</span>
+<span id="393">393</span>
+<span id="394">394</span>
+<span id="395">395</span>
+<span id="396">396</span>
+<span id="397">397</span>
+<span id="398">398</span>
+<span id="399">399</span>
+<span id="400">400</span>
+<span id="401">401</span>
+<span id="402">402</span>
+<span id="403">403</span>
+<span id="404">404</span>
+<span id="405">405</span>
+<span id="406">406</span>
+<span id="407">407</span>
+<span id="408">408</span>
+<span id="409">409</span>
+<span id="410">410</span>
+<span id="411">411</span>
+<span id="412">412</span>
+<span id="413">413</span>
+<span id="414">414</span>
+<span id="415">415</span>
+<span id="416">416</span>
+<span id="417">417</span>
+<span id="418">418</span>
+<span id="419">419</span>
+<span id="420">420</span>
 </pre><pre class='rust '>
-<span class='doccomment'>//! # Futures &amp; Streams</span>
+<span class='doccomment'>//! Composable primitives for asynchronous computations</span>
 <span class='doccomment'>//!</span>
 <span class='doccomment'>//! The async module contains utilities for managing asynchronous computations.</span>
 <span class='doccomment'>//! These utilities are primarily based around `Future` and `Stream` types as</span>
-<span class='doccomment'>//! well as functions that allow describing computations on these types.</span>
+<span class='doccomment'>//! well as functions that allow composing computations on these types.</span>
 <span class='doccomment'>//!</span>
 <span class='doccomment'>//! ## Future</span>
 <span class='doccomment'>//!</span>
-<span class='doccomment'>//! A future represents a value that will be provided sometime in the future.</span>
-<span class='doccomment'>//! The value may be computed concurrently in another thread or may be provided</span>
-<span class='doccomment'>//! upon completion of an asynchronous callback. The abstraction allows</span>
-<span class='doccomment'>//! describing computations to perform on the value once it is realized as well</span>
-<span class='doccomment'>//! as how to handle errors.</span>
-<span class='doccomment'>//!</span>
-<span class='doccomment'>//! One way to think of a Future is as a Result where the value is</span>
+<span class='doccomment'>//! A `Future` is a proxy representing the result of a computation which may</span>
+<span class='doccomment'>//! not be complete.  The computation may be running concurrently in another</span>
+<span class='doccomment'>//! thread or may be triggered upon completion of an asynchronous callback. One</span>
+<span class='doccomment'>//! way to think of a `Future` is as a `Result` where the value is</span>
 <span class='doccomment'>//! asynchronously computed.</span>
+<span class='doccomment'>//!</span>
+<span class='doccomment'>//! For example:</span>
+<span class='doccomment'>//!</span>
+<span class='doccomment'>//! ```</span>
+<span class='doccomment'>//! use syncbox::util::async::*;</span>
+<span class='doccomment'>//!</span>
+<span class='doccomment'>//! // Run a computation in another thread</span>
+<span class='doccomment'>//! let future1 = Future::spawn(|| {</span>
+<span class='doccomment'>//!     // Represents an expensive computation, but for now just return a</span>
+<span class='doccomment'>//!     // number</span>
+<span class='doccomment'>//!     42</span>
+<span class='doccomment'>//! });</span>
+<span class='doccomment'>//!</span>
+<span class='doccomment'>//! // Run another computation</span>
+<span class='doccomment'>//! let future2 = Future::spawn(|| {</span>
+<span class='doccomment'>//!     // Another expensive computation</span>
+<span class='doccomment'>//!     18</span>
+<span class='doccomment'>//! });</span>
+<span class='doccomment'>//!</span>
+<span class='doccomment'>//! let res = join((</span>
+<span class='doccomment'>//!         future1.map(|v| v * 2),</span>
+<span class='doccomment'>//!         future2.map(|v| v + 5)))</span>
+<span class='doccomment'>//!     .and_then(|(v1, v2)| v1 - v2)</span>
+<span class='doccomment'>//!     .await().unwrap();</span>
+<span class='doccomment'>//!</span>
+<span class='doccomment'>//! assert_eq!(61, res);</span>
+<span class='doccomment'>//!</span>
+<span class='doccomment'>//! ```</span>
 <span class='doccomment'>//!</span>
 <span class='doccomment'>//! ## Stream</span>
 <span class='doccomment'>//!</span>
@@ -423,6 +512,7 @@
 <span class='kw'>pub</span> <span class='kw'>use</span> <span class='self'>self</span>::<span class='ident'>future</span>::{<span class='ident'>Future</span>, <span class='ident'>Complete</span>};
 <span class='kw'>pub</span> <span class='kw'>use</span> <span class='self'>self</span>::<span class='ident'>stream</span>::{<span class='ident'>Stream</span>, <span class='ident'>StreamIter</span>, <span class='ident'>Sender</span>};
 <span class='kw'>pub</span> <span class='kw'>use</span> <span class='self'>self</span>::<span class='ident'>join</span>::{<span class='ident'>join</span>, <span class='ident'>Join</span>};
+<span class='kw'>pub</span> <span class='kw'>use</span> <span class='self'>self</span>::<span class='ident'>receipt</span>::<span class='ident'>Receipt</span>;
 <span class='kw'>pub</span> <span class='kw'>use</span> <span class='self'>self</span>::<span class='ident'>select</span>::{<span class='ident'>select</span>, <span class='ident'>Select</span>};
 
 <span class='kw'>use</span> <span class='ident'>util</span>::<span class='ident'>Run</span>;
@@ -442,12 +532,14 @@
 <span class='kw'>mod</span> <span class='ident'>core</span>;
 <span class='kw'>mod</span> <span class='ident'>future</span>;
 <span class='kw'>mod</span> <span class='ident'>join</span>;
+<span class='kw'>mod</span> <span class='ident'>receipt</span>;
 <span class='kw'>mod</span> <span class='ident'>select</span>;
 <span class='kw'>mod</span> <span class='ident'>stream</span>;
 
+<span class='doccomment'>/// A value representing an asynchronous computation</span>
 <span class='kw'>pub</span> <span class='kw'>trait</span> <span class='ident'>Async</span> : <span class='ident'>Send</span> <span class='op'>+</span> <span class='ident'>Sized</span> {
-    <span class='kw'>type</span> <span class='ident'>Value</span>: <span class='ident'>Send</span>;
-    <span class='kw'>type</span> <span class='ident'>Error</span>: <span class='ident'>Send</span>;
+    <span class='kw'>type</span> <span class='ident'>Value</span>:  <span class='ident'>Send</span>;
+    <span class='kw'>type</span> <span class='ident'>Error</span>:  <span class='ident'>Send</span>;
     <span class='kw'>type</span> <span class='ident'>Cancel</span>: <span class='ident'>Cancel</span><span class='op'>&lt;</span><span class='ident'>Self</span><span class='op'>&gt;</span>;
 
     <span class='doccomment'>/// Returns true if `take` will succeed.</span>
@@ -617,33 +709,6 @@
  *
  */</span>
 
-<span class='kw'>impl</span> <span class='ident'>Async</span> <span class='kw'>for</span> () {
-    <span class='kw'>type</span> <span class='ident'>Value</span> <span class='op'>=</span> ();
-    <span class='kw'>type</span> <span class='ident'>Error</span> <span class='op'>=</span> ();
-    <span class='kw'>type</span> <span class='ident'>Cancel</span> <span class='op'>=</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span>()<span class='op'>&gt;</span>;
-
-    <span class='kw'>fn</span> <span class='ident'>is_ready</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
-        <span class='boolval'>true</span>
-    }
-
-    <span class='kw'>fn</span> <span class='ident'>is_err</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
-        <span class='boolval'>false</span>
-    }
-
-    <span class='kw'>fn</span> <span class='ident'>poll</span>(<span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>AsyncResult</span><span class='op'>&lt;</span>(), ()<span class='op'>&gt;</span>, ()<span class='op'>&gt;</span> {
-        <span class='prelude-val'>Ok</span>(<span class='prelude-val'>Ok</span>(<span class='self'>self</span>))
-    }
-
-    <span class='kw'>fn</span> <span class='ident'>ready</span><span class='op'>&lt;</span><span class='ident'>F</span>: <span class='ident'>FnOnce</span>(()) <span class='op'>+</span> <span class='ident'>Send</span><span class='op'>&gt;</span>(<span class='self'>self</span>, <span class='ident'>f</span>: <span class='ident'>F</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span>()<span class='op'>&gt;</span> {
-        <span class='ident'>f</span>(<span class='self'>self</span>);
-        <span class='prelude-val'>None</span>
-    }
-
-    <span class='kw'>fn</span> <span class='ident'>await</span>(<span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>AsyncResult</span><span class='op'>&lt;</span>(), ()<span class='op'>&gt;</span> {
-        <span class='prelude-val'>Ok</span>(<span class='self'>self</span>)
-    }
-}
-
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Send</span>, <span class='ident'>E</span>: <span class='ident'>Send</span><span class='op'>&gt;</span> <span class='ident'>Async</span> <span class='kw'>for</span> <span class='ident'>AsyncResult</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;</span> {
     <span class='kw'>type</span> <span class='ident'>Value</span> <span class='op'>=</span> <span class='ident'>T</span>;
     <span class='kw'>type</span> <span class='ident'>Error</span> <span class='op'>=</span> <span class='ident'>E</span>;
@@ -675,6 +740,69 @@
     <span class='kw'>fn</span> <span class='ident'>cancel</span>(<span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
         <span class='self'>self</span>
     }
+}
+
+<span class='comment'>/*
+ *
+ * ===== Async implementations =====
+ *
+ */</span>
+
+<span class='macro'>macro_rules</span><span class='macro'>!</span> <span class='ident'>async_impl_body</span> {
+    (<span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>ty</span>:<span class='ident'>ty</span>) <span class='op'>=&gt;</span> (
+        <span class='kw'>fn</span> <span class='ident'>is_ready</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
+            <span class='boolval'>true</span>
+        }
+
+        <span class='kw'>fn</span> <span class='ident'>is_err</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
+            <span class='boolval'>false</span>
+        }
+
+        <span class='kw'>fn</span> <span class='ident'>poll</span>(<span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>AsyncResult</span><span class='op'>&lt;</span><span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>ty</span>, ()<span class='op'>&gt;</span>, <span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>ty</span><span class='op'>&gt;</span> {
+            <span class='prelude-val'>Ok</span>(<span class='prelude-val'>Ok</span>(<span class='self'>self</span>))
+        }
+
+        <span class='kw'>fn</span> <span class='ident'>ready</span><span class='op'>&lt;</span><span class='ident'>F</span>: <span class='ident'>FnOnce</span>(<span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>ty</span>) <span class='op'>+</span> <span class='ident'>Send</span><span class='op'>&gt;</span>(<span class='self'>self</span>, <span class='ident'>f</span>: <span class='ident'>F</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>ty</span><span class='op'>&gt;</span> {
+            <span class='ident'>f</span>(<span class='self'>self</span>);
+            <span class='prelude-val'>None</span>
+        }
+
+        <span class='kw'>fn</span> <span class='ident'>await</span>(<span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>AsyncResult</span><span class='op'>&lt;</span><span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>ty</span>, ()<span class='op'>&gt;</span> {
+            <span class='prelude-val'>Ok</span>(<span class='self'>self</span>)
+        }
+    );
+}
+
+<span class='macro'>macro_rules</span><span class='macro'>!</span> <span class='ident'>async_impl</span> {
+    (<span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>ty</span>:<span class='ident'>ty</span>) <span class='op'>=&gt;</span> (
+        <span class='kw'>impl</span> <span class='ident'>Async</span> <span class='kw'>for</span> <span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>ty</span> {
+            <span class='kw'>type</span> <span class='ident'>Value</span>  <span class='op'>=</span> <span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>ty</span>;
+            <span class='kw'>type</span> <span class='ident'>Error</span>  <span class='op'>=</span> ();
+            <span class='kw'>type</span> <span class='ident'>Cancel</span> <span class='op'>=</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>ty</span><span class='op'>&gt;</span>;
+
+            <span class='macro'>async_impl_body</span><span class='macro'>!</span>(<span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>ty</span>);
+        }
+    );
+
+    (<span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>ty</span>:<span class='ident'>ty</span>, $(<span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>rest</span>:<span class='ident'>tt</span>),<span class='op'>*</span>) <span class='op'>=&gt;</span> (
+        <span class='macro'>async_impl</span><span class='macro'>!</span>(<span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>ty</span>);
+        <span class='macro'>async_impl</span><span class='macro'>!</span>($(<span class='macro-nonterminal'>$</span><span class='macro-nonterminal'>rest</span>),<span class='op'>*</span>);
+    );
+}
+
+<span class='comment'>// For now, implement on as many concrete types as possible. One day, Rust will</span>
+<span class='comment'>// support specialization (hopefully) and this won&#39;t be necessary.</span>
+<span class='macro'>async_impl</span><span class='macro'>!</span>(
+    (), <span class='ident'>bool</span>, <span class='ident'>String</span>,
+    <span class='ident'>u8</span>, <span class='ident'>u16</span>, <span class='ident'>u32</span>, <span class='ident'>u64</span>, <span class='ident'>usize</span>,
+    <span class='ident'>i8</span>, <span class='ident'>i16</span>, <span class='ident'>i32</span>, <span class='ident'>i64</span>, <span class='ident'>isize</span>);
+
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>E</span>: <span class='ident'>Send</span><span class='op'>&gt;</span> <span class='ident'>Async</span> <span class='kw'>for</span> <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>E</span><span class='op'>&gt;</span> {
+    <span class='kw'>type</span> <span class='ident'>Value</span> <span class='op'>=</span> <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>E</span><span class='op'>&gt;</span>;
+    <span class='kw'>type</span> <span class='ident'>Error</span> <span class='op'>=</span> ();
+    <span class='kw'>type</span> <span class='ident'>Cancel</span> <span class='op'>=</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>E</span><span class='op'>&gt;&gt;</span>;
+
+    <span class='macro'>async_impl_body</span><span class='macro'>!</span>(<span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>E</span><span class='op'>&gt;</span>);
 }
 
 <span class='comment'>/*
