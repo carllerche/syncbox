@@ -557,7 +557,14 @@ impl<T: Send, E: Send> CoreInner<T, E> {
                     notify_producer = true;
                     curr.with_lifecycle(Canceled)
                 }
-                Canceled | ConsumerWait | ConsumerNotify | ProducerNotify | ProducerNotifyCanceled => {
+                Canceled => {
+                    // Already canceled. This can happen if a stream is
+                    // canceled when there already is a pending value. The
+                    // pending value holds a stream handle which will get
+                    // canceled as well.
+                    return;
+                }
+                ConsumerWait | ConsumerNotify | ProducerNotify | ProducerNotifyCanceled => {
                     panic!("invalid state {:?}", curr.lifecycle())
                 }
             };

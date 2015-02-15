@@ -34,3 +34,11 @@ pub fn test_stream_cancel_after_send() {
         _ => panic!("nope"),
     }
 }
+
+#[test]
+pub fn test_stream_cancel_with_value() {
+    let (tx, rx) = Stream::<i32, ()>::pair();
+
+    tx.send(123);
+    drop(rx);
+}
