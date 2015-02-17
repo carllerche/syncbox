@@ -12,8 +12,6 @@ pub fn test_stream_iter_async_producer() {
                 tx.send(i).receive(move |res| {
                     gen(res.unwrap(), i + 1);
                 });
-            } else {
-                tx.done();
             }
         })
     }

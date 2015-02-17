@@ -39,7 +39,6 @@ pub fn test_one_shot_stream_done() {
     });
 
     sender.send("hello")
-        .and_then(move |sender| sender.done())
         .await().unwrap();
 
     let vals: Vec<&'static str> = rx.iter().collect();
@@ -98,7 +97,7 @@ pub fn test_stream_receive_before_generate_interest_async() {
 
     debug!(" ~~ Sender::receive ~~");
     rxp2.recv().unwrap().receive(move |p| {
-        p.unwrap().done();
+        drop(p.unwrap());
     });
 
     debug!(" ~~ Waiting on None ~~");
@@ -168,7 +167,7 @@ pub fn test_stream_produce_interest_before_receive_async() {
     debug!(" ~~ Stream::receive #3 ~~");
     stream.receive(move |res| tx.send(res).unwrap());
 
-    rxp2.recv().unwrap().receive(move |p| p.unwrap().done());
+    rxp2.recv().unwrap().receive(move |p| drop(p.unwrap()));
 
     match rx.recv().unwrap() {
         Ok(None) => {}
@@ -209,7 +208,6 @@ pub fn test_recursive_receive() {
     fn produce(p: Sender<uint, ()>, n: uint) {
         debug!(" ~~~~ PRODUCE ENTER ~~~~~ ");
         if n > 20_000 {
-            p.done();
             return;
         }
 
