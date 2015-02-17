@@ -42,7 +42,7 @@
 //!
 //! ## Stream
 //!
-//! A stream is like a feature, except that instead of representing a single
+//! A `Stream` is like a `Future`, except that instead of representing a single
 //! value, it represents a sequence of values.
 //!
 

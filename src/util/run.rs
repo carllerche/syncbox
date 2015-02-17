@@ -2,8 +2,8 @@ use util::async::Future;
 
 pub trait Run : Send {
 
-    /// Returns the `Run` instance associated with the current thread, None
-    /// otherwise
+    // /// Returns the `Run` instance associated with the current thread, None
+    // /// otherwise
     // fn current<'a>() -> Option<&'a (Run+'static)> {
     //     unimplemented!();
     // }
