@@ -622,7 +622,7 @@
 
 
 <span class='kw'>pub</span> <span class='kw'>trait</span> <span class='ident'>Select</span><span class='op'>&lt;</span><span class='ident'>E</span>: <span class='ident'>Send</span><span class='op'>&gt;</span> : <span class='ident'>Send</span> {
-    <span class='kw'>fn</span> <span class='ident'>select</span>(<span class='self'>self</span>, <span class='ident'>complete</span>: <span class='ident'>Complete</span><span class='op'>&lt;</span>(<span class='ident'>u32</span>, <span class='ident'>Self</span>), <span class='ident'>E</span><span class='op'>&gt;</span>);
+    <span class='kw'>fn</span> <span class='ident'>select</span>(<span class='self'>self</span>, <span class='ident'>complete</span>: <span class='ident'>Complete</span><span class='op'>&lt;</span>(<span class='ident'>u32</span>, <span class='kw'>Self</span>), <span class='ident'>E</span><span class='op'>&gt;</span>);
 }
 
 <span class='comment'>// ## Flow</span>

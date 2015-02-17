@@ -1469,7 +1469,7 @@
 }
 
 <span class='kw'>trait</span> <span class='ident'>Task</span> : <span class='ident'>Send</span> {
-    <span class='kw'>fn</span> <span class='ident'>invoke</span>(<span class='self'>self</span>: <span class='ident'>Box</span><span class='op'>&lt;</span><span class='ident'>Self</span><span class='op'>&gt;</span>);
+    <span class='kw'>fn</span> <span class='ident'>invoke</span>(<span class='self'>self</span>: <span class='ident'>Box</span><span class='op'>&lt;</span><span class='kw'>Self</span><span class='op'>&gt;</span>);
 }
 
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>F</span>: <span class='ident'>FnOnce</span>() <span class='op'>+</span> <span class='ident'>Send</span><span class='op'>&gt;</span> <span class='ident'>Task</span> <span class='kw'>for</span> <span class='ident'>F</span> {

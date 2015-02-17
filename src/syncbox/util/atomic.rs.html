@@ -312,7 +312,7 @@
 <span class='kw'>pub</span> <span class='kw'>trait</span> <span class='ident'>Atomic</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> : <span class='ident'>Send</span> <span class='op'>+</span> <span class='ident'>Sync</span> {
 
     <span class='doccomment'>/// Returns a new atomic box</span>
-    <span class='kw'>fn</span> <span class='ident'>new</span>(<span class='ident'>val</span>: <span class='ident'>T</span>) <span class='op'>-&gt;</span> <span class='ident'>Self</span>;
+    <span class='kw'>fn</span> <span class='ident'>new</span>(<span class='ident'>val</span>: <span class='ident'>T</span>) <span class='op'>-&gt;</span> <span class='kw'>Self</span>;
 
     <span class='doccomment'>/// Atomically loads the value from the box with the given ordering</span>
     <span class='kw'>fn</span> <span class='ident'>load</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>order</span>: <span class='ident'>Ordering</span>) <span class='op'>-&gt;</span> <span class='ident'>T</span>;
@@ -335,7 +335,7 @@
     <span class='kw'>type</span> <span class='ident'>Repr</span>;
 
     <span class='doccomment'>/// Load the value from the raw representation</span>
-    <span class='kw'>fn</span> <span class='ident'>from_repr</span>(<span class='ident'>raw</span>: <span class='ident'>Self</span>::<span class='ident'>Repr</span>) <span class='op'>-&gt;</span> <span class='ident'>Self</span>;
+    <span class='kw'>fn</span> <span class='ident'>from_repr</span>(<span class='ident'>raw</span>: <span class='ident'>Self</span>::<span class='ident'>Repr</span>) <span class='op'>-&gt;</span> <span class='kw'>Self</span>;
 
     <span class='doccomment'>/// Convert the value from the raw representation</span>
     <span class='kw'>fn</span> <span class='ident'>to_repr</span>(<span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>Self</span>::<span class='ident'>Repr</span>;
