@@ -1,4 +1,4 @@
-use util::async::{self, receipt, Async, Future, Cancel, Receipt, AsyncResult, AsyncError};
+use util::async::{self, receipt, Async, Future, Complete, Cancel, Receipt, AsyncResult, AsyncError};
 use super::core::{self, Core};
 use std::fmt;
 
@@ -40,8 +40,35 @@ impl<T: Send, E: Send> Stream<T, E> {
      *
      */
 
-    pub fn each<F: Fn(T) + Send>(self, _f: F) -> Future<(), E> {
-        unimplemented!();
+    pub fn each<F: Fn(T) + Send>(self, f: F) -> Future<(), E> {
+        let (complete, ret) = Future::pair();
+
+        complete.receive(move |res| {
+            if let Ok(complete) = res {
+                self.do_each(f, complete);
+            }
+        });
+
+        ret
+    }
+
+    // Perform the iteration
+    fn do_each<F: Fn(T) + Send>(self, f: F, complete: Complete<(), E>) {
+        self.receive(move |head| {
+            match head {
+                Ok(Some((v, rest))) => {
+                    f(v);
+                    rest.do_each(f, complete);
+                }
+                Ok(None) => {
+                    complete.complete(());
+                }
+                Err(AsyncError::ExecutionError(e)) => {
+                    complete.fail(e);
+                }
+                _ => {}
+            }
+        });
     }
 
     pub fn filter<F: Fn(&T) -> bool + Send>(self, _f: F) -> Stream<T, E> {
@@ -226,15 +253,6 @@ impl<T: Send, E: Send> Sender<T, E> {
         BusySender { core: Some(core) }
     }
 
-    /// Cleanly terminate the stream
-    pub fn done(self) {
-        self.receive(move |res| {
-            if let Ok(mut p) = res {
-                core::take(&mut p.core).complete(Ok(None), true)
-            }
-        });
-    }
-
     pub fn fail(mut self, err: E) {
         core::take(&mut self.core).complete(Err(AsyncError::wrap(err)), true);
     }
@@ -281,6 +299,17 @@ impl<T: Send, E: Send> Async for Sender<T, E> {
         });
 
         receipt::none()
+    }
+}
+
+#[unsafe_destructor]
+impl<T: Send, E: Send> Drop for Sender<T, E> {
+    fn drop(&mut self) {
+        if self.core.is_some() {
+            // Get the core
+            let core = core::take(&mut self.core);
+            core.complete(Ok(None), true);
+        }
     }
 }
 
@@ -341,18 +370,24 @@ impl<T: Send, E: Send> Async for BusySender<T, E> {
 
 }
 
-impl<T: Send, E: Send> fmt::Debug for Sender<T, E> {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmt, "Sender<?>")
+#[unsafe_destructor]
+impl<T: Send, E: Send> Drop for BusySender<T, E> {
+    fn drop(&mut self) {
+        if self.core.is_some() {
+            let core = core::take(&mut self.core);
+
+            core.producer_ready(|core| {
+                if core.producer_is_ready() {
+                    core.complete(Ok(None), true);
+                }
+            });
+        }
     }
 }
 
-#[unsafe_destructor]
-impl<T: Send, E: Send> Drop for Sender<T, E> {
-    fn drop(&mut self) {
-        if self.core.is_some() {
-            core::take(&mut self.core).complete(Err(AsyncError::canceled()), true);
-        }
+impl<T: Send, E: Send> fmt::Debug for Sender<T, E> {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        write!(fmt, "Sender<?>")
     }
 }
 
