@@ -587,7 +587,7 @@
 <span class='doccomment'>/// The current implementation is based on a mutex and two condition variables.</span>
 <span class='doccomment'>/// It is also mostly a placeholder until a lock-free version is implemented,</span>
 <span class='doccomment'>/// so it has not been tuned for performance.</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>LinkedQueue</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
+<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>LinkedQueue</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Send</span><span class='op'>&gt;</span> {
     <span class='ident'>inner</span>: <span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>QueueInner</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;&gt;</span>,
 }
 
@@ -690,7 +690,7 @@
 <span class='comment'>//  be of the kind understood by the GC.  We use the trick of</span>
 <span class='comment'>//  linking a Node that has just been dequeued to itself.  Such a</span>
 <span class='comment'>//  self-link implicitly means to advance to head.next.</span>
-<span class='kw'>struct</span> <span class='ident'>QueueInner</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
+<span class='kw'>struct</span> <span class='ident'>QueueInner</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Send</span><span class='op'>&gt;</span> {
 
     <span class='comment'>// Maximum number of elements the queue can contain at one time</span>
     <span class='ident'>capacity</span>: <span class='ident'>usize</span>,
@@ -883,7 +883,7 @@
     }
 }
 
-<span class='kw'>struct</span> <span class='ident'>NodePtr</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
+<span class='kw'>struct</span> <span class='ident'>NodePtr</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Send</span><span class='op'>&gt;</span> {
     <span class='ident'>ptr</span>: <span class='op'>*</span><span class='kw-2'>mut</span> <span class='ident'>Node</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>,
 }
 
@@ -924,7 +924,7 @@
     <span class='kw'>use</span> <span class='ident'>super</span>::<span class='ident'>LinkedQueue</span>;
     <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>old_io</span>::<span class='ident'>timer</span>::<span class='ident'>sleep</span>;
     <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>time</span>::<span class='ident'>Duration</span>;
-    <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>thread</span>::<span class='ident'>Thread</span>;
+    <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>thread</span>;
 
     <span class='attribute'>#[<span class='ident'>test</span>]</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>test_single_threaded_put_take</span>() {
@@ -954,7 +954,7 @@
         <span class='kw'>let</span> <span class='ident'>c</span> <span class='op'>=</span> <span class='ident'>LinkedQueue</span>::<span class='ident'>new</span>();
         <span class='kw'>let</span> <span class='ident'>p</span> <span class='op'>=</span> <span class='ident'>c</span>.<span class='ident'>clone</span>();
 
-        <span class='ident'>Thread</span>::<span class='ident'>spawn</span>(<span class='kw'>move</span> <span class='op'>||</span> {
+        <span class='ident'>thread</span>::<span class='ident'>spawn</span>(<span class='kw'>move</span> <span class='op'>||</span> {
             <span class='ident'>sleep</span>(<span class='ident'>millis</span>(<span class='number'>10</span>));
 
             <span class='kw'>for</span> <span class='ident'>i</span> <span class='kw'>in</span> <span class='ident'>range</span>(<span class='number'>0</span>, <span class='number'>10_000u</span>) {
@@ -976,7 +976,7 @@
         <span class='kw'>for</span> <span class='ident'>t</span> <span class='kw'>in</span> <span class='ident'>range</span>(<span class='number'>0</span>, <span class='number'>10u</span>) {
             <span class='kw'>let</span> <span class='ident'>p</span> <span class='op'>=</span> <span class='ident'>c</span>.<span class='ident'>clone</span>();
 
-            <span class='ident'>Thread</span>::<span class='ident'>spawn</span>(<span class='kw'>move</span> <span class='op'>||</span> {
+            <span class='ident'>thread</span>::<span class='ident'>spawn</span>(<span class='kw'>move</span> <span class='op'>||</span> {
                 <span class='ident'>sleep</span>(<span class='ident'>millis</span>(<span class='number'>10</span>));
 
                 <span class='kw'>for</span> <span class='ident'>i</span> <span class='kw'>in</span> <span class='ident'>range</span>(<span class='number'>0</span>, <span class='number'>10_000u</span>) {
@@ -1003,12 +1003,12 @@
         <span class='kw'>for</span> <span class='ident'>t</span> <span class='kw'>in</span> <span class='ident'>range</span>(<span class='number'>0</span>, <span class='number'>5u</span>) {
             <span class='kw'>let</span> <span class='ident'>producer</span> <span class='op'>=</span> <span class='ident'>queue</span>.<span class='ident'>clone</span>();
 
-            <span class='ident'>Thread</span>::<span class='ident'>spawn</span>(<span class='kw'>move</span> <span class='op'>||</span> {
+            <span class='ident'>thread</span>::<span class='ident'>spawn</span>(<span class='kw'>move</span> <span class='op'>||</span> {
                 <span class='ident'>sleep</span>(<span class='ident'>Duration</span>::<span class='ident'>milliseconds</span>(<span class='number'>10</span>));
 
                 <span class='kw'>for</span> <span class='ident'>i</span> <span class='kw'>in</span> <span class='ident'>range</span>(<span class='number'>1</span>, <span class='number'>1_000u</span>) {
                     <span class='ident'>producer</span>.<span class='ident'>put</span>((<span class='ident'>t</span>, <span class='ident'>i</span>));
-                    <span class='ident'>Thread</span>::<span class='ident'>yield_now</span>();
+                    <span class='ident'>thread</span>::<span class='ident'>yield_now</span>();
                 }
 
                 <span class='comment'>// Put an extra val to signal consumers to exit</span>
@@ -1021,7 +1021,7 @@
             <span class='kw'>let</span> <span class='ident'>consumer</span> <span class='op'>=</span> <span class='ident'>queue</span>.<span class='ident'>clone</span>();
             <span class='kw'>let</span> <span class='ident'>results</span> <span class='op'>=</span> <span class='ident'>results</span>.<span class='ident'>clone</span>();
 
-            <span class='ident'>Thread</span>::<span class='ident'>spawn</span>(<span class='kw'>move</span> <span class='op'>||</span> {
+            <span class='ident'>thread</span>::<span class='ident'>spawn</span>(<span class='kw'>move</span> <span class='op'>||</span> {
                 <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>vals</span> <span class='op'>=</span> <span class='macro'>vec</span><span class='macro'>!</span>[];
                 <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>per_producer</span> <span class='op'>=</span> [<span class='number'>0</span>, <span class='number'>0</span>, <span class='number'>0</span>, <span class='number'>0</span>, <span class='number'>0</span>];
 
@@ -1036,7 +1036,7 @@
                     <span class='ident'>per_producer</span>[<span class='ident'>t</span>] <span class='op'>=</span> <span class='ident'>v</span>;
 
                     <span class='ident'>vals</span>.<span class='ident'>push</span>((<span class='ident'>t</span>, <span class='ident'>v</span>));
-                    <span class='ident'>Thread</span>::<span class='ident'>yield_now</span>();
+                    <span class='ident'>thread</span>::<span class='ident'>yield_now</span>();
                 }
 
                 <span class='ident'>results</span>.<span class='ident'>put</span>(<span class='ident'>vals</span>);
@@ -1095,7 +1095,7 @@
         <span class='kw'>for</span> _ <span class='kw'>in</span> <span class='ident'>range</span>(<span class='number'>0</span>, <span class='number'>8u</span>) {
             <span class='kw'>let</span> <span class='ident'>queue</span> <span class='op'>=</span> <span class='ident'>queue</span>.<span class='ident'>clone</span>();
 
-            <span class='ident'>Thread</span>::<span class='ident'>spawn</span>(<span class='kw'>move</span> <span class='op'>||</span> {
+            <span class='ident'>thread</span>::<span class='ident'>spawn</span>(<span class='kw'>move</span> <span class='op'>||</span> {
                 <span class='kw'>for</span> <span class='ident'>i</span> <span class='kw'>in</span> <span class='ident'>range</span>(<span class='number'>0</span>, <span class='number'>1_000u</span>) {
                     <span class='ident'>queue</span>.<span class='ident'>put</span>(<span class='ident'>i</span>);
                 }

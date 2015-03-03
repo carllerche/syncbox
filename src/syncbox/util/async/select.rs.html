@@ -595,6 +595,7 @@
 <span id="553">553</span>
 <span id="554">554</span>
 <span id="555">555</span>
+<span id="556">556</span>
 </pre><pre class='rust '>
 <span class='attribute'>#<span class='op'>!</span>[<span class='ident'>allow</span>(<span class='ident'>unused_assignments</span>)]</span>
 
@@ -661,7 +662,8 @@
     <span class='ident'>core</span>: <span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>UnsafeCell</span><span class='op'>&lt;</span><span class='ident'>Core</span><span class='op'>&lt;</span><span class='ident'>V</span>, <span class='ident'>S</span>, <span class='ident'>E</span><span class='op'>&gt;&gt;</span><span class='op'>&gt;</span>,
 }
 
-<span class='kw'>unsafe</span> <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>V</span>, <span class='ident'>S</span>, <span class='ident'>E</span><span class='op'>&gt;</span> <span class='ident'>Sync</span> <span class='kw'>for</span> <span class='ident'>UnsafeCell</span><span class='op'>&lt;</span><span class='ident'>Core</span><span class='op'>&lt;</span><span class='ident'>V</span>, <span class='ident'>S</span>, <span class='ident'>E</span><span class='op'>&gt;&gt;</span> { }
+<span class='kw'>unsafe</span> <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>V</span>: <span class='ident'>Values</span><span class='op'>&lt;</span><span class='ident'>S</span>, <span class='ident'>E</span><span class='op'>&gt;</span>, <span class='ident'>S</span>: <span class='ident'>Select</span><span class='op'>&lt;</span><span class='ident'>E</span><span class='op'>&gt;</span>, <span class='ident'>E</span>: <span class='ident'>Send</span><span class='op'>&gt;</span> <span class='ident'>Sync</span> <span class='kw'>for</span> <span class='ident'>Selection</span><span class='op'>&lt;</span><span class='ident'>V</span>, <span class='ident'>S</span>, <span class='ident'>E</span><span class='op'>&gt;</span> {}
+<span class='kw'>unsafe</span> <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>V</span>: <span class='ident'>Values</span><span class='op'>&lt;</span><span class='ident'>S</span>, <span class='ident'>E</span><span class='op'>&gt;</span>, <span class='ident'>S</span>: <span class='ident'>Select</span><span class='op'>&lt;</span><span class='ident'>E</span><span class='op'>&gt;</span>, <span class='ident'>E</span>: <span class='ident'>Send</span><span class='op'>&gt;</span> <span class='ident'>Send</span> <span class='kw'>for</span> <span class='ident'>Selection</span><span class='op'>&lt;</span><span class='ident'>V</span>, <span class='ident'>S</span>, <span class='ident'>E</span><span class='op'>&gt;</span> {}
 
 <span class='comment'>// This implementation is very unsafe</span>
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>V</span>: <span class='ident'>Values</span><span class='op'>&lt;</span><span class='ident'>S</span>, <span class='ident'>E</span><span class='op'>&gt;</span>, <span class='ident'>S</span>: <span class='ident'>Select</span><span class='op'>&lt;</span><span class='ident'>E</span><span class='op'>&gt;</span>, <span class='ident'>E</span>: <span class='ident'>Send</span><span class='op'>&gt;</span> <span class='ident'>Selection</span><span class='op'>&lt;</span><span class='ident'>V</span>, <span class='ident'>S</span>, <span class='ident'>E</span><span class='op'>&gt;</span> {

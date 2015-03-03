@@ -560,7 +560,7 @@
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Send</span><span class='op'>&gt;</span> <span class='ident'>Future</span><span class='op'>&lt;</span><span class='ident'>T</span>, ()<span class='op'>&gt;</span> {
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Send</span> <span class='op'>+</span> <span class='lifetime'>&#39;static</span><span class='op'>&gt;</span> <span class='ident'>Future</span><span class='op'>&lt;</span><span class='ident'>T</span>, ()<span class='op'>&gt;</span> {
     <span class='doccomment'>/// Returns a `Future` representing the completion of the given closure.</span>
     <span class='doccomment'>/// The closure will be executed on a newly spawned thread.</span>
     <span class='doccomment'>///</span>
@@ -574,13 +574,13 @@
     <span class='doccomment'>///</span>
     <span class='doccomment'>/// assert_eq!(100, future.await().unwrap());</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>spawn</span><span class='op'>&lt;</span><span class='ident'>F</span><span class='op'>&gt;</span>(<span class='ident'>f</span>: <span class='ident'>F</span>) <span class='op'>-&gt;</span> <span class='ident'>Future</span><span class='op'>&lt;</span><span class='ident'>T</span>, ()<span class='op'>&gt;</span>
-        <span class='kw'>where</span> <span class='ident'>F</span>: <span class='ident'>FnOnce</span>() <span class='op'>-&gt;</span> <span class='ident'>T</span> <span class='op'>+</span> <span class='ident'>Send</span> {
+        <span class='kw'>where</span> <span class='ident'>F</span>: <span class='ident'>FnOnce</span>() <span class='op'>-&gt;</span> <span class='ident'>T</span> <span class='op'>+</span> <span class='ident'>Send</span> <span class='op'>+</span> <span class='lifetime'>&#39;static</span> {
 
-        <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>thread</span>::<span class='ident'>Thread</span>;
+        <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>thread</span>;
         <span class='kw'>let</span> (<span class='ident'>complete</span>, <span class='ident'>future</span>) <span class='op'>=</span> <span class='ident'>Future</span>::<span class='ident'>pair</span>();
 
         <span class='comment'>// Spawn the thread</span>
-        <span class='ident'>Thread</span>::<span class='ident'>spawn</span>(<span class='kw'>move</span> <span class='op'>||</span> <span class='ident'>complete</span>.<span class='ident'>complete</span>(<span class='ident'>f</span>()));
+        <span class='ident'>thread</span>::<span class='ident'>spawn</span>(<span class='kw'>move</span> <span class='op'>||</span> <span class='ident'>complete</span>.<span class='ident'>complete</span>(<span class='ident'>f</span>()));
 
         <span class='ident'>future</span>
     }
@@ -617,7 +617,7 @@
         }
     }
 
-    <span class='kw'>fn</span> <span class='ident'>ready</span><span class='op'>&lt;</span><span class='ident'>F</span>: <span class='ident'>FnOnce</span>(<span class='ident'>Future</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;</span>) <span class='op'>+</span> <span class='ident'>Send</span><span class='op'>&gt;</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>f</span>: <span class='ident'>F</span>) <span class='op'>-&gt;</span> <span class='ident'>Receipt</span><span class='op'>&lt;</span><span class='ident'>Future</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;&gt;</span> {
+    <span class='kw'>fn</span> <span class='ident'>ready</span><span class='op'>&lt;</span><span class='ident'>F</span>: <span class='ident'>FnOnce</span>(<span class='ident'>Future</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;</span>) <span class='op'>+</span> <span class='ident'>Send</span> <span class='op'>+</span> <span class='lifetime'>&#39;static</span><span class='op'>&gt;</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>f</span>: <span class='ident'>F</span>) <span class='op'>-&gt;</span> <span class='ident'>Receipt</span><span class='op'>&lt;</span><span class='ident'>Future</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;&gt;</span> {
         <span class='kw'>let</span> <span class='ident'>core</span> <span class='op'>=</span> <span class='ident'>core</span>::<span class='ident'>take</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.<span class='ident'>core</span>);
 
         <span class='kw'>match</span> <span class='ident'>core</span>.<span class='ident'>consumer_ready</span>(<span class='kw'>move</span> <span class='op'>|</span><span class='ident'>core</span><span class='op'>|</span> <span class='ident'>f</span>(<span class='ident'>Future</span>::<span class='ident'>from_core</span>(<span class='ident'>core</span>))) {
@@ -725,7 +725,7 @@
         }
     }
 
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>ready</span><span class='op'>&lt;</span><span class='ident'>F</span>: <span class='ident'>FnOnce</span>(<span class='ident'>Complete</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;</span>) <span class='op'>+</span> <span class='ident'>Send</span><span class='op'>&gt;</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>f</span>: <span class='ident'>F</span>) {
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>ready</span><span class='op'>&lt;</span><span class='ident'>F</span>: <span class='ident'>FnOnce</span>(<span class='ident'>Complete</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;</span>) <span class='op'>+</span> <span class='ident'>Send</span> <span class='op'>+</span> <span class='lifetime'>&#39;static</span><span class='op'>&gt;</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>f</span>: <span class='ident'>F</span>) {
         <span class='ident'>core</span>::<span class='ident'>take</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.<span class='ident'>core</span>)
             .<span class='ident'>producer_ready</span>(<span class='kw'>move</span> <span class='op'>|</span><span class='ident'>core</span><span class='op'>|</span> <span class='ident'>f</span>(<span class='ident'>Complete</span>::<span class='ident'>from_core</span>(<span class='ident'>core</span>)));
     }
@@ -763,7 +763,7 @@
         <span class='ident'>Complete</span>::<span class='ident'>poll</span>(<span class='self'>self</span>)
     }
 
-    <span class='kw'>fn</span> <span class='ident'>ready</span><span class='op'>&lt;</span><span class='ident'>F</span>: <span class='ident'>FnOnce</span>(<span class='ident'>Complete</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;</span>) <span class='op'>+</span> <span class='ident'>Send</span><span class='op'>&gt;</span>(<span class='self'>self</span>, <span class='ident'>f</span>: <span class='ident'>F</span>) <span class='op'>-&gt;</span> <span class='ident'>Receipt</span><span class='op'>&lt;</span><span class='ident'>Complete</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;&gt;</span> {
+    <span class='kw'>fn</span> <span class='ident'>ready</span><span class='op'>&lt;</span><span class='ident'>F</span>: <span class='ident'>FnOnce</span>(<span class='ident'>Complete</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;</span>) <span class='op'>+</span> <span class='ident'>Send</span> <span class='op'>+</span> <span class='lifetime'>&#39;static</span><span class='op'>&gt;</span>(<span class='self'>self</span>, <span class='ident'>f</span>: <span class='ident'>F</span>) <span class='op'>-&gt;</span> <span class='ident'>Receipt</span><span class='op'>&lt;</span><span class='ident'>Complete</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;&gt;</span> {
         <span class='ident'>Complete</span>::<span class='ident'>ready</span>(<span class='self'>self</span>, <span class='ident'>f</span>);
         <span class='ident'>receipt</span>::<span class='ident'>none</span>()
     }

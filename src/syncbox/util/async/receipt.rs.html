@@ -68,14 +68,20 @@
 <span id="26">26</span>
 <span id="27">27</span>
 <span id="28">28</span>
+<span id="29">29</span>
+<span id="30">30</span>
+<span id="31">31</span>
+<span id="32">32</span>
 </pre><pre class='rust '>
 <span class='kw'>use</span> <span class='ident'>super</span>::<span class='ident'>Async</span>;
 <span class='kw'>use</span> <span class='ident'>super</span>::<span class='ident'>core</span>::<span class='ident'>Core</span>;
 <span class='kw'>use</span> <span class='ident'>std</span>::{<span class='ident'>mem</span>, <span class='ident'>ptr</span>};
+<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>marker</span>::<span class='ident'>PhantomData</span>;
 
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Receipt</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Async</span><span class='op'>&gt;</span> {
+<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Receipt</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> {
     <span class='ident'>core</span>: <span class='op'>*</span><span class='kw'>const</span> (),
     <span class='ident'>count</span>: <span class='ident'>u64</span>,
+    <span class='ident'>marker</span>: <span class='ident'>PhantomData</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span>,
 }
 
 <span class='kw'>unsafe</span> <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>A</span>: <span class='ident'>Async</span><span class='op'>&gt;</span> <span class='ident'>Send</span> <span class='kw'>for</span> <span class='ident'>Receipt</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span> { }
@@ -84,6 +90,7 @@
     <span class='ident'>Receipt</span> {
         <span class='ident'>core</span>: <span class='kw'>unsafe</span> { <span class='ident'>mem</span>::<span class='ident'>transmute</span>(<span class='ident'>core</span>) },
         <span class='ident'>count</span>: <span class='ident'>count</span>,
+        <span class='ident'>marker</span>: <span class='ident'>PhantomData</span>,
     }
 }
 
@@ -91,6 +98,7 @@
     <span class='ident'>Receipt</span> {
         <span class='ident'>core</span>: <span class='ident'>ptr</span>::<span class='ident'>null</span>(),
         <span class='ident'>count</span>: <span class='number'>0</span>,
+        <span class='ident'>marker</span>: <span class='ident'>PhantomData</span>,
     }
 }
 
