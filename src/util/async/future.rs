@@ -139,7 +139,7 @@ impl<T: Send, E: Send> Future<T, E> {
     }
 }
 
-impl<T: Send> Future<T, ()> {
+impl<T: Send + 'static> Future<T, ()> {
     /// Returns a `Future` representing the completion of the given closure.
     /// The closure will be executed on a newly spawned thread.
     ///
@@ -153,13 +153,13 @@ impl<T: Send> Future<T, ()> {
     ///
     /// assert_eq!(100, future.await().unwrap());
     pub fn spawn<F>(f: F) -> Future<T, ()>
-        where F: FnOnce() -> T + Send {
+        where F: FnOnce() -> T + Send + 'static {
 
-        use std::thread::Thread;
+        use std::thread;
         let (complete, future) = Future::pair();
 
         // Spawn the thread
-        Thread::spawn(move || complete.complete(f()));
+        thread::spawn(move || complete.complete(f()));
 
         future
     }
@@ -196,7 +196,7 @@ impl<T: Send, E: Send> Async for Future<T, E> {
         }
     }
 
-    fn ready<F: FnOnce(Future<T, E>) + Send>(mut self, f: F) -> Receipt<Future<T, E>> {
+    fn ready<F: FnOnce(Future<T, E>) + Send + 'static>(mut self, f: F) -> Receipt<Future<T, E>> {
         let core = core::take(&mut self.core);
 
         match core.consumer_ready(move |core| f(Future::from_core(core))) {
@@ -304,7 +304,7 @@ impl<T: Send, E: Send> Complete<T, E> {
         }
     }
 
-    pub fn ready<F: FnOnce(Complete<T, E>) + Send>(mut self, f: F) {
+    pub fn ready<F: FnOnce(Complete<T, E>) + Send + 'static>(mut self, f: F) {
         core::take(&mut self.core)
             .producer_ready(move |core| f(Complete::from_core(core)));
     }
@@ -342,7 +342,7 @@ impl<T: Send, E: Send> Async for Complete<T, E> {
         Complete::poll(self)
     }
 
-    fn ready<F: FnOnce(Complete<T, E>) + Send>(self, f: F) -> Receipt<Complete<T, E>> {
+    fn ready<F: FnOnce(Complete<T, E>) + Send + 'static>(self, f: F) -> Receipt<Complete<T, E>> {
         Complete::ready(self, f);
         receipt::none()
     }

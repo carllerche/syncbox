@@ -61,9 +61,9 @@ fn nums(from: uint, to: uint) -> Stream<uint, ()> {
     }).as_stream()
 }
 
-fn spawn<F: FnOnce() + Send>(f: F) {
-    use std::thread::Thread;
-    Thread::spawn(f);
+fn spawn<F: FnOnce() + Send + 'static>(f: F) {
+    use std::thread;
+    thread::spawn(f);
 }
 
 fn sleep(ms: uint) {

@@ -63,7 +63,8 @@ struct Selection<V: Values<S, E>, S: Select<E>, E: Send> {
     core: Arc<UnsafeCell<Core<V, S, E>>>,
 }
 
-unsafe impl<V, S, E> Sync for UnsafeCell<Core<V, S, E>> { }
+unsafe impl<V: Values<S, E>, S: Select<E>, E: Send> Sync for Selection<V, S, E> {}
+unsafe impl<V: Values<S, E>, S: Select<E>, E: Send> Send for Selection<V, S, E> {}
 
 // This implementation is very unsafe
 impl<V: Values<S, E>, S: Select<E>, E: Send> Selection<V, S, E> {

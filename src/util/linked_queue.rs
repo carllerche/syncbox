@@ -9,7 +9,7 @@ use std::time::Duration;
 /// The current implementation is based on a mutex and two condition variables.
 /// It is also mostly a placeholder until a lock-free version is implemented,
 /// so it has not been tuned for performance.
-pub struct LinkedQueue<T> {
+pub struct LinkedQueue<T: Send> {
     inner: Arc<QueueInner<T>>,
 }
 
@@ -112,7 +112,7 @@ impl<T: Send> Clone for LinkedQueue<T> {
 //  be of the kind understood by the GC.  We use the trick of
 //  linking a Node that has just been dequeued to itself.  Such a
 //  self-link implicitly means to advance to head.next.
-struct QueueInner<T> {
+struct QueueInner<T: Send> {
 
     // Maximum number of elements the queue can contain at one time
     capacity: usize,
@@ -305,7 +305,7 @@ impl<T: Send> Node<T> {
     }
 }
 
-struct NodePtr<T> {
+struct NodePtr<T: Send> {
     ptr: *mut Node<T>,
 }
 
@@ -346,7 +346,7 @@ mod test {
     use super::LinkedQueue;
     use std::old_io::timer::sleep;
     use std::time::Duration;
-    use std::thread::Thread;
+    use std::thread;
 
     #[test]
     pub fn test_single_threaded_put_take() {
@@ -376,7 +376,7 @@ mod test {
         let c = LinkedQueue::new();
         let p = c.clone();
 
-        Thread::spawn(move || {
+        thread::spawn(move || {
             sleep(millis(10));
 
             for i in range(0, 10_000u) {
@@ -398,7 +398,7 @@ mod test {
         for t in range(0, 10u) {
             let p = c.clone();
 
-            Thread::spawn(move || {
+            thread::spawn(move || {
                 sleep(millis(10));
 
                 for i in range(0, 10_000u) {
@@ -425,12 +425,12 @@ mod test {
         for t in range(0, 5u) {
             let producer = queue.clone();
 
-            Thread::spawn(move || {
+            thread::spawn(move || {
                 sleep(Duration::milliseconds(10));
 
                 for i in range(1, 1_000u) {
                     producer.put((t, i));
-                    Thread::yield_now();
+                    thread::yield_now();
                 }
 
                 // Put an extra val to signal consumers to exit
@@ -443,7 +443,7 @@ mod test {
             let consumer = queue.clone();
             let results = results.clone();
 
-            Thread::spawn(move || {
+            thread::spawn(move || {
                 let mut vals = vec![];
                 let mut per_producer = [0, 0, 0, 0, 0];
 
@@ -458,7 +458,7 @@ mod test {
                     per_producer[t] = v;
 
                     vals.push((t, v));
-                    Thread::yield_now();
+                    thread::yield_now();
                 }
 
                 results.put(vals);
@@ -517,7 +517,7 @@ mod test {
         for _ in range(0, 8u) {
             let queue = queue.clone();
 
-            Thread::spawn(move || {
+            thread::spawn(move || {
                 for i in range(0, 1_000u) {
                     queue.put(i);
                 }

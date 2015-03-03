@@ -1,3 +1,5 @@
+use std::marker::PhantomData;
+
 pub use std::sync::atomic::{
     AtomicIsize,
     AtomicUsize,
@@ -52,12 +54,16 @@ pub trait ToAtomicRepr : Send {
 // TODO: Move A -> ToAtomicRepr associated type (blocked rust-lang/rust#20772)
 pub struct AtomicVal<T: ToAtomicRepr, A: Atomic<T::Repr>> {
     atomic: A,
+    marker: PhantomData<T>,
 }
 
 impl<T: ToAtomicRepr, A: Atomic<T::Repr>> AtomicVal<T, A> {
     /// Returns a new atomic box
     pub fn new(init: T) -> AtomicVal<T, A> {
-        AtomicVal { atomic: <A as Atomic<T::Repr>>::new(init.to_repr()) }
+        AtomicVal {
+            atomic: <A as Atomic<T::Repr>>::new(init.to_repr()),
+            marker: PhantomData,
+        }
     }
 }
 

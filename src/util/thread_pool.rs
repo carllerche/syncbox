@@ -4,7 +4,7 @@ use super::run::Run;
 use std::num::FromPrimitive;
 use std::sync::{Arc, Mutex, Condvar};
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::thread::Thread;
+use std::thread;
 
 use self::Lifecycle::*;
 
@@ -25,7 +25,7 @@ impl ThreadPool {
         core_pool_size: u32,
         maximum_pool_size: u32,
         work_queue: Q) -> ThreadPool
-            where Q: SyncQueue<Option<Box<Task>>> + Send + Sync + Clone {
+            where Q: SyncQueue<Option<Box<Task>>> + Send + Sync + Clone + 'static {
 
         let inner = ThreadPoolInner::new(
             core_pool_size,
@@ -35,7 +35,7 @@ impl ThreadPool {
         ThreadPool { inner: Arc::new(inner) }
     }
 
-    pub fn run<F>(&self, task: F) where F: FnOnce() + Send {
+    pub fn run<F>(&self, task: F) where F: FnOnce() + Send + 'static {
         self.inner.run(task);
     }
 
@@ -57,7 +57,7 @@ impl ThreadPool {
 }
 
 impl Run for ThreadPool {
-    fn run<F>(&self, task: F) where F: FnOnce() + Send {
+    fn run<F>(&self, task: F) where F: FnOnce() + Send + 'static {
         ThreadPool::run(self, task);
     }
 }
@@ -102,7 +102,7 @@ impl ThreadPoolInner {
         }
     }
 
-    fn run<F: FnOnce() + Send>(&self, task: F) {
+    fn run<F: FnOnce() + Send + 'static>(&self, task: F) {
         let mut task: Box<Task> = Box::new(task);
 
         //  Proceed in 3 steps:
@@ -294,7 +294,7 @@ impl ThreadPoolInner {
 
         debug!("spawning new worker thread");
 
-        Thread::spawn(move || worker.run());
+        thread::spawn(move || worker.run());
 
         Ok(())
     }
@@ -415,7 +415,7 @@ impl Worker {
                 if state.lifecycle() >= STOP {
                     let core = self.core.clone();
 
-                    Thread::spawn(move || {
+                    thread::spawn(move || {
                         core.finalize_threadpool();
                     });
                 }
@@ -438,7 +438,7 @@ trait WorkQueue : SyncQueue<Option<Box<Task>>> + Send + Sync {
     fn boxed_clone(&self) -> Box<WorkQueue>;
 }
 
-impl<Q: SyncQueue<Option<Box<Task>>> + Send + Sync + Clone> WorkQueue for Q {
+impl<Q: SyncQueue<Option<Box<Task>>> + Send + Sync + Clone + 'static> WorkQueue for Q {
     fn boxed_clone(&self) -> Box<WorkQueue> {
         Box::new(self.clone())
     }

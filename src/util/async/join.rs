@@ -42,6 +42,9 @@ struct Progress<P: Partial<R>, R: Send, E: Send> {
     inner: Arc<UnsafeCell<ProgressInner<P, R, E>>>,
 }
 
+unsafe impl<P: Partial<R>, R: Send, E: Send> Sync for Progress<P, R, E> {}
+unsafe impl<P: Partial<R>, R: Send, E: Send> Send for Progress<P, R, E> {}
+
 impl<P: Partial<R>, R: Send, E: Send> Progress<P, R, E> {
     fn new(vals: P, complete: Complete<R, E>, remaining: isize) -> Progress<P, R, E> {
         let inner = Arc::new(UnsafeCell::new(ProgressInner {
@@ -106,9 +109,6 @@ struct ProgressInner<P: Partial<R>, R: Send, E: Send> {
     vals: P,
     complete: Option<Complete<R, E>>,
     remaining: AtomicInt,
-}
-
-unsafe impl<P: Partial<R>, R: Send, E: Send> Sync for UnsafeCell<ProgressInner<P, R, E>> {
 }
 
 macro_rules! expr {

@@ -9,8 +9,8 @@
 #![feature(unsafe_no_drop_flag)]
 
 // Embrace edge
-#![feature(core, alloc, std_misc)]
-#![cfg_attr(test, feature(io))]
+#![feature(alloc, core, std_misc)]
+#![cfg_attr(test, feature(old_io))]
 
 extern crate alloc;
 extern crate core;

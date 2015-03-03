@@ -171,7 +171,7 @@ impl<T: Send, E: Send> Async for Stream<T, E> {
         }
     }
 
-    fn ready<F: FnOnce(Stream<T, E>) + Send>(mut self, f: F) -> Receipt<Stream<T, E>> {
+    fn ready<F: FnOnce(Stream<T, E>) + Send + 'static>(mut self, f: F) -> Receipt<Stream<T, E>> {
         let core = core::take(&mut self.core);
 
         match core.consumer_ready(move |core| f(Stream::from_core(core))) {
@@ -293,7 +293,7 @@ impl<T: Send, E: Send> Async for Sender<T, E> {
         }
     }
 
-    fn ready<F: FnOnce(Sender<T, E>) + Send>(mut self, f: F) -> Receipt<Sender<T, E>> {
+    fn ready<F: FnOnce(Sender<T, E>) + Send + 'static>(mut self, f: F) -> Receipt<Sender<T, E>> {
         core::take(&mut self.core).producer_ready(move |core| {
             f(Sender::from_core(core))
         });
@@ -359,7 +359,7 @@ impl<T: Send, E: Send> Async for BusySender<T, E> {
         }
     }
 
-    fn ready<F: FnOnce(BusySender<T, E>) + Send>(mut self, f: F) -> Receipt<BusySender<T, E>> {
+    fn ready<F: FnOnce(BusySender<T, E>) + Send + 'static>(mut self, f: F) -> Receipt<BusySender<T, E>> {
         core::take(&mut self.core).producer_ready(move |core| {
             f(BusySender::from_core(core))
         });
