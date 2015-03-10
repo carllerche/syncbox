@@ -26,7 +26,7 @@
 
     <section class="sidebar">
         
-        <p class='location'><a href='../../index.html'>syncbox</a>::<wbr><a href='../index.html'>util</a>::<wbr><a href='index.html'>atomic</a></p><div class='block struct'><h2>Structs</h2><a class='struct ' href='struct.AtomicI64.html' title=''>AtomicI64</a><a class='struct ' href='struct.AtomicIsize.html' title='A signed integer type which can be safely shared between threads.'>AtomicIsize</a><a class='struct ' href='struct.AtomicU64.html' title=''>AtomicU64</a><a class='struct ' href='struct.AtomicUsize.html' title='An unsigned integer type which can be safely shared between threads.'>AtomicUsize</a><a class='struct ' href='struct.AtomicVal.html' title=''>AtomicVal</a></div><div class='block enum'><h2>Enums</h2><a class='enum ' href='enum.Ordering.html' title='Atomic memory orderings'>Ordering</a></div><div class='block trait'><h2>Traits</h2><a class='trait ' href='trait.Atomic.html' title='An atomic box'>Atomic</a><a class='trait current' href='trait.ToAtomicRepr.html' title='A value that can be stored in an atomic box'>ToAtomicRepr</a></div><div class='block fn'><h2>Functions</h2><a class='fn ' href='fn.fence.html' title='An atomic fence.'>fence</a></div>
+        <p class='location'><a href='../../index.html'>syncbox</a>::<wbr><a href='../index.html'>util</a>::<wbr><a href='index.html'>atomic</a></p><script>window.sidebarCurrent = {name: 'ToAtomicRepr', ty: 'trait', relpath: ''};</script><script defer src="sidebar-items.js"></script>
     </section>
 
     <nav class="sub">
@@ -43,8 +43,8 @@
     <section id='main' class="content trait">
 <h1 class='fqn'><span class='in-band'>Trait <a href='../../index.html'>syncbox</a>::<wbr><a href='../index.html'>util</a>::<wbr><a href='index.html'>atomic</a>::<wbr><a class='trait' href=''>ToAtomicRepr</a><wbr></span><span class='out-of-band'><span id='render-detail'>
             <a id="collapse-all" href="#">[-]</a>&nbsp;<a id="expand-all" href="#">[+]</a>
-        </span><a id='src-16710' href='../../../src/syncbox/util/atomic.rs.html#42-52'>[src]</a></span></h1>
-<pre class='rust trait'>pub trait ToAtomicRepr: <a class='trait' href='http://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a> {
+        </span><a id='src-16772' href='../../../src/syncbox/util/atomic.rs.html#42-52'>[src]</a></span></h1>
+<pre class='rust trait'>pub trait ToAtomicRepr: <a class='trait' href='http://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a> + <a class='trait' href='http://doc.rust-lang.org/nightly/core/marker/trait.Sync.html' title='core::marker::Sync'>Sync</a> {
     type Repr;
 
     fn <a href='#tymethod.from_repr' class='fnname'>from_repr</a>(raw: Self::Repr) -&gt; Self;

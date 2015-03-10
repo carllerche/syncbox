@@ -9,7 +9,7 @@
 
     <title>future.rs.html -- source</title>
 
-    <link rel="stylesheet" type="text/css" href="../../../../main.css">
+    <link rel="stylesheet" type="text/css" href="../../../../../main.css">
 
     
     
@@ -418,8 +418,35 @@
 <span id="376">376</span>
 <span id="377">377</span>
 <span id="378">378</span>
+<span id="379">379</span>
+<span id="380">380</span>
+<span id="381">381</span>
+<span id="382">382</span>
+<span id="383">383</span>
+<span id="384">384</span>
+<span id="385">385</span>
+<span id="386">386</span>
+<span id="387">387</span>
+<span id="388">388</span>
+<span id="389">389</span>
+<span id="390">390</span>
+<span id="391">391</span>
+<span id="392">392</span>
+<span id="393">393</span>
+<span id="394">394</span>
+<span id="395">395</span>
 </pre><pre class='rust '>
-<span class='kw'>use</span> <span class='ident'>super</span>::{<span class='ident'>receipt</span>, <span class='ident'>stream</span>, <span class='ident'>Async</span>, <span class='ident'>Stream</span>, <span class='ident'>Cancel</span>, <span class='ident'>Receipt</span>, <span class='ident'>AsyncResult</span>, <span class='ident'>AsyncError</span>};
+<span class='kw'>use</span> <span class='ident'>super</span>::{
+    <span class='ident'>receipt</span>,
+    <span class='ident'>stream</span>,
+    <span class='ident'>Async</span>,
+    <span class='ident'>Pair</span>,
+    <span class='ident'>Stream</span>,
+    <span class='ident'>Cancel</span>,
+    <span class='ident'>Receipt</span>,
+    <span class='ident'>AsyncResult</span>,
+    <span class='ident'>AsyncError</span>
+};
 <span class='kw'>use</span> <span class='ident'>super</span>::<span class='ident'>core</span>::{<span class='self'>self</span>, <span class='ident'>Core</span>};
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>fmt</span>;
 
@@ -594,7 +621,6 @@
 }
 
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Send</span>, <span class='ident'>E</span>: <span class='ident'>Send</span><span class='op'>&gt;</span> <span class='ident'>Async</span> <span class='kw'>for</span> <span class='ident'>Future</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;</span> {
-
     <span class='kw'>type</span> <span class='ident'>Value</span> <span class='op'>=</span> <span class='ident'>T</span>;
     <span class='kw'>type</span> <span class='ident'>Error</span> <span class='op'>=</span> <span class='ident'>E</span>;
     <span class='kw'>type</span> <span class='ident'>Cancel</span> <span class='op'>=</span> <span class='ident'>Receipt</span><span class='op'>&lt;</span><span class='ident'>Future</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;&gt;</span>;
@@ -628,6 +654,14 @@
 
     <span class='kw'>fn</span> <span class='ident'>await</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>AsyncResult</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;</span> {
         <span class='ident'>core</span>::<span class='ident'>take</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.<span class='ident'>core</span>).<span class='ident'>consumer_await</span>()
+    }
+}
+
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Send</span>, <span class='ident'>E</span>: <span class='ident'>Send</span><span class='op'>&gt;</span> <span class='ident'>Pair</span> <span class='kw'>for</span> <span class='ident'>Future</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;</span> {
+    <span class='kw'>type</span> <span class='ident'>Tx</span> <span class='op'>=</span> <span class='ident'>Complete</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;</span>;
+
+    <span class='kw'>fn</span> <span class='ident'>pair</span>() <span class='op'>-&gt;</span> (<span class='ident'>Complete</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;</span>, <span class='ident'>Future</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;</span>) {
+        <span class='ident'>Future</span>::<span class='ident'>pair</span>()
     }
 }
 
@@ -837,13 +871,13 @@
     
 
     <script>
-        window.rootPath = "../../../../";
+        window.rootPath = "../../../../../";
         window.currentCrate = "syncbox";
         window.playgroundUrl = "";
     </script>
-    <script src="../../../../jquery.js"></script>
-    <script src="../../../../main.js"></script>
+    <script src="../../../../../jquery.js"></script>
+    <script src="../../../../../main.js"></script>
     
-    <script async src="../../../../search-index.js"></script>
+    <script async src="../../../../../search-index.js"></script>
 </body>
 </html>

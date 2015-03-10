@@ -4,12 +4,12 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `src/util/queue.rs`.">
+    <meta name="description" content="Source to the Rust file `src/util/run.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
-    <title>queue.rs.html -- source</title>
+    <title>run.rs.html -- source</title>
 
-    <link rel="stylesheet" type="text/css" href="../../../main.css">
+    <link rel="stylesheet" type="text/css" href="../../../../main.css">
 
     
     
@@ -64,28 +64,28 @@
 <span id="22">22</span>
 <span id="23">23</span>
 </pre><pre class='rust '>
-<span class='comment'>// TODO:</span>
-<span class='comment'>// - Consider splitting up the trait into Consume / Produce.</span>
-<span class='comment'>// - Break up SyncQueue from Queue</span>
-<span class='kw'>pub</span> <span class='kw'>trait</span> <span class='ident'>Queue</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Send</span><span class='op'>&gt;</span> {
+<span class='kw'>use</span> <span class='ident'>util</span>::<span class='ident'>async</span>::<span class='ident'>Future</span>;
 
-    <span class='doccomment'>/// Retrieves and removes the head of this queue or returns None if the</span>
-    <span class='doccomment'>/// queue is empty.</span>
-    <span class='kw'>fn</span> <span class='ident'>poll</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>;
+<span class='kw'>pub</span> <span class='kw'>trait</span> <span class='ident'>Run</span> : <span class='ident'>Send</span> {
 
-    <span class='doccomment'>/// Returns true if the underlying data structure does not contain any</span>
-    <span class='doccomment'>/// elements.</span>
-    <span class='kw'>fn</span> <span class='ident'>is_empty</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span>;
+    <span class='comment'>// /// Returns the `Run` instance associated with the current thread, None</span>
+    <span class='comment'>// /// otherwise</span>
+    <span class='comment'>// fn current&lt;&#39;a&gt;() -&gt; Option&lt;&amp;&#39;a (Run+&#39;static)&gt; {</span>
+    <span class='comment'>//     unimplemented!();</span>
+    <span class='comment'>// }</span>
 
-    <span class='kw'>fn</span> <span class='ident'>offer</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>e</span>: <span class='ident'>T</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span>(), <span class='ident'>T</span><span class='op'>&gt;</span>;
-}
+    <span class='doccomment'>/// Runs the task on the underlying executor.</span>
+    <span class='kw'>fn</span> <span class='ident'>run</span><span class='op'>&lt;</span><span class='ident'>F</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>task</span>: <span class='ident'>F</span>) <span class='kw'>where</span> <span class='ident'>F</span>: <span class='ident'>FnOnce</span>() <span class='op'>+</span> <span class='ident'>Send</span>;
 
-<span class='kw'>pub</span> <span class='kw'>trait</span> <span class='ident'>SyncQueue</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Send</span><span class='op'>&gt;</span> : <span class='ident'>Queue</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
-    <span class='doccomment'>/// Retrieves and removes the head of this queue, waiting if necessary</span>
-    <span class='doccomment'>/// until an element becomes available.</span>
-    <span class='kw'>fn</span> <span class='ident'>take</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>T</span>;
+    <span class='kw'>fn</span> <span class='ident'>invoke</span><span class='op'>&lt;</span><span class='ident'>F</span>, <span class='ident'>R</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>task</span>: <span class='ident'>F</span>) <span class='op'>-&gt;</span> <span class='ident'>Future</span><span class='op'>&lt;</span><span class='ident'>R</span>, ()<span class='op'>&gt;</span> <span class='kw'>where</span> <span class='ident'>F</span>: <span class='ident'>FnOnce</span>() <span class='op'>-&gt;</span> <span class='ident'>R</span> <span class='op'>+</span> <span class='ident'>Send</span>, <span class='ident'>R</span>: <span class='ident'>Send</span> {
+        <span class='kw'>let</span> (<span class='ident'>complete</span>, <span class='ident'>ret</span>) <span class='op'>=</span> <span class='ident'>Future</span>::<span class='ident'>pair</span>();
 
-    <span class='kw'>fn</span> <span class='ident'>put</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>e</span>: <span class='ident'>T</span>);
+        <span class='self'>self</span>.<span class='ident'>run</span>(<span class='kw'>move</span> <span class='op'>||</span> {
+            <span class='ident'>complete</span>.<span class='ident'>complete</span>(<span class='ident'>task</span>());
+        });
+
+        <span class='ident'>ret</span>
+    }
 }
 </pre>
 </section>
@@ -127,13 +127,13 @@
     
 
     <script>
-        window.rootPath = "../../../";
+        window.rootPath = "../../../../";
         window.currentCrate = "syncbox";
         window.playgroundUrl = "";
     </script>
-    <script src="../../../jquery.js"></script>
-    <script src="../../../main.js"></script>
+    <script src="../../../../jquery.js"></script>
+    <script src="../../../../main.js"></script>
     
-    <script async src="../../../search-index.js"></script>
+    <script async src="../../../../search-index.js"></script>
 </body>
 </html>

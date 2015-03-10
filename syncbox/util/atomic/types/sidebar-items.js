@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["AtomicI64",""],["AtomicU64",""]]});

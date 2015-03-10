@@ -26,7 +26,7 @@
 
     <section class="sidebar">
         
-        <p class='location'><a href='../index.html'>syncbox</a>::<wbr><a href='index.html'>util</a></p><div class='block mod'><h2>Modules</h2><a class='mod ' href='async/index.html' title='Composable primitives for asynchronous computations'>async</a><a class='mod ' href='atomic/index.html' title=''>atomic</a></div><div class='block struct'><h2>Structs</h2><a class='struct ' href='struct.LinkedQueue.html' title='A queue in which values are contained by a linked list.'>LinkedQueue</a><a class='struct ' href='struct.ThreadPool.html' title=''>ThreadPool</a></div><div class='block trait'><h2>Traits</h2><a class='trait ' href='trait.Queue.html' title=''>Queue</a><a class='trait current' href='trait.Run.html' title=''>Run</a><a class='trait ' href='trait.SyncQueue.html' title=''>SyncQueue</a></div>
+        <p class='location'><a href='../index.html'>syncbox</a>::<wbr><a href='index.html'>util</a></p><script>window.sidebarCurrent = {name: 'Run', ty: 'trait', relpath: ''};</script><script defer src="sidebar-items.js"></script>
     </section>
 
     <nav class="sub">
@@ -43,7 +43,7 @@
     <section id='main' class="content trait">
 <h1 class='fqn'><span class='in-band'>Trait <a href='../index.html'>syncbox</a>::<wbr><a href='index.html'>util</a>::<wbr><a class='trait' href=''>Run</a><wbr></span><span class='out-of-band'><span id='render-detail'>
             <a id="collapse-all" href="#">[-]</a>&nbsp;<a id="expand-all" href="#">[+]</a>
-        </span><a id='src-22039' href='../../src/syncbox/util/run.rs.html#3-23'>[src]</a></span></h1>
+        </span><a id='src-22102' href='../../src/syncbox/util/run.rs.html#3-23'>[src]</a></span></h1>
 <pre class='rust trait'>pub trait Run: <a class='trait' href='http://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a> {
     fn <a href='#tymethod.run' class='fnname'>run</a>&lt;F&gt;(&amp;self, task: F) <span class='where'>where F: <a class='trait' href='http://doc.rust-lang.org/nightly/core/ops/trait.FnOnce.html' title='core::ops::FnOnce'>FnOnce</a>() + <a class='trait' href='http://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a></span>;
 

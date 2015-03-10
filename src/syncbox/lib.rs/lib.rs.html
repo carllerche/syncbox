@@ -4,10 +4,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `src/util/run.rs`.">
+    <meta name="description" content="Source to the Rust file `src/lib.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
-    <title>run.rs.html -- source</title>
+    <title>lib.rs.html -- source</title>
 
     <link rel="stylesheet" type="text/css" href="../../../main.css">
 
@@ -61,32 +61,28 @@
 <span id="19">19</span>
 <span id="20">20</span>
 <span id="21">21</span>
-<span id="22">22</span>
-<span id="23">23</span>
 </pre><pre class='rust '>
-<span class='kw'>use</span> <span class='ident'>util</span>::<span class='ident'>async</span>::<span class='ident'>Future</span>;
+<span class='doccomment'>//! A collection of utilities for writing concurrent code.</span>
 
-<span class='kw'>pub</span> <span class='kw'>trait</span> <span class='ident'>Run</span> : <span class='ident'>Send</span> {
+<span class='attribute'>#<span class='op'>!</span>[<span class='ident'>crate_name</span> <span class='op'>=</span> <span class='string'>&quot;syncbox&quot;</span>]</span>
 
-    <span class='comment'>// /// Returns the `Run` instance associated with the current thread, None</span>
-    <span class='comment'>// /// otherwise</span>
-    <span class='comment'>// fn current&lt;&#39;a&gt;() -&gt; Option&lt;&amp;&#39;a (Run+&#39;static)&gt; {</span>
-    <span class='comment'>//     unimplemented!();</span>
-    <span class='comment'>// }</span>
+<span class='comment'>// Enable some features</span>
+<span class='attribute'>#<span class='op'>!</span>[<span class='ident'>feature</span>(<span class='ident'>int_uint</span>)]</span>
+<span class='attribute'>#<span class='op'>!</span>[<span class='ident'>feature</span>(<span class='ident'>unboxed_closures</span>)]</span>
+<span class='attribute'>#<span class='op'>!</span>[<span class='ident'>feature</span>(<span class='ident'>unsafe_destructor</span>)]</span>
+<span class='attribute'>#<span class='op'>!</span>[<span class='ident'>feature</span>(<span class='ident'>unsafe_no_drop_flag</span>)]</span>
 
-    <span class='doccomment'>/// Runs the task on the underlying executor.</span>
-    <span class='kw'>fn</span> <span class='ident'>run</span><span class='op'>&lt;</span><span class='ident'>F</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>task</span>: <span class='ident'>F</span>) <span class='kw'>where</span> <span class='ident'>F</span>: <span class='ident'>FnOnce</span>() <span class='op'>+</span> <span class='ident'>Send</span>;
+<span class='comment'>// Embrace edge</span>
+<span class='attribute'>#<span class='op'>!</span>[<span class='ident'>feature</span>(<span class='ident'>alloc</span>, <span class='ident'>core</span>, <span class='ident'>std_misc</span>)]</span>
+<span class='attribute'>#<span class='op'>!</span>[<span class='ident'>cfg_attr</span>(<span class='ident'>test</span>, <span class='ident'>feature</span>(<span class='ident'>old_io</span>))]</span>
 
-    <span class='kw'>fn</span> <span class='ident'>invoke</span><span class='op'>&lt;</span><span class='ident'>F</span>, <span class='ident'>R</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>task</span>: <span class='ident'>F</span>) <span class='op'>-&gt;</span> <span class='ident'>Future</span><span class='op'>&lt;</span><span class='ident'>R</span>, ()<span class='op'>&gt;</span> <span class='kw'>where</span> <span class='ident'>F</span>: <span class='ident'>FnOnce</span>() <span class='op'>-&gt;</span> <span class='ident'>R</span> <span class='op'>+</span> <span class='ident'>Send</span>, <span class='ident'>R</span>: <span class='ident'>Send</span> {
-        <span class='kw'>let</span> (<span class='ident'>complete</span>, <span class='ident'>ret</span>) <span class='op'>=</span> <span class='ident'>Future</span>::<span class='ident'>pair</span>();
+<span class='kw'>extern</span> <span class='kw'>crate</span> <span class='ident'>alloc</span>;
+<span class='kw'>extern</span> <span class='kw'>crate</span> <span class='ident'>core</span>;
 
-        <span class='self'>self</span>.<span class='ident'>run</span>(<span class='kw'>move</span> <span class='op'>||</span> {
-            <span class='ident'>complete</span>.<span class='ident'>complete</span>(<span class='ident'>task</span>());
-        });
+<span class='attribute'>#[<span class='ident'>macro_use</span>]</span>
+<span class='kw'>extern</span> <span class='kw'>crate</span> <span class='ident'>log</span>;
 
-        <span class='ident'>ret</span>
-    }
-}
+<span class='kw'>pub</span> <span class='kw'>mod</span> <span class='ident'>util</span>;
 </pre>
 </section>
     <section id='search' class="content hidden"></section>

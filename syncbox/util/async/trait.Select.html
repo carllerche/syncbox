@@ -26,7 +26,7 @@
 
     <section class="sidebar">
         
-        <p class='location'><a href='../../index.html'>syncbox</a>::<wbr><a href='../index.html'>util</a>::<wbr><a href='index.html'>async</a></p><div class='block struct'><h2>Structs</h2><a class='struct ' href='struct.Complete.html' title='An object that is used to fulfill or reject an associated Future.'>Complete</a><a class='struct ' href='struct.Future.html' title=''>Future</a><a class='struct ' href='struct.Receipt.html' title=''>Receipt</a><a class='struct ' href='struct.Sender.html' title='The sending half of `Stream::pair()`. Can only be owned by a single task at a time.'>Sender</a><a class='struct ' href='struct.Stream.html' title=''>Stream</a><a class='struct ' href='struct.StreamIter.html' title=''>StreamIter</a></div><div class='block enum'><h2>Enums</h2><a class='enum ' href='enum.AsyncError.html' title=''>AsyncError</a></div><div class='block trait'><h2>Traits</h2><a class='trait ' href='trait.Async.html' title='A value representing an asynchronous computation'>Async</a><a class='trait ' href='trait.Cancel.html' title=''>Cancel</a><a class='trait ' href='trait.Join.html' title=''>Join</a><a class='trait current' href='trait.Select.html' title=''>Select</a></div><div class='block fn'><h2>Functions</h2><a class='fn ' href='fn.join.html' title=''>join</a><a class='fn ' href='fn.select.html' title=''>select</a></div>
+        <p class='location'><a href='../../index.html'>syncbox</a>::<wbr><a href='../index.html'>util</a>::<wbr><a href='index.html'>async</a></p><script>window.sidebarCurrent = {name: 'Select', ty: 'trait', relpath: ''};</script><script defer src="sidebar-items.js"></script>
     </section>
 
     <nav class="sub">
@@ -43,7 +43,7 @@
     <section id='main' class="content trait">
 <h1 class='fqn'><span class='in-band'>Trait <a href='../../index.html'>syncbox</a>::<wbr><a href='../index.html'>util</a>::<wbr><a href='index.html'>async</a>::<wbr><a class='trait' href=''>Select</a><wbr></span><span class='out-of-band'><span id='render-detail'>
             <a id="collapse-all" href="#">[-]</a>&nbsp;<a id="expand-all" href="#">[+]</a>
-        </span><a id='src-9801' href='../../../src/syncbox/util/async/select.rs.html#26-28'>[src]</a></span></h1>
+        </span><a id='src-9828' href='../../../src/syncbox/util/async/select.rs.html#26-28'>[src]</a></span></h1>
 <pre class='rust trait'>pub trait Select&lt;E: <a class='trait' href='http://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a>&gt;: <a class='trait' href='http://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a> {
     fn <a href='#tymethod.select' class='fnname'>select</a>(self, complete: <a class='struct' href='../../../syncbox/util/async/struct.Complete.html' title='syncbox::util::async::Complete'>Complete</a>&lt;<a href='http://doc.rust-lang.org/nightly/std/primitive.tuple.html'>(<a href='http://doc.rust-lang.org/nightly/std/primitive.u32.html'>u32</a>, Self)</a>, E&gt;);
 }</pre>
