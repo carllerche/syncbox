@@ -75,8 +75,8 @@ mod stream;
 
 /// A value representing an asynchronous computation
 pub trait Async : Send + Sized {
-    type Value:  Send;
-    type Error:  Send;
+    type Value: Send;
+    type Error: Send;
     type Cancel: Cancel<Self>;
 
     /// Returns true if `take` will succeed.
@@ -276,6 +276,12 @@ pub trait Async : Send + Sized {
 
         ret
     }
+}
+
+pub trait Pair {
+    type Tx;
+
+    fn pair() -> (Self::Tx, Self);
 }
 
 pub trait Cancel<A: Send> : Send {

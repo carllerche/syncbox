@@ -1,4 +1,15 @@
-use util::async::{self, receipt, Async, Future, Complete, Cancel, Receipt, AsyncResult, AsyncError};
+use util::async::{
+    self,
+    receipt,
+    Async,
+    Pair,
+    Future,
+    Complete,
+    Cancel,
+    Receipt,
+    AsyncResult,
+    AsyncError
+};
 use super::core::{self, Core};
 use std::fmt;
 
@@ -182,6 +193,14 @@ impl<T: Send, E: Send> Async for Stream<T, E> {
 
     fn await(mut self) -> AsyncResult<Head<T, E>, E> {
         core::take(&mut self.core).consumer_await()
+    }
+}
+
+impl<T: Send, E: Send> Pair for Stream<T, E> {
+    type Tx = Sender<T, E>;
+
+    fn pair() -> (Sender<T, E>, Stream<T, E>) {
+        Stream::pair()
     }
 }
 

@@ -1,4 +1,14 @@
-use super::{receipt, stream, Async, Stream, Cancel, Receipt, AsyncResult, AsyncError};
+use super::{
+    receipt,
+    stream,
+    Async,
+    Pair,
+    Stream,
+    Cancel,
+    Receipt,
+    AsyncResult,
+    AsyncError
+};
 use super::core::{self, Core};
 use std::fmt;
 
@@ -173,7 +183,6 @@ impl<T: Send, E: Send> Future<Option<(T, Stream<T, E>)>, E> {
 }
 
 impl<T: Send, E: Send> Async for Future<T, E> {
-
     type Value = T;
     type Error = E;
     type Cancel = Receipt<Future<T, E>>;
@@ -207,6 +216,14 @@ impl<T: Send, E: Send> Async for Future<T, E> {
 
     fn await(mut self) -> AsyncResult<T, E> {
         core::take(&mut self.core).consumer_await()
+    }
+}
+
+impl<T: Send, E: Send> Pair for Future<T, E> {
+    type Tx = Complete<T, E>;
+
+    fn pair() -> (Complete<T, E>, Future<T, E>) {
+        Future::pair()
     }
 }
 

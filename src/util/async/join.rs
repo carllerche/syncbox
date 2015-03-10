@@ -1,7 +1,7 @@
 use super::{Async, Future, Complete, AsyncError};
 use std::cell::UnsafeCell;
 use std::sync::Arc;
-use std::sync::atomic::{self, AtomicInt};
+use std::sync::atomic::{self, AtomicIsize};
 use std::sync::atomic::Ordering;
 
 pub fn join<J: Join<T, E>, T: Send, E: Send>(asyncs: J) -> Future<T, E> {
@@ -50,7 +50,7 @@ impl<P: Partial<R>, R: Send, E: Send> Progress<P, R, E> {
         let inner = Arc::new(UnsafeCell::new(ProgressInner {
             vals: vals,
             complete: Some(complete),
-            remaining: AtomicInt::new(remaining),
+            remaining: AtomicIsize::new(remaining),
         }));
 
         Progress { inner: inner }
@@ -108,7 +108,7 @@ impl<P: Partial<R>, R: Send, E: Send> Clone for Progress<P, R, E> {
 struct ProgressInner<P: Partial<R>, R: Send, E: Send> {
     vals: P,
     complete: Option<Complete<R, E>>,
-    remaining: AtomicInt,
+    remaining: AtomicIsize,
 }
 
 macro_rules! expr {
