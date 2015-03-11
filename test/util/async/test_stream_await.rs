@@ -1,7 +1,7 @@
 use syncbox::util::async::*;
 
 #[test]
-#[should_fail]
+#[should_panic]
 pub fn test_await_in_receive() {
     debug!("starting");
 

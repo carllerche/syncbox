@@ -2,7 +2,7 @@ use syncbox::util::async::*;
 use super::{spawn, sleep};
 use std::sync::mpsc::channel;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, AtomicUint};
+use std::sync::atomic::{AtomicBool, AtomicUsize};
 use std::sync::atomic::Ordering::Relaxed;
 
 #[test]
@@ -122,7 +122,7 @@ pub fn test_await_complete_after_consumer_receive() {
 pub fn test_producer_receive_when_consumer_cb_set() {
     let (c, f) = Future::<&'static str, ()>::pair();
     let (tx, rx) = channel();
-    let depth = Arc::new(AtomicUint::new(0));
+    let depth = Arc::new(AtomicUsize::new(0));
 
     waiting(0, depth, c);
 
@@ -136,14 +136,14 @@ pub fn test_producer_receive_when_consumer_cb_set() {
 #[test]
 pub fn test_producer_receive_when_consumer_waiting() {
     let (c, f) = Future::<&'static str, ()>::pair();
-    let depth = Arc::new(AtomicUint::new(0));
+    let depth = Arc::new(AtomicUsize::new(0));
 
     waiting(0, depth, c);
 
     assert_eq!(f.await().unwrap(), "done");
 }
 
-fn waiting(count: uint, d: Arc<AtomicUint>, c: Complete<&'static str, ()>) {
+fn waiting(count: uint, d: Arc<AtomicUsize>, c: Complete<&'static str, ()>) {
     // Assert that the callback is not invoked recursively
     assert_eq!(0, d.fetch_add(1, Relaxed));
 
