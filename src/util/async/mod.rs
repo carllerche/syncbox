@@ -47,7 +47,7 @@
 //!
 
 pub use self::future::{Future, Complete};
-pub use self::stream::{Stream, StreamIter, Sender};
+pub use self::stream::{Stream, StreamIter, Sender, BusySender};
 pub use self::join::{join, Join};
 pub use self::receipt::Receipt;
 pub use self::select::{select, Select};
@@ -79,7 +79,7 @@ pub trait Async : Send + Sized {
     type Error: Send;
     type Cancel: Cancel<Self>;
 
-    /// Returns true if `take` will succeed.
+    /// Returns true if `expect` will succeed.
     fn is_ready(&self) -> bool;
 
     /// Returns true if the async value is ready and has failed
