@@ -40,6 +40,13 @@ impl<T: Send, E: Send> Stream<T, E> {
         (Sender { core: Some(core) }, stream)
     }
 
+    /// Asyncronously collects the items from the `Stream`, returning them sorted by order of
+    /// arrival.
+    pub fn collect(self) -> Future<Vec<T>, E> {
+        let buffer = Vec::new();
+        self.reduce(buffer, |mut vec, item| { vec.push(item); return vec })
+    }
+
     /// Synchronously iterate over the `Stream`
     pub fn iter(mut self) -> StreamIter<T, E> {
         StreamIter { core: Some(core::take(&mut self.core)) }

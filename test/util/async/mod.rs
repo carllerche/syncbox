@@ -41,6 +41,7 @@ mod test_stream_iter;
 mod test_stream_map;
 mod test_stream_receive;
 mod test_stream_reduce;
+mod test_stream_collect;
 mod test_stream_take;
 
 /*
