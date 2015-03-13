@@ -325,6 +325,7 @@ impl<T: Send, E: Send> Async for Sender<T, E> {
 impl<T: Send, E: Send> Drop for Sender<T, E> {
     fn drop(&mut self) {
         if self.core.is_some() {
+            debug!("Sender::drop(); cancelling future");
             // Get the core
             let core = core::take(&mut self.core);
             core.complete(Ok(None), true);
@@ -385,8 +386,6 @@ impl<T: Send, E: Send> Async for BusySender<T, E> {
 
         receipt::none()
     }
-
-
 }
 
 #[unsafe_destructor]
