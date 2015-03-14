@@ -17,6 +17,7 @@ use std::fmt;
  */
 
 #[unsafe_no_drop_flag]
+#[must_use = "futures are lazy and do nothing unless consumed"]
 pub struct Future<T: Send, E: Send> {
     core: Option<Core<T, E>>,
 }
@@ -286,6 +287,7 @@ impl<T: Send, E: Send> Cancel<Future<T, E>> for Receipt<Future<T, E>> {
 /// });
 /// ```
 #[unsafe_no_drop_flag]
+#[must_use = "Futures must be completed or they will panic on access"]
 pub struct Complete<T: Send, E: Send> {
     core: Option<Core<T, E>>,
 }

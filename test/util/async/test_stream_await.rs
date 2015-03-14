@@ -21,7 +21,7 @@ pub fn test_await_in_receive() {
 
         tx.receive(move |res| {
             let tx = res.unwrap();
-            tx.send(n).and_then(move |tx| produce(tx, n + 1));
+            tx.send(n).and_then(move |tx| produce(tx, n + 1)).fire();
         });
     }
 
