@@ -15,7 +15,7 @@ pub fn test_stream_reduce_fail() {
         .and_then(|tx| tx.send(2))
         .and_then(|tx| tx.send(3))
         .and_then(|tx| tx.fail(()))
-        .receive(drop);
+        .fire();
 
     let reduced = rx.reduce(0, move |sum, v| sum + v);
     assert_eq!(Err(ExecutionError(())), reduced.await());

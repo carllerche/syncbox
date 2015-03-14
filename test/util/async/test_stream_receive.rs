@@ -235,7 +235,7 @@ pub fn test_complete_during_consumer_receive() {
 
     sender.send(1).receive(|sender| {
         sender.unwrap().send(2);
-    }).receive(drop);
+    }).fire();
 
     stream.receive(move |res| {
         match res.unwrap() {

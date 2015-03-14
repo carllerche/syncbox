@@ -42,9 +42,7 @@ pub fn test_stream_fail_second_iter_await() {
 
     tx.send(1)
         .and_then(|tx| tx.fail("nope"))
-        // Needed to run the computation (since it is lazy)
-        // TODO: Something better!
-        .receive(drop);
+        .fire();
 
     match rx.await() {
         Ok(Some((v, rest))) => {

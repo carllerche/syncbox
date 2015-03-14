@@ -124,6 +124,8 @@ pub trait Async : Send + Sized {
         });
     }
 
+    /// Blocks the thread until the async value is complete and returns the
+    /// result.
     fn await(self) -> AsyncResult<Self::Value, Self::Error> {
         use std::sync::mpsc::channel;
 
@@ -131,6 +133,11 @@ pub trait Async : Send + Sized {
 
         self.receive(move |res| tx.send(res).ok().expect("receiver thread died"));
         rx.recv().ok().expect("async disappeared without a trace")
+    }
+
+    /// Trigger the computation without waiting for the result
+    fn fire(self) {
+        self.receive(drop)
     }
 
     /*
