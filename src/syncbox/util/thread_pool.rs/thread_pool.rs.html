@@ -1545,7 +1545,7 @@
         }
     }
 
-    <span class='kw'>fn</span> <span class='ident'>sleep</span>(<span class='ident'>ms</span>: <span class='ident'>uint</span>) {
+    <span class='kw'>fn</span> <span class='ident'>sleep</span>(<span class='ident'>ms</span>: <span class='ident'>usize</span>) {
         <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>old_io</span>::<span class='ident'>timer</span>::<span class='ident'>sleep</span>;
         <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>time</span>::<span class='ident'>Duration</span>;
         <span class='ident'>sleep</span>(<span class='ident'>Duration</span>::<span class='ident'>milliseconds</span>(<span class='ident'>ms</span> <span class='kw'>as</span> <span class='ident'>i64</span>));

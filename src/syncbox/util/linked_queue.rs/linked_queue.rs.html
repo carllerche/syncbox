@@ -934,13 +934,13 @@
         <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='number'>0</span>, <span class='ident'>q</span>.<span class='ident'>len</span>());
 
         <span class='comment'>// Put a value</span>
-        <span class='ident'>q</span>.<span class='ident'>put</span>(<span class='number'>1u</span>);
+        <span class='ident'>q</span>.<span class='ident'>put</span>(<span class='number'>1</span>);
 
         <span class='comment'>// Check the length again</span>
         <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='number'>1</span>, <span class='ident'>q</span>.<span class='ident'>len</span>());
 
         <span class='comment'>// Remove the value</span>
-        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='number'>1u</span>, <span class='ident'>q</span>.<span class='ident'>take</span>());
+        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='number'>1</span>, <span class='ident'>q</span>.<span class='ident'>take</span>());
 
         <span class='comment'>// Check the length</span>
         <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='number'>0</span>, <span class='ident'>q</span>.<span class='ident'>len</span>());
@@ -957,7 +957,7 @@
         <span class='ident'>thread</span>::<span class='ident'>spawn</span>(<span class='kw'>move</span> <span class='op'>||</span> {
             <span class='ident'>sleep</span>(<span class='ident'>millis</span>(<span class='number'>10</span>));
 
-            <span class='kw'>for</span> <span class='ident'>i</span> <span class='kw'>in</span> <span class='ident'>range</span>(<span class='number'>0</span>, <span class='number'>10_000u</span>) {
+            <span class='kw'>for</span> <span class='ident'>i</span> <span class='kw'>in</span> <span class='ident'>range</span>(<span class='number'>0</span>, <span class='number'>10_000</span>) {
                 <span class='ident'>p</span>.<span class='ident'>put</span>(<span class='ident'>i</span>);
             }
         });
@@ -973,13 +973,13 @@
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>test_single_consumer_multi_producer</span>() {
         <span class='kw'>let</span> <span class='ident'>c</span> <span class='op'>=</span> <span class='ident'>LinkedQueue</span>::<span class='ident'>new</span>();
 
-        <span class='kw'>for</span> <span class='ident'>t</span> <span class='kw'>in</span> <span class='ident'>range</span>(<span class='number'>0</span>, <span class='number'>10u</span>) {
+        <span class='kw'>for</span> <span class='ident'>t</span> <span class='kw'>in</span> <span class='ident'>range</span>(<span class='number'>0</span>, <span class='number'>10</span>) {
             <span class='kw'>let</span> <span class='ident'>p</span> <span class='op'>=</span> <span class='ident'>c</span>.<span class='ident'>clone</span>();
 
             <span class='ident'>thread</span>::<span class='ident'>spawn</span>(<span class='kw'>move</span> <span class='op'>||</span> {
                 <span class='ident'>sleep</span>(<span class='ident'>millis</span>(<span class='number'>10</span>));
 
-                <span class='kw'>for</span> <span class='ident'>i</span> <span class='kw'>in</span> <span class='ident'>range</span>(<span class='number'>0</span>, <span class='number'>10_000u</span>) {
+                <span class='kw'>for</span> <span class='ident'>i</span> <span class='kw'>in</span> <span class='ident'>range</span>(<span class='number'>0</span>, <span class='number'>10_000</span>) {
                     <span class='ident'>p</span>.<span class='ident'>put</span>((<span class='ident'>t</span>, <span class='ident'>i</span>));
                 }
             });
@@ -987,7 +987,7 @@
 
         <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>vals</span> <span class='op'>=</span> [<span class='number'>0</span>, <span class='number'>0</span>, <span class='number'>0</span>, <span class='number'>0</span>, <span class='number'>0</span>, <span class='number'>0</span>, <span class='number'>0</span>, <span class='number'>0</span>, <span class='number'>0</span>, <span class='number'>0</span>];
 
-        <span class='kw'>for</span> _ <span class='kw'>in</span> <span class='ident'>range</span>(<span class='number'>0</span>, <span class='number'>10</span> <span class='op'>*</span> <span class='number'>10_000u</span>) {
+        <span class='kw'>for</span> _ <span class='kw'>in</span> <span class='ident'>range</span>(<span class='number'>0</span>, <span class='number'>10</span> <span class='op'>*</span> <span class='number'>10_000</span>) {
             <span class='kw'>let</span> (<span class='ident'>t</span>, <span class='ident'>v</span>) <span class='op'>=</span> <span class='ident'>c</span>.<span class='ident'>take</span>();
             <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>vals</span>[<span class='ident'>t</span>], <span class='ident'>v</span>);
             <span class='ident'>vals</span>[<span class='ident'>t</span>] <span class='op'>+=</span> <span class='number'>1</span>;
@@ -1000,13 +1000,13 @@
         <span class='kw'>let</span> <span class='ident'>results</span> <span class='op'>=</span> <span class='ident'>LinkedQueue</span>::<span class='ident'>new</span>();
 
         <span class='comment'>// Producers</span>
-        <span class='kw'>for</span> <span class='ident'>t</span> <span class='kw'>in</span> <span class='ident'>range</span>(<span class='number'>0</span>, <span class='number'>5u</span>) {
+        <span class='kw'>for</span> <span class='ident'>t</span> <span class='kw'>in</span> <span class='ident'>range</span>(<span class='number'>0</span>, <span class='number'>5</span>) {
             <span class='kw'>let</span> <span class='ident'>producer</span> <span class='op'>=</span> <span class='ident'>queue</span>.<span class='ident'>clone</span>();
 
             <span class='ident'>thread</span>::<span class='ident'>spawn</span>(<span class='kw'>move</span> <span class='op'>||</span> {
                 <span class='ident'>sleep</span>(<span class='ident'>Duration</span>::<span class='ident'>milliseconds</span>(<span class='number'>10</span>));
 
-                <span class='kw'>for</span> <span class='ident'>i</span> <span class='kw'>in</span> <span class='ident'>range</span>(<span class='number'>1</span>, <span class='number'>1_000u</span>) {
+                <span class='kw'>for</span> <span class='ident'>i</span> <span class='kw'>in</span> <span class='ident'>range</span>(<span class='number'>1</span>, <span class='number'>1_000</span>) {
                     <span class='ident'>producer</span>.<span class='ident'>put</span>((<span class='ident'>t</span>, <span class='ident'>i</span>));
                     <span class='ident'>thread</span>::<span class='ident'>yield_now</span>();
                 }
@@ -1017,7 +1017,7 @@
         }
 
         <span class='comment'>// Consumers</span>
-        <span class='kw'>for</span> _ <span class='kw'>in</span> <span class='ident'>range</span>(<span class='number'>0</span>, <span class='number'>5u</span>) {
+        <span class='kw'>for</span> _ <span class='kw'>in</span> <span class='ident'>range</span>(<span class='number'>0</span>, <span class='number'>5</span>) {
             <span class='kw'>let</span> <span class='ident'>consumer</span> <span class='op'>=</span> <span class='ident'>queue</span>.<span class='ident'>clone</span>();
             <span class='kw'>let</span> <span class='ident'>results</span> <span class='op'>=</span> <span class='ident'>results</span>.<span class='ident'>clone</span>();
 
@@ -1028,7 +1028,7 @@
                 <span class='kw'>loop</span> {
                     <span class='kw'>let</span> (<span class='ident'>t</span>, <span class='ident'>v</span>) <span class='op'>=</span> <span class='ident'>consumer</span>.<span class='ident'>take</span>();
 
-                    <span class='kw'>if</span> <span class='ident'>v</span> <span class='op'>&gt;</span> <span class='number'>1_000u</span> {
+                    <span class='kw'>if</span> <span class='ident'>v</span> <span class='op'>&gt;</span> <span class='number'>1_000</span> {
                         <span class='kw'>break</span>;
                     }
 
@@ -1045,7 +1045,7 @@
 
         <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>all_vals</span> <span class='op'>=</span> <span class='macro'>vec</span><span class='macro'>!</span>[];
 
-        <span class='kw'>for</span> _ <span class='kw'>in</span> <span class='ident'>range</span>(<span class='number'>0</span>, <span class='number'>5u</span>) {
+        <span class='kw'>for</span> _ <span class='kw'>in</span> <span class='ident'>range</span>(<span class='number'>0</span>, <span class='number'>5</span>) {
             <span class='kw'>let</span> <span class='ident'>vals</span> <span class='op'>=</span> <span class='ident'>results</span>.<span class='ident'>take</span>();
 
             <span class='comment'>// TODO: Figure out this assertion</span>
@@ -1074,7 +1074,7 @@
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>test_queue_with_capacity</span>() {
         <span class='kw'>let</span> <span class='ident'>queue</span> <span class='op'>=</span> <span class='ident'>LinkedQueue</span>::<span class='ident'>with_capacity</span>(<span class='number'>8</span>);
 
-        <span class='kw'>for</span> <span class='ident'>i</span> <span class='kw'>in</span> <span class='ident'>range</span>(<span class='number'>0</span>, <span class='number'>8u</span>) {
+        <span class='kw'>for</span> <span class='ident'>i</span> <span class='kw'>in</span> <span class='ident'>range</span>(<span class='number'>0</span>, <span class='number'>8</span>) {
             <span class='macro'>assert</span><span class='macro'>!</span>(<span class='ident'>queue</span>.<span class='ident'>offer</span>(<span class='ident'>i</span>).<span class='ident'>is_ok</span>());
         }
 
@@ -1083,7 +1083,7 @@
 
         <span class='macro'>assert</span><span class='macro'>!</span>(<span class='ident'>queue</span>.<span class='ident'>offer</span>(<span class='number'>8</span>).<span class='ident'>is_ok</span>());
 
-        <span class='kw'>for</span> <span class='ident'>i</span> <span class='kw'>in</span> <span class='ident'>range</span>(<span class='number'>1</span>, <span class='number'>9u</span>) {
+        <span class='kw'>for</span> <span class='ident'>i</span> <span class='kw'>in</span> <span class='ident'>range</span>(<span class='number'>1</span>, <span class='number'>9</span>) {
             <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='prelude-val'>Some</span>(<span class='ident'>i</span>), <span class='ident'>queue</span>.<span class='ident'>poll</span>());
         }
     }
@@ -1092,22 +1092,22 @@
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>test_multi_producer_at_capacity</span>() {
         <span class='kw'>let</span> <span class='ident'>queue</span> <span class='op'>=</span> <span class='ident'>LinkedQueue</span>::<span class='ident'>with_capacity</span>(<span class='number'>8</span>);
 
-        <span class='kw'>for</span> _ <span class='kw'>in</span> <span class='ident'>range</span>(<span class='number'>0</span>, <span class='number'>8u</span>) {
+        <span class='kw'>for</span> _ <span class='kw'>in</span> <span class='ident'>range</span>(<span class='number'>0</span>, <span class='number'>8</span>) {
             <span class='kw'>let</span> <span class='ident'>queue</span> <span class='op'>=</span> <span class='ident'>queue</span>.<span class='ident'>clone</span>();
 
             <span class='ident'>thread</span>::<span class='ident'>spawn</span>(<span class='kw'>move</span> <span class='op'>||</span> {
-                <span class='kw'>for</span> <span class='ident'>i</span> <span class='kw'>in</span> <span class='ident'>range</span>(<span class='number'>0</span>, <span class='number'>1_000u</span>) {
+                <span class='kw'>for</span> <span class='ident'>i</span> <span class='kw'>in</span> <span class='ident'>range</span>(<span class='number'>0</span>, <span class='number'>1_000</span>) {
                     <span class='ident'>queue</span>.<span class='ident'>put</span>(<span class='ident'>i</span>);
                 }
             });
         }
 
-        <span class='kw'>for</span> _ <span class='kw'>in</span> <span class='ident'>range</span>(<span class='number'>0</span>, <span class='number'>8</span> <span class='op'>*</span> <span class='number'>1_000u</span>) {
+        <span class='kw'>for</span> _ <span class='kw'>in</span> <span class='ident'>range</span>(<span class='number'>0</span>, <span class='number'>8</span> <span class='op'>*</span> <span class='number'>1_000</span>) {
             <span class='ident'>queue</span>.<span class='ident'>take</span>();
         }
     }
 
-    <span class='kw'>fn</span> <span class='ident'>millis</span>(<span class='ident'>num</span>: <span class='ident'>uint</span>) <span class='op'>-&gt;</span> <span class='ident'>Duration</span> {
+    <span class='kw'>fn</span> <span class='ident'>millis</span>(<span class='ident'>num</span>: <span class='ident'>usize</span>) <span class='op'>-&gt;</span> <span class='ident'>Duration</span> {
         <span class='ident'>Duration</span>::<span class='ident'>milliseconds</span>(<span class='ident'>num</span> <span class='kw'>as</span> <span class='ident'>i64</span>)
     }
 }
