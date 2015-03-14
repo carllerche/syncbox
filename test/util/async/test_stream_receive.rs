@@ -227,10 +227,36 @@ pub fn test_recursive_receive() {
 }
 
 #[test]
-#[ignore]
 pub fn test_complete_during_consumer_receive() {
-    // The producer completes the next stream iteration during the receiver's
-    // callback
+    ::env_logger::init().unwrap();
+
+    let (sender, stream) = Stream::<i32, ()>::pair();
+    let (tx, rx) = channel();
+
+    sender.send(1).receive(|sender| {
+        sender.unwrap().send(2);
+    }).receive(drop);
+
+    stream.receive(move |res| {
+        match res.unwrap() {
+            Some((v, rest)) => {
+                assert_eq!(v, 1);
+
+                rest.receive(move |res| {
+                    match res.unwrap() {
+                        Some((v, rest)) => {
+                            assert_eq!(v, 2);
+                            tx.send("done").unwrap();
+                        }
+                        _ => panic!("unexpected value"),
+                    }
+                });
+            }
+            _ => panic!("unexpected value"),
+        }
+    });
+
+    assert_eq!("done", rx.recv().unwrap());
 }
 
 #[test]

@@ -313,7 +313,7 @@ impl<T: Send, E: Send> CoreInner<T, E> {
                     self.notify_consumer(curr);
                     return None;
                 }
-                Canceled | ConsumerWait | ConsumerNotify | ProducerNotify | ProducerNotifyCanceled => {
+                Canceled | ConsumerWait | ConsumerNotify | ConsumerNotifyProducerWait | ProducerNotify | ProducerNotifyCanceled => {
                     panic!("invalid state {:?}", curr.lifecycle())
                 }
             };
@@ -410,7 +410,7 @@ impl<T: Send, E: Send> CoreInner<T, E> {
 
                     curr.with_lifecycle(New)
                 }
-                New | ProducerWait | Ready | ReadyProducerWait | ProducerNotifyCanceled | ConsumerNotify | Canceled => {
+                New | ProducerWait | Ready | ReadyProducerWait | ProducerNotifyCanceled | ConsumerNotify | ConsumerNotifyProducerWait | Canceled => {
                     // No pending consumer callback to cancel
                     return false;
                 }
@@ -489,6 +489,9 @@ impl<T: Send, E: Send> CoreInner<T, E> {
                     // Notify the producer when the consumer registers interest
                     curr.with_lifecycle(ProducerWait)
                 }
+                ConsumerNotify => {
+                    curr.with_lifecycle(ConsumerNotifyProducerWait)
+                }
                 ConsumerWait => {
                     debug!("  - notifying producer");
                     // Notify producer now
@@ -506,7 +509,7 @@ impl<T: Send, E: Send> CoreInner<T, E> {
                     // interest
                     curr.with_lifecycle(ReadyProducerWait)
                 }
-                ProducerWait | ReadyProducerWait | ProducerNotify | ProducerNotifyCanceled | ConsumerNotify => {
+                ProducerWait | ConsumerNotifyProducerWait | ReadyProducerWait | ProducerNotify | ProducerNotifyCanceled => {
                     panic!("invalid state {:?}", curr.lifecycle())
                 }
             };
@@ -564,7 +567,7 @@ impl<T: Send, E: Send> CoreInner<T, E> {
                     // canceled as well.
                     return;
                 }
-                ConsumerWait | ConsumerNotify | ProducerNotify | ProducerNotifyCanceled => {
+                ConsumerWait | ConsumerNotify | ConsumerNotifyProducerWait | ProducerNotify | ProducerNotifyCanceled => {
                     panic!("invalid state {:?}", curr.lifecycle())
                 }
             };
@@ -622,7 +625,7 @@ impl<T: Send, E: Send> CoreInner<T, E> {
                 ConsumerWait => {
                     curr.with_lifecycle(Ready)
                 }
-                ProducerWait | ProducerNotify | ProducerNotifyCanceled | ConsumerNotify | Ready | ReadyProducerWait => {
+                ProducerWait | ProducerNotify | ProducerNotifyCanceled | ConsumerNotify | ConsumerNotifyProducerWait | Ready | ReadyProducerWait => {
                     panic!("invalid state {:?}", curr.lifecycle())
                 }
             };
@@ -718,6 +721,9 @@ impl<T: Send, E: Send> CoreInner<T, E> {
             let next = match curr.lifecycle() {
                 Ready | ConsumerNotify => {
                     curr.with_lifecycle(New)
+                }
+                ConsumerNotifyProducerWait => {
+                    curr.with_lifecycle(ProducerWait)
                 }
                 ReadyProducerWait => {
                     curr.with_lifecycle(ProducerWait)
@@ -910,7 +916,7 @@ impl State {
 
     fn is_ready(&self) -> bool {
         match self.lifecycle() {
-            Ready | ReadyProducerWait => true,
+            Ready | ReadyProducerWait | ConsumerNotify | ConsumerNotifyProducerWait => true,
             _ => false,
         }
     }
@@ -928,7 +934,7 @@ impl State {
 
     fn is_consumer_notify(&self) -> bool {
         match self.lifecycle() {
-            ConsumerNotify => true,
+            ConsumerNotify | ConsumerNotifyProducerWait => true,
             _ => false,
         }
     }
@@ -981,8 +987,11 @@ enum Lifecycle {
     ProducerNotifyCanceled = 6,
     // Call consumer callback again once current callback returns
     ConsumerNotify = 7,
+    // Call consumer callback again once current callback returns and
+    // transition to ProducerWait
+    ConsumerNotifyProducerWait = 8,
     // FINAL - The future has been canceled
-    Canceled = 8,
+    Canceled = 9,
 }
 
 #[cfg(test)]
