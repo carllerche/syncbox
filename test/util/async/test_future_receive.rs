@@ -268,3 +268,17 @@ pub fn test_producer_fail_consumer_receive() {
 #[test]
 pub fn test_panic_cancels_future() {
 }
+
+#[test]
+pub fn test_ready_fn_does_nothing() {
+    let (complete, future) = Future::<i32, &'static str>::pair();
+    let (tx, rx) = channel();
+
+    future.ready(move |_| {
+        println!("Future ready");
+        tx.send("done").unwrap();
+    });
+
+    complete.complete(123);
+    assert_eq!("done", rx.recv().unwrap());
+}
