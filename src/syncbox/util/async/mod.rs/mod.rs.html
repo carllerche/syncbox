@@ -509,6 +509,13 @@
 <span id="467">467</span>
 <span id="468">468</span>
 <span id="469">469</span>
+<span id="470">470</span>
+<span id="471">471</span>
+<span id="472">472</span>
+<span id="473">473</span>
+<span id="474">474</span>
+<span id="475">475</span>
+<span id="476">476</span>
 </pre><pre class='rust '>
 <span class='doccomment'>//! Composable primitives for asynchronous computations</span>
 <span class='doccomment'>//!</span>
@@ -636,6 +643,8 @@
         });
     }
 
+    <span class='doccomment'>/// Blocks the thread until the async value is complete and returns the</span>
+    <span class='doccomment'>/// result.</span>
     <span class='kw'>fn</span> <span class='ident'>await</span>(<span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>AsyncResult</span><span class='op'>&lt;</span><span class='ident'>Self</span>::<span class='ident'>Value</span>, <span class='ident'>Self</span>::<span class='ident'>Error</span><span class='op'>&gt;</span> {
         <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::<span class='ident'>mpsc</span>::<span class='ident'>channel</span>;
 
@@ -643,6 +652,11 @@
 
         <span class='self'>self</span>.<span class='ident'>receive</span>(<span class='kw'>move</span> <span class='op'>|</span><span class='ident'>res</span><span class='op'>|</span> <span class='ident'>tx</span>.<span class='ident'>send</span>(<span class='ident'>res</span>).<span class='ident'>ok</span>().<span class='ident'>expect</span>(<span class='string'>&quot;receiver thread died&quot;</span>));
         <span class='ident'>rx</span>.<span class='ident'>recv</span>().<span class='ident'>ok</span>().<span class='ident'>expect</span>(<span class='string'>&quot;async disappeared without a trace&quot;</span>)
+    }
+
+    <span class='doccomment'>/// Trigger the computation without waiting for the result</span>
+    <span class='kw'>fn</span> <span class='ident'>fire</span>(<span class='self'>self</span>) {
+        <span class='self'>self</span>.<span class='ident'>receive</span>(<span class='ident'>drop</span>)
     }
 
     <span class='comment'>/*
