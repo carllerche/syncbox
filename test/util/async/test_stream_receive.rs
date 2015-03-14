@@ -244,7 +244,7 @@ pub fn test_complete_during_consumer_receive() {
 
                 rest.receive(move |res| {
                     match res.unwrap() {
-                        Some((v, rest)) => {
+                        Some((v, _)) => {
                             assert_eq!(v, 2);
                             tx.send("done").unwrap();
                         }
