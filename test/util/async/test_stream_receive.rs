@@ -189,10 +189,10 @@ pub fn test_stream_send_then_done_before_receive() {
 
 #[test]
 pub fn test_recursive_receive() {
-    let (gen, s) = Stream::<uint, ()>::pair();
+    let (gen, s) = Stream::<i32, ()>::pair();
     let (tx, rx) = channel();
 
-    fn consume(s: Stream<uint, ()>, tx: mpsc::Sender<uint>) {
+    fn consume(s: Stream<i32, ()>, tx: mpsc::Sender<i32>) {
         debug!(" ~~~~ CONSUME ENTER ~~~~~ ");
         s.receive(move |res| {
             debug!(" ~~~ CONSUME CALLBACK ENTER ~~~~~ ");
@@ -205,7 +205,7 @@ pub fn test_recursive_receive() {
         debug!(" ~~~~ CONSUME EXIT ~~~~~ ");
     }
 
-    fn produce(p: Sender<uint, ()>, n: uint) {
+    fn produce(p: Sender<i32, ()>, n: i32) {
         debug!(" ~~~~ PRODUCE ENTER ~~~~~ ");
         if n > 20_000 {
             return;
@@ -222,7 +222,7 @@ pub fn test_recursive_receive() {
     produce(gen, 1);
 
     debug!(" ~~~~~ BLOCKING ~~~~~~");
-    let vals: Vec<uint> = rx.iter().collect();
+    let vals: Vec<i32> = rx.iter().collect();
     assert_eq!(vals.len(), 20_000);
 }
 

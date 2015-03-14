@@ -5,7 +5,7 @@ use syncbox::util::async::*;
 pub fn test_await_in_receive() {
     debug!("starting");
 
-    let (tx, rx) = Stream::<uint, ()>::pair();
+    let (tx, rx) = Stream::<i32, ()>::pair();
 
     rx.receive(move |res| {
         if let Some((_, rest)) = res.unwrap() {
@@ -16,7 +16,7 @@ pub fn test_await_in_receive() {
         }
     });
 
-    fn produce(tx: Sender<uint, ()>, n: uint) {
+    fn produce(tx: Sender<i32, ()>, n: i32) {
         if n > 100_000 { return; }
 
         tx.receive(move |res| {

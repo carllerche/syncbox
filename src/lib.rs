@@ -3,8 +3,6 @@
 #![crate_name = "syncbox"]
 
 // Enable some features
-#![feature(int_uint)]
-#![feature(unboxed_closures)]
 #![feature(unsafe_destructor)]
 #![feature(unsafe_no_drop_flag)]
 

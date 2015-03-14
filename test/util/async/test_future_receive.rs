@@ -143,7 +143,7 @@ pub fn test_producer_receive_when_consumer_waiting() {
     assert_eq!(f.await().unwrap(), "done");
 }
 
-fn waiting(count: uint, d: Arc<AtomicUsize>, c: Complete<&'static str, ()>) {
+fn waiting(count: u32, d: Arc<AtomicUsize>, c: Complete<&'static str, ()>) {
     // Assert that the callback is not invoked recursively
     assert_eq!(0, d.fetch_add(1, Relaxed));
 
@@ -179,7 +179,7 @@ pub fn test_producer_await_when_consumer_receive() {
 
 #[test]
 pub fn test_canceling_future_before_producer_receive() {
-    let (c, f) = Future::<uint, ()>::pair();
+    let (c, f) = Future::<i32, ()>::pair();
     let (tx, rx) = channel();
 
     drop(f);
@@ -199,7 +199,7 @@ pub fn test_canceling_future_before_producer_receive() {
 
 #[test]
 pub fn test_canceling_future_before_producer_await() {
-    let (c, f) = Future::<uint, ()>::pair();
+    let (c, f) = Future::<i32, ()>::pair();
 
     drop(f);
 
@@ -208,7 +208,7 @@ pub fn test_canceling_future_before_producer_await() {
 
 #[test]
 pub fn test_canceling_future_after_producer_receive() {
-    let (c, f) = Future::<uint, ()>::pair();
+    let (c, f) = Future::<i32, ()>::pair();
     let (tx, rx) = channel();
 
     c.receive(move |c| {
@@ -222,7 +222,7 @@ pub fn test_canceling_future_after_producer_receive() {
 
 #[test]
 pub fn test_canceling_future_after_producer_await() {
-    let (c, f) = Future::<uint, ()>::pair();
+    let (c, f) = Future::<i32, ()>::pair();
     let (tx, rx) = channel();
 
     spawn(move || {
@@ -238,7 +238,7 @@ pub fn test_canceling_future_after_producer_await() {
 
 #[test]
 pub fn test_canceling_producer_then_receive() {
-    let (c, f) = Future::<uint, ()>::pair();
+    let (c, f) = Future::<i32, ()>::pair();
     let (tx, rx) = channel();
 
     drop(c);
@@ -253,7 +253,7 @@ pub fn test_canceling_producer_then_receive() {
 
 #[test]
 pub fn test_producer_fail_consumer_receive() {
-    let (c, f) = Future::<uint, &'static str>::pair();
+    let (c, f) = Future::<i32, &'static str>::pair();
 
     spawn(move || {
         sleep(50);

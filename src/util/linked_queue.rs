@@ -356,13 +356,13 @@ mod test {
         assert_eq!(0, q.len());
 
         // Put a value
-        q.put(1u);
+        q.put(1);
 
         // Check the length again
         assert_eq!(1, q.len());
 
         // Remove the value
-        assert_eq!(1u, q.take());
+        assert_eq!(1, q.take());
 
         // Check the length
         assert_eq!(0, q.len());
@@ -379,7 +379,7 @@ mod test {
         thread::spawn(move || {
             sleep(millis(10));
 
-            for i in range(0, 10_000u) {
+            for i in range(0, 10_000) {
                 p.put(i);
             }
         });
@@ -395,13 +395,13 @@ mod test {
     pub fn test_single_consumer_multi_producer() {
         let c = LinkedQueue::new();
 
-        for t in range(0, 10u) {
+        for t in range(0, 10) {
             let p = c.clone();
 
             thread::spawn(move || {
                 sleep(millis(10));
 
-                for i in range(0, 10_000u) {
+                for i in range(0, 10_000) {
                     p.put((t, i));
                 }
             });
@@ -409,7 +409,7 @@ mod test {
 
         let mut vals = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 
-        for _ in range(0, 10 * 10_000u) {
+        for _ in range(0, 10 * 10_000) {
             let (t, v) = c.take();
             assert_eq!(vals[t], v);
             vals[t] += 1;
@@ -422,13 +422,13 @@ mod test {
         let results = LinkedQueue::new();
 
         // Producers
-        for t in range(0, 5u) {
+        for t in range(0, 5) {
             let producer = queue.clone();
 
             thread::spawn(move || {
                 sleep(Duration::milliseconds(10));
 
-                for i in range(1, 1_000u) {
+                for i in range(1, 1_000) {
                     producer.put((t, i));
                     thread::yield_now();
                 }
@@ -439,7 +439,7 @@ mod test {
         }
 
         // Consumers
-        for _ in range(0, 5u) {
+        for _ in range(0, 5) {
             let consumer = queue.clone();
             let results = results.clone();
 
@@ -450,7 +450,7 @@ mod test {
                 loop {
                     let (t, v) = consumer.take();
 
-                    if v > 1_000u {
+                    if v > 1_000 {
                         break;
                     }
 
@@ -467,7 +467,7 @@ mod test {
 
         let mut all_vals = vec![];
 
-        for _ in range(0, 5u) {
+        for _ in range(0, 5) {
             let vals = results.take();
 
             // TODO: Figure out this assertion
@@ -496,7 +496,7 @@ mod test {
     pub fn test_queue_with_capacity() {
         let queue = LinkedQueue::with_capacity(8);
 
-        for i in range(0, 8u) {
+        for i in range(0, 8) {
             assert!(queue.offer(i).is_ok());
         }
 
@@ -505,7 +505,7 @@ mod test {
 
         assert!(queue.offer(8).is_ok());
 
-        for i in range(1, 9u) {
+        for i in range(1, 9) {
             assert_eq!(Some(i), queue.poll());
         }
     }
@@ -514,22 +514,22 @@ mod test {
     pub fn test_multi_producer_at_capacity() {
         let queue = LinkedQueue::with_capacity(8);
 
-        for _ in range(0, 8u) {
+        for _ in range(0, 8) {
             let queue = queue.clone();
 
             thread::spawn(move || {
-                for i in range(0, 1_000u) {
+                for i in range(0, 1_000) {
                     queue.put(i);
                 }
             });
         }
 
-        for _ in range(0, 8 * 1_000u) {
+        for _ in range(0, 8 * 1_000) {
             queue.take();
         }
     }
 
-    fn millis(num: uint) -> Duration {
+    fn millis(num: usize) -> Duration {
         Duration::milliseconds(num as i64)
     }
 }

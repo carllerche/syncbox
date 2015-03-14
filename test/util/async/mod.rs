@@ -50,7 +50,7 @@ mod test_stream_take;
  *
  */
 
-fn nums(from: uint, to: uint) -> Stream<uint, ()> {
+fn nums(from: i32, to: i32) -> Stream<i32, ()> {
     Future::lazy(move || {
         debug!("range tick; from={}", from);
 
@@ -67,7 +67,7 @@ fn spawn<F: FnOnce() + Send + 'static>(f: F) {
     thread::spawn(f);
 }
 
-fn sleep(ms: uint) {
+fn sleep(ms: i32) {
     use std::old_io::timer::sleep;
     use std::time::Duration;
     sleep(Duration::milliseconds(ms as i64));

@@ -109,7 +109,7 @@ pub fn test_producer_await_when_consumer_await() {
 
 #[test]
 pub fn test_producer_fail_before_consumer_await() {
-    let (c, f) = Future::<uint, &'static str>::pair();
+    let (c, f) = Future::<i32, &'static str>::pair();
 
     c.fail("nope");
 
@@ -120,7 +120,7 @@ pub fn test_producer_fail_before_consumer_await() {
 
 #[test]
 pub fn test_producer_drops_before_consumer_await() {
-    let (c, f) = Future::<uint, ()>::pair();
+    let (c, f) = Future::<i32, ()>::pair();
 
     drop(c);
 
@@ -130,7 +130,7 @@ pub fn test_producer_drops_before_consumer_await() {
 
 #[test]
 pub fn test_producer_drops_after_consumer_await() {
-    let (c, f) = Future::<uint, ()>::pair();
+    let (c, f) = Future::<i32, ()>::pair();
 
     spawn(move || {
         sleep(50);

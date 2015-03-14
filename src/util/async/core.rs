@@ -1001,6 +1001,6 @@ mod test {
 
     #[test]
     pub fn test_struct_sizes() {
-        assert_eq!(mem::size_of::<State>(), mem::size_of::<uint>());
+        assert_eq!(mem::size_of::<State>(), mem::size_of::<usize>());
     }
 }

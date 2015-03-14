@@ -747,7 +747,7 @@ mod test {
         }
     }
 
-    fn sleep(ms: uint) {
+    fn sleep(ms: usize) {
         use std::old_io::timer::sleep;
         use std::time::Duration;
         sleep(Duration::milliseconds(ms as i64));

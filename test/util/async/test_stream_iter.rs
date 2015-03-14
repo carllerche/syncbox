@@ -4,7 +4,7 @@ use syncbox::util::async::*;
 pub fn test_stream_iter_async_producer() {
     let (tx, rx) = Stream::pair();
 
-    fn gen(tx: Sender<uint, ()>, i: uint) {
+    fn gen(tx: Sender<i32, ()>, i: i32) {
         tx.receive(move |res| {
             let tx = res.unwrap();
 
@@ -18,6 +18,6 @@ pub fn test_stream_iter_async_producer() {
 
     gen(tx, 0);
 
-    let vals: Vec<uint> = rx.iter().collect();
+    let vals: Vec<i32> = rx.iter().collect();
     assert_eq!([0, 1, 2, 3, 4].as_slice(), vals.as_slice());
 }
