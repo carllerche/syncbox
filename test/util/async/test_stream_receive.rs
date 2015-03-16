@@ -228,8 +228,6 @@ pub fn test_recursive_receive() {
 
 #[test]
 pub fn test_complete_during_consumer_receive() {
-    ::env_logger::init().unwrap();
-
     let (sender, stream) = Stream::<i32, ()>::pair();
     let (tx, rx) = channel();
 

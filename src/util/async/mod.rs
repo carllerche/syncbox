@@ -51,6 +51,7 @@ pub use self::stream::{Stream, StreamIter, Sender, BusySender};
 pub use self::join::{join, Join};
 pub use self::receipt::Receipt;
 pub use self::select::{select, Select};
+pub use self::sequence::sequence;
 
 use util::Run;
 
@@ -71,6 +72,7 @@ mod future;
 mod join;
 mod receipt;
 mod select;
+mod sequence;
 mod stream;
 
 /// A value representing an asynchronous computation

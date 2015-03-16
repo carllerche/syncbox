@@ -34,6 +34,9 @@ mod test_join;
 // == Select tests ==
 mod test_select;
 
+// == Sequence tests ==
+mod test_sequence;
+
 // == Stream tests ==
 mod test_stream_await;
 mod test_stream_cancel;

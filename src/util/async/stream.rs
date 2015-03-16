@@ -284,6 +284,13 @@ impl<T: Send, E: Send> Sender<T, E> {
         core::take(&mut self.core).complete(Err(AsyncError::wrap(err)), true);
     }
 
+    /// Fails the paired `Stream` with a cancellation error. This will
+    /// eventually go away when carllerche/syncbox#10 lands. It is currently
+    /// needed to keep the state correct (see async::sequence)
+    pub fn cancel(mut self) {
+        core::take(&mut self.core).complete(Err(AsyncError::canceled()), true);
+    }
+
     /*
      *
      * ===== Internal Helpers =====
