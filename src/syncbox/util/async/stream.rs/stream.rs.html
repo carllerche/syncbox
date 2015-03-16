@@ -526,6 +526,13 @@
 <span id="484">484</span>
 <span id="485">485</span>
 <span id="486">486</span>
+<span id="487">487</span>
+<span id="488">488</span>
+<span id="489">489</span>
+<span id="490">490</span>
+<span id="491">491</span>
+<span id="492">492</span>
+<span id="493">493</span>
 </pre><pre class='rust '>
 <span class='kw'>use</span> <span class='ident'>util</span>::<span class='ident'>async</span>::{
     <span class='self'>self</span>,
@@ -811,6 +818,13 @@
 
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>fail</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>err</span>: <span class='ident'>E</span>) {
         <span class='ident'>core</span>::<span class='ident'>take</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.<span class='ident'>core</span>).<span class='ident'>complete</span>(<span class='prelude-val'>Err</span>(<span class='ident'>AsyncError</span>::<span class='ident'>wrap</span>(<span class='ident'>err</span>)), <span class='boolval'>true</span>);
+    }
+
+    <span class='doccomment'>/// Fails the paired `Stream` with a cancellation error. This will</span>
+    <span class='doccomment'>/// eventually go away when carllerche/syncbox#10 lands. It is currently</span>
+    <span class='doccomment'>/// needed to keep the state correct (see async::sequence)</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>cancel</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>) {
+        <span class='ident'>core</span>::<span class='ident'>take</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.<span class='ident'>core</span>).<span class='ident'>complete</span>(<span class='prelude-val'>Err</span>(<span class='ident'>AsyncError</span>::<span class='ident'>canceled</span>()), <span class='boolval'>true</span>);
     }
 
     <span class='comment'>/*
