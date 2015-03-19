@@ -14,7 +14,7 @@ pub fn test_or_first_success_async() {
     });
 
     c2.receive(move |res| {
-        if let Err(AsyncError::CancellationError) = res {
+        if let Err(AsyncError::Aborted) = res {
             tx2.send("winning").unwrap();
         }
     });

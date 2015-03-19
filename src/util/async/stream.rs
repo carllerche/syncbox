@@ -84,7 +84,7 @@ impl<T: Send, E: Send> Stream<T, E> {
                 Ok(None) => {
                     complete.complete(());
                 }
-                Err(AsyncError::ExecutionError(e)) => {
+                Err(AsyncError::Failed(e)) => {
                     complete.fail(e);
                 }
                 _ => {}
@@ -119,8 +119,8 @@ impl<T: Send, E: Send> Stream<T, E> {
                     });
                 }
                 Ok(None) => {}
-                Err(AsyncError::ExecutionError(e)) => sender.fail(e),
-                Err(AsyncError::CancellationError) => sender.cancel(),
+                Err(AsyncError::Failed(e)) => sender.fail(e),
+                Err(AsyncError::Aborted) => sender.cancel(),
             }
         });
     }
@@ -142,8 +142,8 @@ impl<T: Send, E: Send> Stream<T, E> {
             match head {
                 Ok(Some((v, rest))) => rest.do_reduce(complete, f(curr, v), f),
                 Ok(None) => complete.complete(curr),
-                Err(AsyncError::ExecutionError(e)) => complete.fail(e),
-                Err(AsyncError::CancellationError) => drop(complete),
+                Err(AsyncError::Failed(e)) => complete.fail(e),
+                Err(AsyncError::Aborted) => drop(complete),
             }
         });
     }
@@ -168,8 +168,8 @@ impl<T: Send, E: Send> Stream<T, E> {
                             rest.do_take(n - 1, sender.send(v));
                         }
                         Ok(None) => {}
-                        Err(AsyncError::ExecutionError(e)) => sender.fail(e),
-                        Err(AsyncError::CancellationError) => sender.cancel(),
+                        Err(AsyncError::Failed(e)) => sender.fail(e),
+                        Err(AsyncError::Aborted) => sender.cancel(),
                     }
                 });
             }
@@ -323,14 +323,14 @@ impl<T: Send, E: Send> Sender<T, E> {
     }
 
     pub fn fail(mut self, err: E) {
-        core::take(&mut self.core).complete(Err(AsyncError::wrap(err)), true);
+        core::take(&mut self.core).complete(Err(AsyncError::failed(err)), true);
     }
 
     /// Fails the paired `Stream` with a cancellation error. This will
     /// eventually go away when carllerche/syncbox#10 lands. It is currently
     /// needed to keep the state correct (see async::sequence)
     pub fn cancel(mut self) {
-        core::take(&mut self.core).complete(Err(AsyncError::canceled()), true);
+        core::take(&mut self.core).complete(Err(AsyncError::aborted()), true);
     }
 
     /*

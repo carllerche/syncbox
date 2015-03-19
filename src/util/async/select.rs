@@ -1,12 +1,10 @@
 #![allow(unused_assignments)]
 
-use super::{Async, Future, Complete, Cancel};
+use super::{Async, Future, Complete, Cancel, AsyncError};
 use util::atomic::{self, AtomicU64, Ordering};
 use std::cell::UnsafeCell;
 use std::sync::Arc;
 use std::{fmt, u32};
-
-use super::AsyncError::ExecutionError;
 
 pub fn select<S: Select<E>, E: Send>(asyncs: S) -> Future<(u32, S), E> {
     let (complete, res) = Future::pair();
@@ -106,7 +104,7 @@ impl<V: Values<S, E>, S: Select<E>, E: Send> Selection<V, S, E> {
                 let complete = self.core_mut().complete.take()
                     .expect("result future previously completed");
 
-                if let Err(ExecutionError(e)) = async.expect() {
+                if let Err(AsyncError::Failed(e)) = async.expect() {
                     debug!("execution error");
                     complete.fail(e);
                 }

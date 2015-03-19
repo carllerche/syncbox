@@ -114,7 +114,7 @@ pub fn test_producer_fail_before_consumer_await() {
     c.fail("nope");
 
     let err = f.await().unwrap_err();
-    assert!(err.is_execution_error());
+    assert!(err.is_failed());
     assert_eq!(err.unwrap(), "nope");
 }
 
@@ -125,7 +125,7 @@ pub fn test_producer_drops_before_consumer_await() {
     drop(c);
 
     let err = f.await().unwrap_err();
-    assert!(err.is_cancellation());
+    assert!(err.is_aborted());
 }
 
 #[test]
@@ -138,5 +138,5 @@ pub fn test_producer_drops_after_consumer_await() {
     });
 
     let err = f.await().unwrap_err();
-    assert!(err.is_cancellation());
+    assert!(err.is_aborted());
 }

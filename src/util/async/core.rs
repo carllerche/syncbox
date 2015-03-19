@@ -434,7 +434,7 @@ impl<T: Send, E: Send> CoreInner<T, E> {
         }
 
         if curr.is_canceled() {
-            return Some(Err(AsyncError::canceled()));
+            return Some(Err(AsyncError::aborted()));
         }
 
         Some(Ok(self.core()))

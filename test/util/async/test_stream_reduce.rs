@@ -1,6 +1,5 @@
 use syncbox::util::async::*;
 use super::nums;
-use syncbox::util::async::AsyncError::{ExecutionError};
 
 #[test]
 pub fn test_stream_reduce_async() {
@@ -18,5 +17,5 @@ pub fn test_stream_reduce_fail() {
         .fire();
 
     let reduced = rx.reduce(0, move |sum, v| sum + v);
-    assert_eq!(Err(ExecutionError(())), reduced.await());
+    assert_eq!(Err(AsyncError::Failed(())), reduced.await());
 }

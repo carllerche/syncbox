@@ -149,7 +149,7 @@ impl<A: Async> Inner<A> {
 
                 // Annoying but currently needed
                 match e {
-                    AsyncError::ExecutionError(e) => sender.fail(e),
+                    AsyncError::Failed(e) => sender.fail(e),
                     _ => sender.cancel(),
                 }
             }

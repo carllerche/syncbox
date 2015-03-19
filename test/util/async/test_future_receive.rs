@@ -187,7 +187,7 @@ pub fn test_canceling_future_before_producer_receive() {
     c.receive(move |c| {
         // TODO: Clean this up https://github.com/rust-lang/rfcs/pull/565#issuecomment-71090271
         match c {
-            Err(e) => assert!(e.is_cancellation()),
+            Err(e) => assert!(e.is_aborted()),
             _ => panic!("nope"),
         }
 
@@ -261,7 +261,7 @@ pub fn test_producer_fail_consumer_receive() {
     });
 
     let err = f.await().unwrap_err();
-    assert!(err.is_execution_error());
+    assert!(err.is_failed());
     assert_eq!(err.unwrap(), "nope");
 }
 

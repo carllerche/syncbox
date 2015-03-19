@@ -54,9 +54,7 @@ pub use self::select::{select, Select};
 pub use self::sequence::sequence;
 
 use util::Run;
-
 use std::fmt;
-use self::AsyncError::*;
 
 // ## TODO
 //
@@ -172,12 +170,14 @@ pub trait Async : Send + Sized {
     ///
     /// ```
     /// use syncbox::util::async::*;
-    /// use syncbox::util::async::AsyncError::*;
     /// let f = Future::of(1337);
     /// f.and_then(|v| { assert_eq!(v, 1337); Ok(1007) }).and_then(|v| assert_eq!(v, 1007)).await();
     ///
     /// let e = Future::error("failed");
-    /// e.or_else(|e| { assert_eq!(e, ExecutionError("failed")); Ok(1337) }).await();
+    /// e.or_else(|e| {
+    ///     assert_eq!(e, AsyncError::Failed("failed"));
+    ///     Ok(1337)
+    /// }).await();
     /// ```
     fn and_then<F, U: Async<Error=Self::Error>>(self, f: F) -> Future<U::Value, Self::Error>
             where F: FnOnce(Self::Value) -> U + Send,
@@ -192,12 +192,12 @@ pub trait Async : Send + Sized {
                             f(v).receive(move |res| {
                                 match res {
                                     Ok(u) => complete.complete(u),
-                                    Err(ExecutionError(e)) => complete.fail(e),
+                                    Err(AsyncError::Failed(e)) => complete.fail(e),
                                     _ => {}
                                 }
                             });
                         }
-                        Err(ExecutionError(e)) => complete.fail(e),
+                        Err(AsyncError::Failed(e)) => complete.fail(e),
                         _ => {}
                     }
                 });
@@ -245,7 +245,7 @@ pub trait Async : Send + Sized {
                             f(e).receive(move |res| {
                                 match res {
                                     Ok(v) => complete.complete(v),
-                                    Err(ExecutionError(e)) => complete.fail(e),
+                                    Err(AsyncError::Failed(e)) => complete.fail(e),
                                     _ => {}
                                 }
                             });
@@ -381,43 +381,43 @@ pub type AsyncResult<T, E> = Result<T, AsyncError<E>>;
 
 #[derive(Eq, PartialEq)]
 pub enum AsyncError<E: Send> {
-    ExecutionError(E),
-    CancellationError,
+    Failed(E),
+    Aborted,
 }
 
 impl<E: Send> AsyncError<E> {
-    pub fn wrap(err: E) -> AsyncError<E> {
-        AsyncError::ExecutionError(err)
+    pub fn failed(err: E) -> AsyncError<E> {
+        AsyncError::Failed(err)
     }
 
-    pub fn canceled() -> AsyncError<E> {
-        AsyncError::CancellationError
+    pub fn aborted() -> AsyncError<E> {
+        AsyncError::Aborted
     }
 
-    pub fn is_cancellation(&self) -> bool {
+    pub fn is_aborted(&self) -> bool {
         match *self {
-            AsyncError::CancellationError => true,
+            AsyncError::Aborted => true,
             _ => false,
         }
     }
 
-    pub fn is_execution_error(&self) -> bool {
+    pub fn is_failed(&self) -> bool {
         match *self {
-            AsyncError::ExecutionError(..) => true,
+            AsyncError::Failed(..) => true,
             _ => false,
         }
     }
 
     pub fn unwrap(self) -> E {
         match self {
-            AsyncError::ExecutionError(err) => err,
-            AsyncError::CancellationError => panic!("unwrapping a cancellation error"),
+            AsyncError::Failed(err) => err,
+            AsyncError::Aborted => panic!("unwrapping a cancellation error"),
         }
     }
 
     pub fn take(self) -> Option<E> {
         match self {
-            AsyncError::ExecutionError(err) => Some(err),
+            AsyncError::Failed(err) => Some(err),
             _ => None,
         }
     }
@@ -426,8 +426,8 @@ impl<E: Send> AsyncError<E> {
 impl<E: Send + fmt::Debug> fmt::Debug for AsyncError<E> {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            AsyncError::ExecutionError(ref e) => write!(fmt, "ExecutionError({:?})", e),
-            AsyncError::CancellationError => write!(fmt, "CancellationError"),
+            AsyncError::Failed(ref e) => write!(fmt, "AsyncError::Failed({:?})", e),
+            AsyncError::Aborted => write!(fmt, "AsyncError::Aborted"),
         }
     }
 }

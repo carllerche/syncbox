@@ -48,19 +48,18 @@ impl<T: Send, E: Send> Future<T, E> {
     ///
     /// ```
     /// use syncbox::util::async::*;
-    /// use syncbox::util::async::AsyncError::*;
     ///
     /// Future::error("hi").or_else(|err| {
     ///     match err {
-    ///         ExecutionError(e) => assert!(e == "hi"),
-    ///         CancellationError => unreachable!()
+    ///         AsyncError::Failed(e) => assert!(e == "hi"),
+    ///         AsyncError::Aborted => unreachable!()
     ///     }
     ///
     ///     Ok(())
     /// });
     /// ```
     pub fn error(err: E) -> Future<T, E> {
-        let core = Core::with_value(Err(AsyncError::wrap(err)));
+        let core = Core::with_value(Err(AsyncError::failed(err)));
         Future { core: Some(core) }
     }
 
@@ -68,19 +67,18 @@ impl<T: Send, E: Send> Future<T, E> {
     ///
     /// ```
     /// use syncbox::util::async::*;
-    /// use syncbox::util::async::AsyncError::*;
     ///
     /// Future::<&'static str, ()>::canceled().or_else(|err| {
     ///     match err {
-    ///         ExecutionError(e) => unreachable!(),
-    ///         CancellationError => assert!(true)
+    ///         AsyncError::Failed(e) => unreachable!(),
+    ///         AsyncError::Aborted => assert!(true)
     ///     }
     ///
     ///     Ok("handled")
     /// });
     /// ```
     pub fn canceled() -> Future<T, E> {
-        let core = Core::with_value(Err(AsyncError::canceled()));
+        let core = Core::with_value(Err(AsyncError::aborted()));
         Future { core: Some(core) }
     }
 
@@ -263,7 +261,6 @@ impl<T: Send, E: Send> Cancel<Future<T, E>> for Receipt<Future<T, E>> {
 ///
 /// ```
 /// use syncbox::util::async::*;
-/// use syncbox::util::async::AsyncError::*;
 ///
 /// let (tx, future) = Future::<u32, &'static str>::pair();
 ///
@@ -279,8 +276,8 @@ impl<T: Send, E: Send> Cancel<Future<T, E>> for Receipt<Future<T, E>> {
 ///
 /// future.or_else(|err| {
 ///     match err {
-///         CancellationError => unreachable!(),
-///         ExecutionError(err) => assert!(err == "failed")
+///         AsyncError::Failed(err) => assert!(err == "failed"),
+///         AsyncError::Aborted => unreachable!(),
 ///     }
 ///
 ///     Ok(123)
@@ -299,9 +296,9 @@ impl<T: Send, E: Send> Complete<T, E> {
     }
 
     /// Reject the associated promise with an error. The error
-    /// will be wrapped in an `ExecutionError`.
+    /// will be wrapped in `Async::Error::Failed`.
     pub fn fail(mut self, err: E) {
-        core::take(&mut self.core).complete(Err(AsyncError::wrap(err)), true);
+        core::take(&mut self.core).complete(Err(AsyncError::failed(err)), true);
     }
 
     pub fn is_ready(&self) -> bool {
@@ -372,7 +369,7 @@ impl<T: Send, E: Send> Drop for Complete<T, E> {
     fn drop(&mut self) {
         if self.core.is_some() {
             debug!("Complete::drop -- canceling future");
-            core::take(&mut self.core).complete(Err(AsyncError::canceled()), true);
+            core::take(&mut self.core).complete(Err(AsyncError::aborted()), true);
         }
     }
 }

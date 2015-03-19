@@ -74,7 +74,7 @@ impl<P: Partial<R>, R: Send, E: Send> Progress<P, R, E> {
             // If not an execution error, it is a cancellation error, in which
             // case, our complete will go out of scope and propagate up a
             // cancellation.
-            if let AsyncError::ExecutionError(e) = err {
+            if let AsyncError::Failed(e) = err {
                 complete.fail(e);
             }
         }

@@ -69,7 +69,7 @@ pub fn test_sequencing_failed_future() {
 
     seq.receive(move |res| {
         match res {
-            Err(AsyncError::ExecutionError(_)) => tx.send("win").unwrap(),
+            Err(AsyncError::Failed(_)) => tx.send("win").unwrap(),
             v => panic!("unexpected value {:?}", v),
         }
     });
