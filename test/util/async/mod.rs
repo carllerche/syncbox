@@ -40,11 +40,13 @@ mod test_sequence;
 // == Stream tests ==
 mod test_stream_await;
 mod test_stream_cancel;
+mod test_stream_collect;
+mod test_stream_each;
+mod test_stream_filter;
 mod test_stream_iter;
 mod test_stream_map;
 mod test_stream_receive;
 mod test_stream_reduce;
-mod test_stream_collect;
 mod test_stream_take;
 
 /*

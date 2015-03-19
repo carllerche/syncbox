@@ -92,10 +92,41 @@ impl<T: Send, E: Send> Stream<T, E> {
         });
     }
 
-    pub fn filter<F: Fn(&T) -> bool + Send>(self, _f: F) -> Stream<T, E> {
-        unimplemented!();
+    /// Returns a new stream containing the values of the original stream that
+    /// match the given predicate.
+    pub fn filter<F: Fn(&T) -> bool + Send>(self, f: F) -> Stream<T, E> {
+        let (sender, stream) = Stream::pair();
+        self.do_filter(f, sender);
+        stream
     }
 
+    fn do_filter<F, A>(self, f: F, sender: A)
+            where F: Fn(&T) -> bool + Send,
+                  A: Async<Value=Sender<T, E>> {
+
+        // Wait for the consumer to express interest
+        sender.receive(move |res| {
+            if let Ok(sender) = res {
+                self.receive(move |head| {
+                    match head {
+                        Ok(Some((v, rest))) => {
+                            if f(&v) {
+                                rest.do_filter(f, sender.send(v));
+                            } else {
+                                rest.do_filter(f, sender);
+                            }
+                        }
+                        Ok(None) => {}
+                        Err(AsyncError::Failed(e)) => sender.fail(e),
+                        Err(AsyncError::Aborted) => sender.abort(),
+                    }
+                });
+            }
+        });
+    }
+
+    /// Returns a new stream representing the application of the specified
+    /// function to each value of the original stream.
     pub fn map<F: Fn(T) -> U + Send, U: Send>(self, f: F) -> Stream<U, E> {
         let (sender, ret) = Stream::pair();
 
@@ -125,6 +156,12 @@ impl<T: Send, E: Send> Stream<T, E> {
         });
     }
 
+    /// Aggregate all the values of the stream by applying the given function
+    /// to each value and the result of the previous application. The first
+    /// iteration is seeded with the given initial value.
+    ///
+    /// Returns a future that will be completed with the result of the final
+    /// iteration.
     pub fn reduce<F: Fn(U, T) -> U + Send, U: Send>(self, init: U, f: F) -> Future<U, E> {
         let (sender, ret) = Future::pair();
 
@@ -148,6 +185,8 @@ impl<T: Send, E: Send> Stream<T, E> {
         });
     }
 
+    /// Returns a stream representing the `n` first values of the original
+    /// stream.
     pub fn take(self, n: u64) -> Stream<T, E> {
         let (sender, stream) = Stream::pair();
 
