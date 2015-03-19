@@ -49,11 +49,6 @@ impl<T: Send, E: Send> Core<T, E> {
     pub fn consumer_await(&self) -> AsyncResult<T, E> {
         debug!("Core::consumer_await");
 
-        // Ensure not already consuming
-        if self.inner().state.load(Relaxed).is_invoking_consumer() {
-            panic!("cannot block thread when in a callback");
-        }
-
         let th = thread::current();
         self.inner().consumer_ready(move |_| th.unpark());
 
@@ -88,11 +83,6 @@ impl<T: Send, E: Send> Core<T, E> {
 
     pub fn producer_await(&self) {
         debug!("Core::producer_await");
-
-        // Ensure not already producing
-        if self.inner().state.load(Relaxed).is_invoking_producer() {
-            panic!("cannot block thread when in a callback");
-        }
 
         let th = thread::current();
 
