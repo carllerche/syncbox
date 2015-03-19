@@ -59,6 +59,8 @@ impl<T: Send, E: Send> Stream<T, E> {
      *
      */
 
+    /// Sequentially yields each value to the supplied function. Returns a
+    /// future representing the completion of the final yield.
     pub fn each<F: Fn(T) + Send>(self, f: F) -> Future<(), E> {
         let (complete, ret) = Future::pair();
 
@@ -95,15 +97,32 @@ impl<T: Send, E: Send> Stream<T, E> {
     }
 
     pub fn map<F: Fn(T) -> U + Send, U: Send>(self, f: F) -> Stream<U, E> {
-        self.handle(move |res| {
-            // Map the result
-            res.map(move |head| {
-                // Map the option
-                head.map(move |(v, rest)| {
-                    (f(v), rest.map(f))
-                })
-            })
-        }).as_stream()
+        let (sender, ret) = Stream::pair();
+
+        sender.receive(move |res| {
+            if let Ok(sender) = res {
+                self.do_map(sender, f);
+            }
+        });
+
+        ret
+    }
+
+    fn do_map<F: Fn(T) -> U + Send, U: Send>(self, sender: Sender<U, E>, f: F) {
+        self.receive(move |head| {
+            match head {
+                Ok(Some((v, rest))) => {
+                    sender.send(f(v)).receive(move |res| {
+                        if let Ok(sender) = res {
+                            rest.do_map(sender, f);
+                        }
+                    });
+                }
+                Ok(None) => {}
+                Err(AsyncError::ExecutionError(e)) => sender.fail(e),
+                Err(AsyncError::CancellationError) => sender.cancel(),
+            }
+        });
     }
 
     pub fn reduce<F: Fn(U, T) -> U + Send, U: Send>(self, init: U, f: F) -> Future<U, E> {
@@ -168,9 +187,8 @@ impl<T: Send, E: Send> Stream<T, E> {
 }
 
 impl<T: Send, E: Send> Async for Stream<T, E> {
-
-    type Value  = Head<T, E>;
-    type Error  = E;
+    type Value = Head<T, E>;
+    type Error = E;
     type Cancel = Receipt<Stream<T, E>>;
 
     fn is_ready(&self) -> bool {

@@ -1,6 +1,6 @@
+use {sleep_ms, spawn};
 use syncbox::util::async::*;
 use std::sync::mpsc::channel;
-use super::{sleep, spawn};
 
 #[test]
 pub fn test_joining_two_futures_async() {
@@ -27,12 +27,12 @@ pub fn test_joining_two_futures_sync() {
     let (c2, f2) = Future::<i32, ()>::pair();
 
     spawn(move || {
-        sleep(50);
+        sleep_ms(50);
         c1.complete(1);
     });
 
     spawn(move || {
-        sleep(75);
+        sleep_ms(75);
         c2.complete(2);
     });
 

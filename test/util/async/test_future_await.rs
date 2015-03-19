@@ -1,5 +1,5 @@
+use {spawn, sleep_ms};
 use syncbox::util::async::*;
-use super::{spawn, sleep};
 use std::sync::mpsc::channel;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
@@ -15,7 +15,7 @@ pub fn test_complete_before_await() {
         tx.send("done").unwrap()
     });
 
-    sleep(50);
+    sleep_ms(50);
     assert_eq!(f.await().unwrap(), "zomg");
     assert_eq!(rx.recv().unwrap(), "done");
 }
@@ -26,7 +26,7 @@ pub fn test_complete_after_await() {
     let (tx, rx) = channel();
 
     spawn(move || {
-        sleep(50);
+        sleep_ms(50);
         c.complete("zomg");
         tx.send("done").unwrap();
     });
@@ -57,7 +57,7 @@ pub fn test_receive_complete_after_await() {
     let w2 = w1.clone();
 
     spawn(move || {
-        sleep(50);
+        sleep_ms(50);
         c.receive(move |c| {
             assert!(w2.load(Relaxed));
             c.unwrap().complete("zomg")
@@ -76,7 +76,7 @@ pub fn test_await_complete_before_consumer_await() {
         c.await().unwrap().complete("zomg")
     });
 
-    sleep(50);
+    sleep_ms(50);
 
     assert_eq!(f.await().unwrap(), "zomg");
 }
@@ -86,7 +86,7 @@ pub fn test_await_complete_after_consumer_await() {
     let (c, f) = Future::<&'static str, ()>::pair();
 
     spawn(move || {
-        sleep(50);
+        sleep_ms(50);
         c.await().unwrap().complete("zomg");
     });
 
@@ -103,7 +103,7 @@ pub fn test_producer_await_when_consumer_await() {
             .await().unwrap().complete("zomg");
     });
 
-    sleep(50);
+    sleep_ms(50);
     assert_eq!(f.await().unwrap(), "zomg");
 }
 
@@ -133,7 +133,7 @@ pub fn test_producer_drops_after_consumer_await() {
     let (c, f) = Future::<i32, ()>::pair();
 
     spawn(move || {
-        sleep(50);
+        sleep_ms(50);
         drop(c);
     });
 

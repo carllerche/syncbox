@@ -1,6 +1,6 @@
+use {spawn, sleep_ms};
 use syncbox::util::async::*;
 use std::sync::mpsc::{self, channel};
-use super::{spawn, sleep};
 
 #[test]
 pub fn test_one_shot_stream_async() {
@@ -19,7 +19,7 @@ pub fn test_one_shot_stream_await() {
         }
     });
 
-    sleep(50);
+    sleep_ms(50);
 
     debug!(" ~~ Sender::send(\"hello\") ~~");
     gen.send("hello");

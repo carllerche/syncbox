@@ -8,7 +8,6 @@
 
 // Embrace edge
 #![feature(alloc, core, std_misc)]
-#![cfg_attr(test, feature(old_io))]
 
 extern crate alloc;
 extern crate core;

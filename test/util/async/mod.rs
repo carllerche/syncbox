@@ -64,14 +64,3 @@ fn nums(from: i32, to: i32) -> Stream<i32, ()> {
         }
     }).as_stream()
 }
-
-fn spawn<F: FnOnce() + Send + 'static>(f: F) {
-    use std::thread;
-    thread::spawn(f);
-}
-
-fn sleep(ms: i32) {
-    use std::old_io::timer::sleep;
-    use std::time::Duration;
-    sleep(Duration::milliseconds(ms as i64));
-}
