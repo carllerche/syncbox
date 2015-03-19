@@ -551,6 +551,30 @@
 <span id="509">509</span>
 <span id="510">510</span>
 <span id="511">511</span>
+<span id="512">512</span>
+<span id="513">513</span>
+<span id="514">514</span>
+<span id="515">515</span>
+<span id="516">516</span>
+<span id="517">517</span>
+<span id="518">518</span>
+<span id="519">519</span>
+<span id="520">520</span>
+<span id="521">521</span>
+<span id="522">522</span>
+<span id="523">523</span>
+<span id="524">524</span>
+<span id="525">525</span>
+<span id="526">526</span>
+<span id="527">527</span>
+<span id="528">528</span>
+<span id="529">529</span>
+<span id="530">530</span>
+<span id="531">531</span>
+<span id="532">532</span>
+<span id="533">533</span>
+<span id="534">534</span>
+<span id="535">535</span>
 </pre><pre class='rust '>
 <span class='kw'>use</span> <span class='ident'>util</span>::<span class='ident'>async</span>::{
     <span class='self'>self</span>,
@@ -638,7 +662,7 @@
                 <span class='prelude-val'>Ok</span>(<span class='prelude-val'>None</span>) <span class='op'>=&gt;</span> {
                     <span class='ident'>complete</span>.<span class='ident'>complete</span>(());
                 }
-                <span class='prelude-val'>Err</span>(<span class='ident'>AsyncError</span>::<span class='ident'>ExecutionError</span>(<span class='ident'>e</span>)) <span class='op'>=&gt;</span> {
+                <span class='prelude-val'>Err</span>(<span class='ident'>AsyncError</span>::<span class='ident'>Failed</span>(<span class='ident'>e</span>)) <span class='op'>=&gt;</span> {
                     <span class='ident'>complete</span>.<span class='ident'>fail</span>(<span class='ident'>e</span>);
                 }
                 _ <span class='op'>=&gt;</span> {}
@@ -673,37 +697,61 @@
                     });
                 }
                 <span class='prelude-val'>Ok</span>(<span class='prelude-val'>None</span>) <span class='op'>=&gt;</span> {}
-                <span class='prelude-val'>Err</span>(<span class='ident'>AsyncError</span>::<span class='ident'>ExecutionError</span>(<span class='ident'>e</span>)) <span class='op'>=&gt;</span> <span class='ident'>sender</span>.<span class='ident'>fail</span>(<span class='ident'>e</span>),
-                <span class='prelude-val'>Err</span>(<span class='ident'>AsyncError</span>::<span class='ident'>CancellationError</span>) <span class='op'>=&gt;</span> <span class='ident'>sender</span>.<span class='ident'>cancel</span>(),
+                <span class='prelude-val'>Err</span>(<span class='ident'>AsyncError</span>::<span class='ident'>Failed</span>(<span class='ident'>e</span>)) <span class='op'>=&gt;</span> <span class='ident'>sender</span>.<span class='ident'>fail</span>(<span class='ident'>e</span>),
+                <span class='prelude-val'>Err</span>(<span class='ident'>AsyncError</span>::<span class='ident'>Aborted</span>) <span class='op'>=&gt;</span> <span class='ident'>sender</span>.<span class='ident'>cancel</span>(),
             }
         });
     }
 
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>reduce</span><span class='op'>&lt;</span><span class='ident'>F</span>: <span class='ident'>Fn</span>(<span class='ident'>U</span>, <span class='ident'>T</span>) <span class='op'>-&gt;</span> <span class='ident'>U</span> <span class='op'>+</span> <span class='ident'>Send</span>, <span class='ident'>U</span>: <span class='ident'>Send</span><span class='op'>&gt;</span>(<span class='self'>self</span>, <span class='ident'>init</span>: <span class='ident'>U</span>, <span class='ident'>f</span>: <span class='ident'>F</span>) <span class='op'>-&gt;</span> <span class='ident'>Future</span><span class='op'>&lt;</span><span class='ident'>U</span>, <span class='ident'>E</span><span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>handle</span>(<span class='kw'>move</span> <span class='op'>|</span><span class='ident'>res</span><span class='op'>|</span> {
-            <span class='kw'>match</span> <span class='ident'>res</span> {
-                <span class='prelude-val'>Ok</span>(<span class='prelude-val'>Some</span>((<span class='ident'>v</span>, <span class='ident'>rest</span>))) <span class='op'>=&gt;</span> <span class='ident'>rest</span>.<span class='ident'>reduce</span>(<span class='ident'>f</span>(<span class='ident'>init</span>, <span class='ident'>v</span>), <span class='ident'>f</span>),
-                <span class='prelude-val'>Ok</span>(<span class='prelude-val'>None</span>) <span class='op'>=&gt;</span> <span class='ident'>Future</span>::<span class='ident'>of</span>(<span class='ident'>init</span>),
-                <span class='prelude-val'>Err</span>(<span class='ident'>AsyncError</span>::<span class='ident'>ExecutionError</span>(<span class='ident'>e</span>)) <span class='op'>=&gt;</span> <span class='ident'>Future</span>::<span class='ident'>error</span>(<span class='ident'>e</span>),
-                _ <span class='op'>=&gt;</span> <span class='ident'>Future</span>::<span class='ident'>canceled</span>(),
+        <span class='kw'>let</span> (<span class='ident'>sender</span>, <span class='ident'>ret</span>) <span class='op'>=</span> <span class='ident'>Future</span>::<span class='ident'>pair</span>();
+
+        <span class='ident'>sender</span>.<span class='ident'>receive</span>(<span class='kw'>move</span> <span class='op'>|</span><span class='ident'>res</span><span class='op'>|</span> {
+            <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Ok</span>(<span class='ident'>sender</span>) <span class='op'>=</span> <span class='ident'>res</span> {
+                <span class='self'>self</span>.<span class='ident'>do_reduce</span>(<span class='ident'>sender</span>, <span class='ident'>init</span>, <span class='ident'>f</span>);
             }
-        })
+        });
+
+        <span class='ident'>ret</span>
+    }
+
+    <span class='kw'>fn</span> <span class='ident'>do_reduce</span><span class='op'>&lt;</span><span class='ident'>F</span>: <span class='ident'>Fn</span>(<span class='ident'>U</span>, <span class='ident'>T</span>) <span class='op'>-&gt;</span> <span class='ident'>U</span> <span class='op'>+</span> <span class='ident'>Send</span>, <span class='ident'>U</span>: <span class='ident'>Send</span><span class='op'>&gt;</span>(<span class='self'>self</span>, <span class='ident'>complete</span>: <span class='ident'>Complete</span><span class='op'>&lt;</span><span class='ident'>U</span>, <span class='ident'>E</span><span class='op'>&gt;</span>, <span class='ident'>curr</span>: <span class='ident'>U</span>, <span class='ident'>f</span>: <span class='ident'>F</span>) {
+        <span class='self'>self</span>.<span class='ident'>receive</span>(<span class='kw'>move</span> <span class='op'>|</span><span class='ident'>head</span><span class='op'>|</span> {
+            <span class='kw'>match</span> <span class='ident'>head</span> {
+                <span class='prelude-val'>Ok</span>(<span class='prelude-val'>Some</span>((<span class='ident'>v</span>, <span class='ident'>rest</span>))) <span class='op'>=&gt;</span> <span class='ident'>rest</span>.<span class='ident'>do_reduce</span>(<span class='ident'>complete</span>, <span class='ident'>f</span>(<span class='ident'>curr</span>, <span class='ident'>v</span>), <span class='ident'>f</span>),
+                <span class='prelude-val'>Ok</span>(<span class='prelude-val'>None</span>) <span class='op'>=&gt;</span> <span class='ident'>complete</span>.<span class='ident'>complete</span>(<span class='ident'>curr</span>),
+                <span class='prelude-val'>Err</span>(<span class='ident'>AsyncError</span>::<span class='ident'>Failed</span>(<span class='ident'>e</span>)) <span class='op'>=&gt;</span> <span class='ident'>complete</span>.<span class='ident'>fail</span>(<span class='ident'>e</span>),
+                <span class='prelude-val'>Err</span>(<span class='ident'>AsyncError</span>::<span class='ident'>Aborted</span>) <span class='op'>=&gt;</span> <span class='ident'>drop</span>(<span class='ident'>complete</span>),
+            }
+        });
     }
 
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>take</span>(<span class='self'>self</span>, <span class='ident'>n</span>: <span class='ident'>u64</span>) <span class='op'>-&gt;</span> <span class='ident'>Stream</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;</span> {
+        <span class='kw'>let</span> (<span class='ident'>sender</span>, <span class='ident'>stream</span>) <span class='op'>=</span> <span class='ident'>Stream</span>::<span class='ident'>pair</span>();
+
+        <span class='self'>self</span>.<span class='ident'>do_take</span>(<span class='ident'>n</span>, <span class='ident'>sender</span>);
+        <span class='ident'>stream</span>
+    }
+
+    <span class='kw'>fn</span> <span class='ident'>do_take</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span>(<span class='self'>self</span>, <span class='ident'>n</span>: <span class='ident'>u64</span>, <span class='ident'>sender</span>: <span class='ident'>A</span>) <span class='kw'>where</span> <span class='ident'>A</span>: <span class='ident'>Async</span><span class='op'>&lt;</span><span class='ident'>Value</span><span class='op'>=</span><span class='ident'>Sender</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;&gt;</span> {
         <span class='kw'>if</span> <span class='ident'>n</span> <span class='op'>==</span> <span class='number'>0</span> {
-            <span class='ident'>Future</span>::<span class='ident'>of</span>(<span class='prelude-val'>None</span>).<span class='ident'>as_stream</span>()
-        } <span class='kw'>else</span> {
-            <span class='self'>self</span>.<span class='ident'>handle</span>(<span class='kw'>move</span> <span class='op'>|</span><span class='ident'>res</span><span class='op'>|</span> {
-                <span class='comment'>// Map the result</span>
-                <span class='ident'>res</span>.<span class='ident'>map</span>(<span class='kw'>move</span> <span class='op'>|</span><span class='ident'>head</span><span class='op'>|</span> {
-                    <span class='comment'>// Map the option</span>
-                    <span class='ident'>head</span>.<span class='ident'>map</span>(<span class='kw'>move</span> <span class='op'>|</span>(<span class='ident'>v</span>, <span class='ident'>rest</span>)<span class='op'>|</span> {
-                        (<span class='ident'>v</span>, <span class='ident'>rest</span>.<span class='ident'>take</span>(<span class='ident'>n</span> <span class='op'>-</span> <span class='number'>1</span>))
-                    })
-                })
-            }).<span class='ident'>as_stream</span>()
+            <span class='kw'>return</span>;
         }
+
+        <span class='ident'>sender</span>.<span class='ident'>receive</span>(<span class='kw'>move</span> <span class='op'>|</span><span class='ident'>res</span><span class='op'>|</span> {
+            <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Ok</span>(<span class='ident'>sender</span>) <span class='op'>=</span> <span class='ident'>res</span> {
+                <span class='self'>self</span>.<span class='ident'>receive</span>(<span class='kw'>move</span> <span class='op'>|</span><span class='ident'>res</span><span class='op'>|</span> {
+                    <span class='kw'>match</span> <span class='ident'>res</span> {
+                        <span class='prelude-val'>Ok</span>(<span class='prelude-val'>Some</span>((<span class='ident'>v</span>, <span class='ident'>rest</span>))) <span class='op'>=&gt;</span> {
+                            <span class='ident'>rest</span>.<span class='ident'>do_take</span>(<span class='ident'>n</span> <span class='op'>-</span> <span class='number'>1</span>, <span class='ident'>sender</span>.<span class='ident'>send</span>(<span class='ident'>v</span>));
+                        }
+                        <span class='prelude-val'>Ok</span>(<span class='prelude-val'>None</span>) <span class='op'>=&gt;</span> {}
+                        <span class='prelude-val'>Err</span>(<span class='ident'>AsyncError</span>::<span class='ident'>Failed</span>(<span class='ident'>e</span>)) <span class='op'>=&gt;</span> <span class='ident'>sender</span>.<span class='ident'>fail</span>(<span class='ident'>e</span>),
+                        <span class='prelude-val'>Err</span>(<span class='ident'>AsyncError</span>::<span class='ident'>Aborted</span>) <span class='op'>=&gt;</span> <span class='ident'>sender</span>.<span class='ident'>cancel</span>(),
+                    }
+                });
+            }
+        });
     }
 
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>take_while</span><span class='op'>&lt;</span><span class='ident'>F</span><span class='op'>&gt;</span>(<span class='self'>self</span>, <span class='ident'>_f</span>: <span class='ident'>F</span>) <span class='op'>-&gt;</span> <span class='ident'>Stream</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;</span>
@@ -853,14 +901,14 @@
     }
 
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>fail</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>err</span>: <span class='ident'>E</span>) {
-        <span class='ident'>core</span>::<span class='ident'>take</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.<span class='ident'>core</span>).<span class='ident'>complete</span>(<span class='prelude-val'>Err</span>(<span class='ident'>AsyncError</span>::<span class='ident'>wrap</span>(<span class='ident'>err</span>)), <span class='boolval'>true</span>);
+        <span class='ident'>core</span>::<span class='ident'>take</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.<span class='ident'>core</span>).<span class='ident'>complete</span>(<span class='prelude-val'>Err</span>(<span class='ident'>AsyncError</span>::<span class='ident'>failed</span>(<span class='ident'>err</span>)), <span class='boolval'>true</span>);
     }
 
     <span class='doccomment'>/// Fails the paired `Stream` with a cancellation error. This will</span>
     <span class='doccomment'>/// eventually go away when carllerche/syncbox#10 lands. It is currently</span>
     <span class='doccomment'>/// needed to keep the state correct (see async::sequence)</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>cancel</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>) {
-        <span class='ident'>core</span>::<span class='ident'>take</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.<span class='ident'>core</span>).<span class='ident'>complete</span>(<span class='prelude-val'>Err</span>(<span class='ident'>AsyncError</span>::<span class='ident'>canceled</span>()), <span class='boolval'>true</span>);
+        <span class='ident'>core</span>::<span class='ident'>take</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.<span class='ident'>core</span>).<span class='ident'>complete</span>(<span class='prelude-val'>Err</span>(<span class='ident'>AsyncError</span>::<span class='ident'>aborted</span>()), <span class='boolval'>true</span>);
     }
 
     <span class='comment'>/*

@@ -414,7 +414,7 @@
 
                 <span class='comment'>// Annoying but currently needed</span>
                 <span class='kw'>match</span> <span class='ident'>e</span> {
-                    <span class='ident'>AsyncError</span>::<span class='ident'>ExecutionError</span>(<span class='ident'>e</span>) <span class='op'>=&gt;</span> <span class='ident'>sender</span>.<span class='ident'>fail</span>(<span class='ident'>e</span>),
+                    <span class='ident'>AsyncError</span>::<span class='ident'>Failed</span>(<span class='ident'>e</span>) <span class='op'>=&gt;</span> <span class='ident'>sender</span>.<span class='ident'>fail</span>(<span class='ident'>e</span>),
                     _ <span class='op'>=&gt;</span> <span class='ident'>sender</span>.<span class='ident'>cancel</span>(),
                 }
             }

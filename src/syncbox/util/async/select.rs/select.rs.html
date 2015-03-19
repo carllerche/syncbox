@@ -594,18 +594,14 @@
 <span id="552">552</span>
 <span id="553">553</span>
 <span id="554">554</span>
-<span id="555">555</span>
-<span id="556">556</span>
 </pre><pre class='rust '>
 <span class='attribute'>#<span class='op'>!</span>[<span class='ident'>allow</span>(<span class='ident'>unused_assignments</span>)]</span>
 
-<span class='kw'>use</span> <span class='ident'>super</span>::{<span class='ident'>Async</span>, <span class='ident'>Future</span>, <span class='ident'>Complete</span>, <span class='ident'>Cancel</span>};
+<span class='kw'>use</span> <span class='ident'>super</span>::{<span class='ident'>Async</span>, <span class='ident'>Future</span>, <span class='ident'>Complete</span>, <span class='ident'>Cancel</span>, <span class='ident'>AsyncError</span>};
 <span class='kw'>use</span> <span class='ident'>util</span>::<span class='ident'>atomic</span>::{<span class='self'>self</span>, <span class='ident'>AtomicU64</span>, <span class='ident'>Ordering</span>};
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>cell</span>::<span class='ident'>UnsafeCell</span>;
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::<span class='ident'>Arc</span>;
 <span class='kw'>use</span> <span class='ident'>std</span>::{<span class='ident'>fmt</span>, <span class='ident'>u32</span>};
-
-<span class='kw'>use</span> <span class='ident'>super</span>::<span class='ident'>AsyncError</span>::<span class='ident'>ExecutionError</span>;
 
 <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>select</span><span class='op'>&lt;</span><span class='ident'>S</span>: <span class='ident'>Select</span><span class='op'>&lt;</span><span class='ident'>E</span><span class='op'>&gt;</span>, <span class='ident'>E</span>: <span class='ident'>Send</span><span class='op'>&gt;</span>(<span class='ident'>asyncs</span>: <span class='ident'>S</span>) <span class='op'>-&gt;</span> <span class='ident'>Future</span><span class='op'>&lt;</span>(<span class='ident'>u32</span>, <span class='ident'>S</span>), <span class='ident'>E</span><span class='op'>&gt;</span> {
     <span class='kw'>let</span> (<span class='ident'>complete</span>, <span class='ident'>res</span>) <span class='op'>=</span> <span class='ident'>Future</span>::<span class='ident'>pair</span>();
@@ -705,7 +701,7 @@
                 <span class='kw'>let</span> <span class='ident'>complete</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>core_mut</span>().<span class='ident'>complete</span>.<span class='ident'>take</span>()
                     .<span class='ident'>expect</span>(<span class='string'>&quot;result future previously completed&quot;</span>);
 
-                <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Err</span>(<span class='ident'>ExecutionError</span>(<span class='ident'>e</span>)) <span class='op'>=</span> <span class='ident'>async</span>.<span class='ident'>expect</span>() {
+                <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Err</span>(<span class='ident'>AsyncError</span>::<span class='ident'>Failed</span>(<span class='ident'>e</span>)) <span class='op'>=</span> <span class='ident'>async</span>.<span class='ident'>expect</span>() {
                     <span class='macro'>debug</span><span class='macro'>!</span>(<span class='string'>&quot;execution error&quot;</span>);
                     <span class='ident'>complete</span>.<span class='ident'>fail</span>(<span class='ident'>e</span>);
                 }

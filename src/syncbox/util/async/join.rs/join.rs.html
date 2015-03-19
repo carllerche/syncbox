@@ -301,7 +301,7 @@
             <span class='comment'>// If not an execution error, it is a cancellation error, in which</span>
             <span class='comment'>// case, our complete will go out of scope and propagate up a</span>
             <span class='comment'>// cancellation.</span>
-            <span class='kw'>if</span> <span class='kw'>let</span> <span class='ident'>AsyncError</span>::<span class='ident'>ExecutionError</span>(<span class='ident'>e</span>) <span class='op'>=</span> <span class='ident'>err</span> {
+            <span class='kw'>if</span> <span class='kw'>let</span> <span class='ident'>AsyncError</span>::<span class='ident'>Failed</span>(<span class='ident'>e</span>) <span class='op'>=</span> <span class='ident'>err</span> {
                 <span class='ident'>complete</span>.<span class='ident'>fail</span>(<span class='ident'>e</span>);
             }
         }

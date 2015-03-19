@@ -434,9 +434,6 @@
 <span id="392">392</span>
 <span id="393">393</span>
 <span id="394">394</span>
-<span id="395">395</span>
-<span id="396">396</span>
-<span id="397">397</span>
 </pre><pre class='rust '>
 <span class='kw'>use</span> <span class='ident'>super</span>::{
     <span class='ident'>receipt</span>,
@@ -488,19 +485,18 @@
     <span class='doccomment'>///</span>
     <span class='doccomment'>/// ```</span>
     <span class='doccomment'>/// use syncbox::util::async::*;</span>
-    <span class='doccomment'>/// use syncbox::util::async::AsyncError::*;</span>
     <span class='doccomment'>///</span>
     <span class='doccomment'>/// Future::error(&quot;hi&quot;).or_else(|err| {</span>
     <span class='doccomment'>///     match err {</span>
-    <span class='doccomment'>///         ExecutionError(e) =&gt; assert!(e == &quot;hi&quot;),</span>
-    <span class='doccomment'>///         CancellationError =&gt; unreachable!()</span>
+    <span class='doccomment'>///         AsyncError::Failed(e) =&gt; assert!(e == &quot;hi&quot;),</span>
+    <span class='doccomment'>///         AsyncError::Aborted =&gt; unreachable!()</span>
     <span class='doccomment'>///     }</span>
     <span class='doccomment'>///</span>
     <span class='doccomment'>///     Ok(())</span>
     <span class='doccomment'>/// });</span>
     <span class='doccomment'>/// ```</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>error</span>(<span class='ident'>err</span>: <span class='ident'>E</span>) <span class='op'>-&gt;</span> <span class='ident'>Future</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;</span> {
-        <span class='kw'>let</span> <span class='ident'>core</span> <span class='op'>=</span> <span class='ident'>Core</span>::<span class='ident'>with_value</span>(<span class='prelude-val'>Err</span>(<span class='ident'>AsyncError</span>::<span class='ident'>wrap</span>(<span class='ident'>err</span>)));
+        <span class='kw'>let</span> <span class='ident'>core</span> <span class='op'>=</span> <span class='ident'>Core</span>::<span class='ident'>with_value</span>(<span class='prelude-val'>Err</span>(<span class='ident'>AsyncError</span>::<span class='ident'>failed</span>(<span class='ident'>err</span>)));
         <span class='ident'>Future</span> { <span class='ident'>core</span>: <span class='prelude-val'>Some</span>(<span class='ident'>core</span>) }
     }
 
@@ -508,19 +504,18 @@
     <span class='doccomment'>///</span>
     <span class='doccomment'>/// ```</span>
     <span class='doccomment'>/// use syncbox::util::async::*;</span>
-    <span class='doccomment'>/// use syncbox::util::async::AsyncError::*;</span>
     <span class='doccomment'>///</span>
     <span class='doccomment'>/// Future::&lt;&amp;&#39;static str, ()&gt;::canceled().or_else(|err| {</span>
     <span class='doccomment'>///     match err {</span>
-    <span class='doccomment'>///         ExecutionError(e) =&gt; unreachable!(),</span>
-    <span class='doccomment'>///         CancellationError =&gt; assert!(true)</span>
+    <span class='doccomment'>///         AsyncError::Failed(e) =&gt; unreachable!(),</span>
+    <span class='doccomment'>///         AsyncError::Aborted =&gt; assert!(true)</span>
     <span class='doccomment'>///     }</span>
     <span class='doccomment'>///</span>
     <span class='doccomment'>///     Ok(&quot;handled&quot;)</span>
     <span class='doccomment'>/// });</span>
     <span class='doccomment'>/// ```</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>canceled</span>() <span class='op'>-&gt;</span> <span class='ident'>Future</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;</span> {
-        <span class='kw'>let</span> <span class='ident'>core</span> <span class='op'>=</span> <span class='ident'>Core</span>::<span class='ident'>with_value</span>(<span class='prelude-val'>Err</span>(<span class='ident'>AsyncError</span>::<span class='ident'>canceled</span>()));
+        <span class='kw'>let</span> <span class='ident'>core</span> <span class='op'>=</span> <span class='ident'>Core</span>::<span class='ident'>with_value</span>(<span class='prelude-val'>Err</span>(<span class='ident'>AsyncError</span>::<span class='ident'>aborted</span>()));
         <span class='ident'>Future</span> { <span class='ident'>core</span>: <span class='prelude-val'>Some</span>(<span class='ident'>core</span>) }
     }
 
@@ -703,7 +698,6 @@
 <span class='doccomment'>///</span>
 <span class='doccomment'>/// ```</span>
 <span class='doccomment'>/// use syncbox::util::async::*;</span>
-<span class='doccomment'>/// use syncbox::util::async::AsyncError::*;</span>
 <span class='doccomment'>///</span>
 <span class='doccomment'>/// let (tx, future) = Future::&lt;u32, &amp;&#39;static str&gt;::pair();</span>
 <span class='doccomment'>///</span>
@@ -719,8 +713,8 @@
 <span class='doccomment'>///</span>
 <span class='doccomment'>/// future.or_else(|err| {</span>
 <span class='doccomment'>///     match err {</span>
-<span class='doccomment'>///         CancellationError =&gt; unreachable!(),</span>
-<span class='doccomment'>///         ExecutionError(err) =&gt; assert!(err == &quot;failed&quot;)</span>
+<span class='doccomment'>///         AsyncError::Failed(err) =&gt; assert!(err == &quot;failed&quot;),</span>
+<span class='doccomment'>///         AsyncError::Aborted =&gt; unreachable!(),</span>
 <span class='doccomment'>///     }</span>
 <span class='doccomment'>///</span>
 <span class='doccomment'>///     Ok(123)</span>
@@ -739,9 +733,9 @@
     }
 
     <span class='doccomment'>/// Reject the associated promise with an error. The error</span>
-    <span class='doccomment'>/// will be wrapped in an `ExecutionError`.</span>
+    <span class='doccomment'>/// will be wrapped in `Async::Error::Failed`.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>fail</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>err</span>: <span class='ident'>E</span>) {
-        <span class='ident'>core</span>::<span class='ident'>take</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.<span class='ident'>core</span>).<span class='ident'>complete</span>(<span class='prelude-val'>Err</span>(<span class='ident'>AsyncError</span>::<span class='ident'>wrap</span>(<span class='ident'>err</span>)), <span class='boolval'>true</span>);
+        <span class='ident'>core</span>::<span class='ident'>take</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.<span class='ident'>core</span>).<span class='ident'>complete</span>(<span class='prelude-val'>Err</span>(<span class='ident'>AsyncError</span>::<span class='ident'>failed</span>(<span class='ident'>err</span>)), <span class='boolval'>true</span>);
     }
 
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>is_ready</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
@@ -812,7 +806,7 @@
     <span class='kw'>fn</span> <span class='ident'>drop</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) {
         <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>core</span>.<span class='ident'>is_some</span>() {
             <span class='macro'>debug</span><span class='macro'>!</span>(<span class='string'>&quot;Complete::drop -- canceling future&quot;</span>);
-            <span class='ident'>core</span>::<span class='ident'>take</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.<span class='ident'>core</span>).<span class='ident'>complete</span>(<span class='prelude-val'>Err</span>(<span class='ident'>AsyncError</span>::<span class='ident'>canceled</span>()), <span class='boolval'>true</span>);
+            <span class='ident'>core</span>::<span class='ident'>take</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.<span class='ident'>core</span>).<span class='ident'>complete</span>(<span class='prelude-val'>Err</span>(<span class='ident'>AsyncError</span>::<span class='ident'>aborted</span>()), <span class='boolval'>true</span>);
         }
     }
 }
