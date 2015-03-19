@@ -43,7 +43,7 @@
     <section id='main' class="content struct">
 <h1 class='fqn'><span class='in-band'>Struct <a href='../../index.html'>syncbox</a>::<wbr><a href='../index.html'>util</a>::<wbr><a href='index.html'>async</a>::<wbr><a class='struct' href=''>Sender</a><wbr></span><span class='out-of-band'><span id='render-detail'>
             <a id="collapse-all" href="#">[-]</a>&nbsp;<a id="expand-all" href="#">[+]</a>
-        </span><a id='src-14990' href='../../../src/syncbox/util/async/stream.rs.html#296-298'>[src]</a></span></h1>
+        </span><a id='src-15000' href='../../../src/syncbox/util/async/stream.rs.html#296-298'>[src]</a></span></h1>
 <pre class='rust struct'>pub struct Sender&lt;T: <a class='trait' href='http://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a>, E: <a class='trait' href='http://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a>&gt; {
     // some fields omitted
 }</pre><div class='docblock'><p>The sending half of <code>Stream::pair()</code>. Can only be owned by a single task at
@@ -53,7 +53,7 @@ a time.</p>
 future representing the operation completing successfully and interest
 in the next value being expressed.</p>
 </div><h4 id='method.fail' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#method.fail' class='fnname'>fail</a>(self, err: E)</code></h4>
-<h4 id='method.cancel' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#method.cancel' class='fnname'>cancel</a>(self)</code></h4>
+<h4 id='method.abort' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#method.abort' class='fnname'>abort</a>(self)</code></h4>
 <div class='docblock'><p>Fails the paired <code>Stream</code> with a cancellation error. This will
 eventually go away when carllerche/syncbox#10 lands. It is currently
 needed to keep the state correct (see async::sequence)</p>

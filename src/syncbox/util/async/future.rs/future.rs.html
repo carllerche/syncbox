@@ -434,6 +434,10 @@
 <span id="392">392</span>
 <span id="393">393</span>
 <span id="394">394</span>
+<span id="395">395</span>
+<span id="396">396</span>
+<span id="397">397</span>
+<span id="398">398</span>
 </pre><pre class='rust '>
 <span class='kw'>use</span> <span class='ident'>super</span>::{
     <span class='ident'>receipt</span>,
@@ -500,12 +504,12 @@
         <span class='ident'>Future</span> { <span class='ident'>core</span>: <span class='prelude-val'>Some</span>(<span class='ident'>core</span>) }
     }
 
-    <span class='doccomment'>/// Returns a future that will immediately be cancelled</span>
+    <span class='doccomment'>/// Returns a future that will immediately be aborted</span>
     <span class='doccomment'>///</span>
     <span class='doccomment'>/// ```</span>
     <span class='doccomment'>/// use syncbox::util::async::*;</span>
     <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Future::&lt;&amp;&#39;static str, ()&gt;::canceled().or_else(|err| {</span>
+    <span class='doccomment'>/// Future::&lt;&amp;&#39;static str, ()&gt;::aborted().or_else(|err| {</span>
     <span class='doccomment'>///     match err {</span>
     <span class='doccomment'>///         AsyncError::Failed(e) =&gt; unreachable!(),</span>
     <span class='doccomment'>///         AsyncError::Aborted =&gt; assert!(true)</span>
@@ -514,7 +518,7 @@
     <span class='doccomment'>///     Ok(&quot;handled&quot;)</span>
     <span class='doccomment'>/// });</span>
     <span class='doccomment'>/// ```</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>canceled</span>() <span class='op'>-&gt;</span> <span class='ident'>Future</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;</span> {
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>aborted</span>() <span class='op'>-&gt;</span> <span class='ident'>Future</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;</span> {
         <span class='kw'>let</span> <span class='ident'>core</span> <span class='op'>=</span> <span class='ident'>Core</span>::<span class='ident'>with_value</span>(<span class='prelude-val'>Err</span>(<span class='ident'>AsyncError</span>::<span class='ident'>aborted</span>()));
         <span class='ident'>Future</span> { <span class='ident'>core</span>: <span class='prelude-val'>Some</span>(<span class='ident'>core</span>) }
     }
@@ -736,6 +740,10 @@
     <span class='doccomment'>/// will be wrapped in `Async::Error::Failed`.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>fail</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>err</span>: <span class='ident'>E</span>) {
         <span class='ident'>core</span>::<span class='ident'>take</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.<span class='ident'>core</span>).<span class='ident'>complete</span>(<span class='prelude-val'>Err</span>(<span class='ident'>AsyncError</span>::<span class='ident'>failed</span>(<span class='ident'>err</span>)), <span class='boolval'>true</span>);
+    }
+
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>abort</span>(<span class='self'>self</span>) {
+        <span class='ident'>drop</span>(<span class='self'>self</span>);
     }
 
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>is_ready</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {

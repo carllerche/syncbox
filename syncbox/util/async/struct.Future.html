@@ -72,12 +72,12 @@ pub struct Future&lt;T: <a class='trait' href='http://doc.rust-lang.org/nightly/
     <span class='prelude-val'>Ok</span>(())
 });
 </pre>
-</div><h4 id='method.canceled' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#method.canceled' class='fnname'>canceled</a>() -&gt; <a class='struct' href='../../../syncbox/util/async/struct.Future.html' title='syncbox::util::async::Future'>Future</a>&lt;T, E&gt;</code></h4>
-<div class='docblock'><p>Returns a future that will immediately be cancelled</p>
+</div><h4 id='method.aborted' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#method.aborted' class='fnname'>aborted</a>() -&gt; <a class='struct' href='../../../syncbox/util/async/struct.Future.html' title='syncbox::util::async::Future'>Future</a>&lt;T, E&gt;</code></h4>
+<div class='docblock'><p>Returns a future that will immediately be aborted</p>
 <pre id='rust-example-rendered' class='rust '>
 <span class='kw'>use</span> <span class='ident'>syncbox</span>::<span class='ident'>util</span>::<span class='ident'>async</span>::<span class='op'>*</span>;
 
-<span class='ident'>Future</span>::<span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='lifetime'>&#39;static</span> <span class='ident'>str</span>, ()<span class='op'>&gt;</span>::<span class='ident'>canceled</span>().<span class='ident'>or_else</span>(<span class='op'>|</span><span class='ident'>err</span><span class='op'>|</span> {
+<span class='ident'>Future</span>::<span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='lifetime'>&#39;static</span> <span class='ident'>str</span>, ()<span class='op'>&gt;</span>::<span class='ident'>aborted</span>().<span class='ident'>or_else</span>(<span class='op'>|</span><span class='ident'>err</span><span class='op'>|</span> {
     <span class='kw'>match</span> <span class='ident'>err</span> {
         <span class='ident'>AsyncError</span>::<span class='ident'>Failed</span>(<span class='ident'>e</span>) <span class='op'>=&gt;</span> <span class='macro'>unreachable</span><span class='macro'>!</span>(),
         <span class='ident'>AsyncError</span>::<span class='ident'>Aborted</span> <span class='op'>=&gt;</span> <span class='macro'>assert</span><span class='macro'>!</span>(<span class='boolval'>true</span>)

@@ -698,7 +698,7 @@
                 }
                 <span class='prelude-val'>Ok</span>(<span class='prelude-val'>None</span>) <span class='op'>=&gt;</span> {}
                 <span class='prelude-val'>Err</span>(<span class='ident'>AsyncError</span>::<span class='ident'>Failed</span>(<span class='ident'>e</span>)) <span class='op'>=&gt;</span> <span class='ident'>sender</span>.<span class='ident'>fail</span>(<span class='ident'>e</span>),
-                <span class='prelude-val'>Err</span>(<span class='ident'>AsyncError</span>::<span class='ident'>Aborted</span>) <span class='op'>=&gt;</span> <span class='ident'>sender</span>.<span class='ident'>cancel</span>(),
+                <span class='prelude-val'>Err</span>(<span class='ident'>AsyncError</span>::<span class='ident'>Aborted</span>) <span class='op'>=&gt;</span> <span class='ident'>sender</span>.<span class='ident'>abort</span>(),
             }
         });
     }
@@ -747,7 +747,7 @@
                         }
                         <span class='prelude-val'>Ok</span>(<span class='prelude-val'>None</span>) <span class='op'>=&gt;</span> {}
                         <span class='prelude-val'>Err</span>(<span class='ident'>AsyncError</span>::<span class='ident'>Failed</span>(<span class='ident'>e</span>)) <span class='op'>=&gt;</span> <span class='ident'>sender</span>.<span class='ident'>fail</span>(<span class='ident'>e</span>),
-                        <span class='prelude-val'>Err</span>(<span class='ident'>AsyncError</span>::<span class='ident'>Aborted</span>) <span class='op'>=&gt;</span> <span class='ident'>sender</span>.<span class='ident'>cancel</span>(),
+                        <span class='prelude-val'>Err</span>(<span class='ident'>AsyncError</span>::<span class='ident'>Aborted</span>) <span class='op'>=&gt;</span> <span class='ident'>sender</span>.<span class='ident'>abort</span>(),
                     }
                 });
             }
@@ -907,7 +907,7 @@
     <span class='doccomment'>/// Fails the paired `Stream` with a cancellation error. This will</span>
     <span class='doccomment'>/// eventually go away when carllerche/syncbox#10 lands. It is currently</span>
     <span class='doccomment'>/// needed to keep the state correct (see async::sequence)</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>cancel</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>) {
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>abort</span>(<span class='kw-2'>mut</span> <span class='self'>self</span>) {
         <span class='ident'>core</span>::<span class='ident'>take</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.<span class='ident'>core</span>).<span class='ident'>complete</span>(<span class='prelude-val'>Err</span>(<span class='ident'>AsyncError</span>::<span class='ident'>aborted</span>()), <span class='boolval'>true</span>);
     }
 
