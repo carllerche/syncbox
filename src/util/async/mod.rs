@@ -148,34 +148,6 @@ pub trait Async : Send + Sized {
      *
      */
 
-    // Is this needed?
-    fn handle<F, U: Async>(self, cb: F) -> Future<U::Value, U::Error>
-            where F: FnOnce(AsyncResult<Self::Value, Self::Error>) -> U + Send,
-                  U::Value: Send, U::Error: Send {
-        // TODO: Currently a naive implementation. Improve it by reducing
-        // required allocations
-        let (complete, ret) = Future::pair();
-
-        complete.receive(move |c| {
-            if let Ok(complete) = c {
-                self.receive(move |v| {
-                    cb(v).receive(move |res| {
-                        match res {
-                            Ok(u) => complete.complete(u),
-                            Err(e) => {
-                                if let AsyncError::ExecutionError(e) = e {
-                                    complete.fail(e);
-                                }
-                            }
-                        }
-                    });
-                });
-            }
-        });
-
-        ret
-    }
-
     /// This method returns a future whose completion value depends on the completion value of the
     /// original future.
     ///

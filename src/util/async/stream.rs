@@ -126,30 +126,54 @@ impl<T: Send, E: Send> Stream<T, E> {
     }
 
     pub fn reduce<F: Fn(U, T) -> U + Send, U: Send>(self, init: U, f: F) -> Future<U, E> {
-        self.handle(move |res| {
-            match res {
-                Ok(Some((v, rest))) => rest.reduce(f(init, v), f),
-                Ok(None) => Future::of(init),
-                Err(AsyncError::ExecutionError(e)) => Future::error(e),
-                _ => Future::canceled(),
+        let (sender, ret) = Future::pair();
+
+        sender.receive(move |res| {
+            if let Ok(sender) = res {
+                self.do_reduce(sender, init, f);
             }
-        })
+        });
+
+        ret
+    }
+
+    fn do_reduce<F: Fn(U, T) -> U + Send, U: Send>(self, complete: Complete<U, E>, curr: U, f: F) {
+        self.receive(move |head| {
+            match head {
+                Ok(Some((v, rest))) => rest.do_reduce(complete, f(curr, v), f),
+                Ok(None) => complete.complete(curr),
+                Err(AsyncError::ExecutionError(e)) => complete.fail(e),
+                Err(AsyncError::CancellationError) => drop(complete),
+            }
+        });
     }
 
     pub fn take(self, n: u64) -> Stream<T, E> {
+        let (sender, stream) = Stream::pair();
+
+        self.do_take(n, sender);
+        stream
+    }
+
+    fn do_take<A>(self, n: u64, sender: A) where A: Async<Value=Sender<T, E>> {
         if n == 0 {
-            Future::of(None).as_stream()
-        } else {
-            self.handle(move |res| {
-                // Map the result
-                res.map(move |head| {
-                    // Map the option
-                    head.map(move |(v, rest)| {
-                        (v, rest.take(n - 1))
-                    })
-                })
-            }).as_stream()
+            return;
         }
+
+        sender.receive(move |res| {
+            if let Ok(sender) = res {
+                self.receive(move |res| {
+                    match res {
+                        Ok(Some((v, rest))) => {
+                            rest.do_take(n - 1, sender.send(v));
+                        }
+                        Ok(None) => {}
+                        Err(AsyncError::ExecutionError(e)) => sender.fail(e),
+                        Err(AsyncError::CancellationError) => sender.cancel(),
+                    }
+                });
+            }
+        });
     }
 
     pub fn take_while<F>(self, _f: F) -> Stream<T, E>
