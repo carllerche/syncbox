@@ -33,12 +33,12 @@ pub fn test_single_consumer_single_producer() {
     spawn(move || {
         sleep_ms(10);
 
-        for i in range(0, 10_000) {
+        for i in (0..10_000) {
             p.put(i);
         }
     });
 
-    for i in range(0, 10_000) {
+    for i in (0..10_000) {
         assert_eq!(i, c.take());
     }
 
@@ -49,13 +49,13 @@ pub fn test_single_consumer_single_producer() {
 pub fn test_single_consumer_multi_producer() {
     let c = LinkedQueue::new();
 
-    for t in range(0, 10) {
+    for t in (0..10) {
         let p = c.clone();
 
         spawn(move || {
             sleep_ms(10);
 
-            for i in range(0, 10_000) {
+            for i in (0..10_000) {
                 p.put((t, i));
             }
         });
@@ -63,7 +63,7 @@ pub fn test_single_consumer_multi_producer() {
 
     let mut vals = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 
-    for _ in range(0, 10 * 10_000) {
+    for _ in (0..10 * 10_000) {
         let (t, v) = c.take();
         assert_eq!(vals[t], v);
         vals[t] += 1;
@@ -76,13 +76,13 @@ pub fn test_multi_consumer_multi_producer() {
     let results = LinkedQueue::new();
 
     // Producers
-    for t in range(0, 5) {
+    for t in (0..5) {
         let producer = queue.clone();
 
         spawn(move || {
             sleep_ms(10);
 
-            for i in range(1, 1_000) {
+            for i in (1..1_000) {
                 producer.put((t, i));
                 thread::yield_now();
             }
@@ -93,7 +93,7 @@ pub fn test_multi_consumer_multi_producer() {
     }
 
     // Consumers
-    for _ in range(0, 5) {
+    for _ in (0..5) {
         let consumer = queue.clone();
         let results = results.clone();
 
@@ -121,7 +121,7 @@ pub fn test_multi_consumer_multi_producer() {
 
     let mut all_vals = vec![];
 
-    for _ in range(0, 5) {
+    for _ in (0..5) {
         let vals = results.take();
 
         // TODO: Figure out this assertion
@@ -150,7 +150,7 @@ pub fn test_multi_consumer_multi_producer() {
 pub fn test_queue_with_capacity() {
     let queue = LinkedQueue::with_capacity(8);
 
-    for i in range(0, 8) {
+    for i in (0..8) {
         assert!(queue.offer(i).is_ok());
     }
 
@@ -159,7 +159,7 @@ pub fn test_queue_with_capacity() {
 
     assert!(queue.offer(8).is_ok());
 
-    for i in range(1, 9) {
+    for i in (1..9) {
         assert_eq!(Some(i), queue.poll());
     }
 }
@@ -168,17 +168,17 @@ pub fn test_queue_with_capacity() {
 pub fn test_multi_producer_at_capacity() {
     let queue = LinkedQueue::with_capacity(8);
 
-    for _ in range(0, 8) {
+    for _ in (0..8) {
         let queue = queue.clone();
 
         spawn(move || {
-            for i in range(0, 1_000) {
+            for i in (0..1_000) {
                 queue.put(i);
             }
         });
     }
 
-    for _ in range(0, 8 * 1_000) {
+    for _ in (0..8 * 1_000) {
         queue.take();
     }
 }
