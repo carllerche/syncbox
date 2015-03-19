@@ -120,7 +120,7 @@ impl<T: Send, E: Send> Stream<T, E> {
                 }
                 Ok(None) => {}
                 Err(AsyncError::Failed(e)) => sender.fail(e),
-                Err(AsyncError::Aborted) => sender.cancel(),
+                Err(AsyncError::Aborted) => sender.abort(),
             }
         });
     }
@@ -169,7 +169,7 @@ impl<T: Send, E: Send> Stream<T, E> {
                         }
                         Ok(None) => {}
                         Err(AsyncError::Failed(e)) => sender.fail(e),
-                        Err(AsyncError::Aborted) => sender.cancel(),
+                        Err(AsyncError::Aborted) => sender.abort(),
                     }
                 });
             }
@@ -329,7 +329,7 @@ impl<T: Send, E: Send> Sender<T, E> {
     /// Fails the paired `Stream` with a cancellation error. This will
     /// eventually go away when carllerche/syncbox#10 lands. It is currently
     /// needed to keep the state correct (see async::sequence)
-    pub fn cancel(mut self) {
+    pub fn abort(mut self) {
         core::take(&mut self.core).complete(Err(AsyncError::aborted()), true);
     }
 

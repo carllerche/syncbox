@@ -63,12 +63,12 @@ impl<T: Send, E: Send> Future<T, E> {
         Future { core: Some(core) }
     }
 
-    /// Returns a future that will immediately be cancelled
+    /// Returns a future that will immediately be aborted
     ///
     /// ```
     /// use syncbox::util::async::*;
     ///
-    /// Future::<&'static str, ()>::canceled().or_else(|err| {
+    /// Future::<&'static str, ()>::aborted().or_else(|err| {
     ///     match err {
     ///         AsyncError::Failed(e) => unreachable!(),
     ///         AsyncError::Aborted => assert!(true)
@@ -77,7 +77,7 @@ impl<T: Send, E: Send> Future<T, E> {
     ///     Ok("handled")
     /// });
     /// ```
-    pub fn canceled() -> Future<T, E> {
+    pub fn aborted() -> Future<T, E> {
         let core = Core::with_value(Err(AsyncError::aborted()));
         Future { core: Some(core) }
     }
@@ -299,6 +299,10 @@ impl<T: Send, E: Send> Complete<T, E> {
     /// will be wrapped in `Async::Error::Failed`.
     pub fn fail(mut self, err: E) {
         core::take(&mut self.core).complete(Err(AsyncError::failed(err)), true);
+    }
+
+    pub fn abort(self) {
+        drop(self);
     }
 
     pub fn is_ready(&self) -> bool {
