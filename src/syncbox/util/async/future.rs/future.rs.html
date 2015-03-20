@@ -411,33 +411,6 @@
 <span id="369">369</span>
 <span id="370">370</span>
 <span id="371">371</span>
-<span id="372">372</span>
-<span id="373">373</span>
-<span id="374">374</span>
-<span id="375">375</span>
-<span id="376">376</span>
-<span id="377">377</span>
-<span id="378">378</span>
-<span id="379">379</span>
-<span id="380">380</span>
-<span id="381">381</span>
-<span id="382">382</span>
-<span id="383">383</span>
-<span id="384">384</span>
-<span id="385">385</span>
-<span id="386">386</span>
-<span id="387">387</span>
-<span id="388">388</span>
-<span id="389">389</span>
-<span id="390">390</span>
-<span id="391">391</span>
-<span id="392">392</span>
-<span id="393">393</span>
-<span id="394">394</span>
-<span id="395">395</span>
-<span id="396">396</span>
-<span id="397">397</span>
-<span id="398">398</span>
 </pre><pre class='rust '>
 <span class='kw'>use</span> <span class='ident'>super</span>::{
     <span class='ident'>receipt</span>,
@@ -491,35 +464,12 @@
     <span class='doccomment'>/// use syncbox::util::async::*;</span>
     <span class='doccomment'>///</span>
     <span class='doccomment'>/// Future::error(&quot;hi&quot;).or_else(|err| {</span>
-    <span class='doccomment'>///     match err {</span>
-    <span class='doccomment'>///         AsyncError::Failed(e) =&gt; assert!(e == &quot;hi&quot;),</span>
-    <span class='doccomment'>///         AsyncError::Aborted =&gt; unreachable!()</span>
-    <span class='doccomment'>///     }</span>
-    <span class='doccomment'>///</span>
+    <span class='doccomment'>///     assert!(err == &quot;hi&quot;);</span>
     <span class='doccomment'>///     Ok(())</span>
-    <span class='doccomment'>/// });</span>
+    <span class='doccomment'>/// }).fire();</span>
     <span class='doccomment'>/// ```</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>error</span>(<span class='ident'>err</span>: <span class='ident'>E</span>) <span class='op'>-&gt;</span> <span class='ident'>Future</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;</span> {
         <span class='kw'>let</span> <span class='ident'>core</span> <span class='op'>=</span> <span class='ident'>Core</span>::<span class='ident'>with_value</span>(<span class='prelude-val'>Err</span>(<span class='ident'>AsyncError</span>::<span class='ident'>failed</span>(<span class='ident'>err</span>)));
-        <span class='ident'>Future</span> { <span class='ident'>core</span>: <span class='prelude-val'>Some</span>(<span class='ident'>core</span>) }
-    }
-
-    <span class='doccomment'>/// Returns a future that will immediately be aborted</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='doccomment'>/// use syncbox::util::async::*;</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>/// Future::&lt;&amp;&#39;static str, ()&gt;::aborted().or_else(|err| {</span>
-    <span class='doccomment'>///     match err {</span>
-    <span class='doccomment'>///         AsyncError::Failed(e) =&gt; unreachable!(),</span>
-    <span class='doccomment'>///         AsyncError::Aborted =&gt; assert!(true)</span>
-    <span class='doccomment'>///     }</span>
-    <span class='doccomment'>///</span>
-    <span class='doccomment'>///     Ok(&quot;handled&quot;)</span>
-    <span class='doccomment'>/// });</span>
-    <span class='doccomment'>/// ```</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>aborted</span>() <span class='op'>-&gt;</span> <span class='ident'>Future</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;</span> {
-        <span class='kw'>let</span> <span class='ident'>core</span> <span class='op'>=</span> <span class='ident'>Core</span>::<span class='ident'>with_value</span>(<span class='prelude-val'>Err</span>(<span class='ident'>AsyncError</span>::<span class='ident'>aborted</span>()));
         <span class='ident'>Future</span> { <span class='ident'>core</span>: <span class='prelude-val'>Some</span>(<span class='ident'>core</span>) }
     }
 
@@ -716,13 +666,9 @@
 <span class='doccomment'>/// tx.fail(&quot;failed&quot;);</span>
 <span class='doccomment'>///</span>
 <span class='doccomment'>/// future.or_else(|err| {</span>
-<span class='doccomment'>///     match err {</span>
-<span class='doccomment'>///         AsyncError::Failed(err) =&gt; assert!(err == &quot;failed&quot;),</span>
-<span class='doccomment'>///         AsyncError::Aborted =&gt; unreachable!(),</span>
-<span class='doccomment'>///     }</span>
-<span class='doccomment'>///</span>
+<span class='doccomment'>///     assert!(err == &quot;failed&quot;);</span>
 <span class='doccomment'>///     Ok(123)</span>
-<span class='doccomment'>/// });</span>
+<span class='doccomment'>/// }).fire();</span>
 <span class='doccomment'>/// ```</span>
 <span class='attribute'>#[<span class='ident'>unsafe_no_drop_flag</span>]</span>
 <span class='attribute'>#[<span class='ident'>must_use</span> <span class='op'>=</span> <span class='string'>&quot;Futures must be completed or they will panic on access&quot;</span>]</span>

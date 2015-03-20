@@ -490,6 +490,17 @@
 <span id="448">448</span>
 <span id="449">449</span>
 <span id="450">450</span>
+<span id="451">451</span>
+<span id="452">452</span>
+<span id="453">453</span>
+<span id="454">454</span>
+<span id="455">455</span>
+<span id="456">456</span>
+<span id="457">457</span>
+<span id="458">458</span>
+<span id="459">459</span>
+<span id="460">460</span>
+<span id="461">461</span>
 </pre><pre class='rust '>
 <span class='doccomment'>//! Composable primitives for asynchronous computations</span>
 <span class='doccomment'>//!</span>
@@ -639,37 +650,46 @@
      *
      */</span>
 
-    <span class='doccomment'>/// This method returns a future whose completion value depends on the completion value of the</span>
-    <span class='doccomment'>/// original future.</span>
+    <span class='doccomment'>/// This method returns a future whose completion value depends on the</span>
+    <span class='doccomment'>/// completion value of the original future.</span>
     <span class='doccomment'>///</span>
-    <span class='doccomment'>/// If the original future completes with an error, the future returned by this method</span>
-    <span class='doccomment'>/// completes with that error.</span>
+    <span class='doccomment'>/// If the original future completes with an error, the future returned by</span>
+    <span class='doccomment'>/// this method completes with that error.</span>
     <span class='doccomment'>///</span>
-    <span class='doccomment'>/// If the original future completes successfully, the future returned by this method completes</span>
-    <span class='doccomment'>/// with the completion value of `next`.</span>
+    <span class='doccomment'>/// If the original future completes successfully, the future returned by</span>
+    <span class='doccomment'>/// this method completes with the completion value of `next`.</span>
     <span class='kw'>fn</span> <span class='ident'>and</span><span class='op'>&lt;</span><span class='ident'>U</span>: <span class='ident'>Async</span><span class='op'>&lt;</span><span class='ident'>Error</span><span class='op'>=</span><span class='ident'>Self</span>::<span class='ident'>Error</span><span class='op'>&gt;&gt;</span>(<span class='self'>self</span>, <span class='ident'>next</span>: <span class='ident'>U</span>) <span class='op'>-&gt;</span> <span class='ident'>Future</span><span class='op'>&lt;</span><span class='ident'>U</span>::<span class='ident'>Value</span>, <span class='ident'>Self</span>::<span class='ident'>Error</span><span class='op'>&gt;</span> {
         <span class='self'>self</span>.<span class='ident'>and_then</span>(<span class='kw'>move</span> <span class='op'>|</span>_<span class='op'>|</span> <span class='ident'>next</span>)
     }
 
-    <span class='doccomment'>/// This method returns a future whose completion value depends on the completion value of the</span>
-    <span class='doccomment'>/// original future.</span>
+    <span class='doccomment'>/// This method returns a future whose completion value depends on the</span>
+    <span class='doccomment'>/// completion value of the original future.</span>
     <span class='doccomment'>///</span>
-    <span class='doccomment'>/// If the original future completes with an error, the future returned by this method</span>
-    <span class='doccomment'>/// completes with that error.</span>
+    <span class='doccomment'>/// If the original future completes with an error, the future returned by</span>
+    <span class='doccomment'>/// this method completes with that error.</span>
     <span class='doccomment'>///</span>
-    <span class='doccomment'>/// If the original future completes successfully, the callback to this method is called with</span>
-    <span class='doccomment'>/// the value, and the callback returns a new future. The future returned by this method</span>
-    <span class='doccomment'>/// then completes with the completion value of that returned future.</span>
+    <span class='doccomment'>/// If the original future completes successfully, the callback to this</span>
+    <span class='doccomment'>/// method is called with the value, and the callback returns a new future.</span>
+    <span class='doccomment'>/// The future returned by this method then completes with the completion</span>
+    <span class='doccomment'>/// value of that returned future.</span>
     <span class='doccomment'>///</span>
     <span class='doccomment'>/// ```</span>
     <span class='doccomment'>/// use syncbox::util::async::*;</span>
-    <span class='doccomment'>/// let f = Future::of(1337);</span>
-    <span class='doccomment'>/// f.and_then(|v| { assert_eq!(v, 1337); Ok(1007) }).and_then(|v| assert_eq!(v, 1007)).await();</span>
     <span class='doccomment'>///</span>
-    <span class='doccomment'>/// let e = Future::error(&quot;failed&quot;);</span>
-    <span class='doccomment'>/// e.or_else(|e| {</span>
-    <span class='doccomment'>///     assert_eq!(e, AsyncError::Failed(&quot;failed&quot;));</span>
-    <span class='doccomment'>///     Ok(1337)</span>
+    <span class='doccomment'>/// let f = Future::of(1337);</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// f.and_then(|v| {</span>
+    <span class='doccomment'>///     assert_eq!(v, 1337);</span>
+    <span class='doccomment'>///     Ok(1007)</span>
+    <span class='doccomment'>/// }).and_then(|v| {</span>
+    <span class='doccomment'>///     assert_eq!(v, 1007)</span>
+    <span class='doccomment'>/// }).await();</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// let e = Future::&lt;(), &amp;&#39;static str&gt;::error(&quot;failed&quot;);</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// e.and_then(|v| {</span>
+    <span class='doccomment'>///     panic!(&quot;unreachable&quot;);</span>
+    <span class='doccomment'>///     Ok(())</span>
     <span class='doccomment'>/// }).await();</span>
     <span class='doccomment'>/// ```</span>
     <span class='kw'>fn</span> <span class='ident'>and_then</span><span class='op'>&lt;</span><span class='ident'>F</span>, <span class='ident'>U</span>: <span class='ident'>Async</span><span class='op'>&lt;</span><span class='ident'>Error</span><span class='op'>=</span><span class='ident'>Self</span>::<span class='ident'>Error</span><span class='op'>&gt;&gt;</span>(<span class='self'>self</span>, <span class='ident'>f</span>: <span class='ident'>F</span>) <span class='op'>-&gt;</span> <span class='ident'>Future</span><span class='op'>&lt;</span><span class='ident'>U</span>::<span class='ident'>Value</span>, <span class='ident'>Self</span>::<span class='ident'>Error</span><span class='op'>&gt;</span>
@@ -700,31 +720,32 @@
         <span class='ident'>ret</span>
     }
 
-    <span class='doccomment'>/// This method returns a future whose completion value depends on the completion value of the</span>
-    <span class='doccomment'>/// original future.</span>
+    <span class='doccomment'>/// This method returns a future whose completion value depends on the</span>
+    <span class='doccomment'>/// completion value of the original future.</span>
     <span class='doccomment'>///</span>
-    <span class='doccomment'>/// If the original future completes successfully, the future returned by this method will</span>
-    <span class='doccomment'>/// complete with that value.</span>
+    <span class='doccomment'>/// If the original future completes successfully, the future returned by</span>
+    <span class='doccomment'>/// this method will complete with that value.</span>
     <span class='doccomment'>///</span>
-    <span class='doccomment'>/// If the original future completes with an error, the future returned by this method will</span>
-    <span class='doccomment'>/// complete with the completion value of the `alt` future passed in. That can be either a</span>
-    <span class='doccomment'>/// success or error.</span>
+    <span class='doccomment'>/// If the original future completes with an error, the future returned by</span>
+    <span class='doccomment'>/// this method will complete with the completion value of the `alt` future</span>
+    <span class='doccomment'>/// passed in. That can be either a success or error.</span>
     <span class='kw'>fn</span> <span class='ident'>or</span><span class='op'>&lt;</span><span class='ident'>A</span><span class='op'>&gt;</span>(<span class='self'>self</span>, <span class='ident'>alt</span>: <span class='ident'>A</span>) <span class='op'>-&gt;</span> <span class='ident'>Future</span><span class='op'>&lt;</span><span class='ident'>Self</span>::<span class='ident'>Value</span>, <span class='ident'>Self</span>::<span class='ident'>Error</span><span class='op'>&gt;</span>
             <span class='kw'>where</span> <span class='ident'>A</span>: <span class='ident'>Async</span><span class='op'>&lt;</span><span class='ident'>Value</span><span class='op'>=</span><span class='ident'>Self</span>::<span class='ident'>Value</span>, <span class='ident'>Error</span><span class='op'>=</span><span class='ident'>Self</span>::<span class='ident'>Error</span><span class='op'>&gt;</span> {
         <span class='self'>self</span>.<span class='ident'>or_else</span>(<span class='kw'>move</span> <span class='op'>|</span>_<span class='op'>|</span> <span class='ident'>alt</span>)
     }
 
-    <span class='doccomment'>/// This method returns a future whose completion value depends on the completion value of the</span>
-    <span class='doccomment'>/// original future.</span>
+    <span class='doccomment'>/// This method returns a future whose completion value depends on the</span>
+    <span class='doccomment'>/// completion value of the original future.</span>
     <span class='doccomment'>///</span>
-    <span class='doccomment'>/// If the original future completes successfully, the future returned by this method will</span>
-    <span class='doccomment'>/// complete with that value.</span>
+    <span class='doccomment'>/// If the original future completes successfully, the future returned by</span>
+    <span class='doccomment'>/// this method will complete with that value.</span>
     <span class='doccomment'>///</span>
-    <span class='doccomment'>/// If the original future completes with an error, this method will invoke the callback passed</span>
-    <span class='doccomment'>/// to the method, which should return a future. The future returned by this method will</span>
-    <span class='doccomment'>/// complete with the completion value of that future. That can be either a success or error.</span>
+    <span class='doccomment'>/// If the original future completes with an error, this method will invoke</span>
+    <span class='doccomment'>/// the callback passed to the method, which should return a future. The</span>
+    <span class='doccomment'>/// future returned by this method will complete with the completion value</span>
+    <span class='doccomment'>/// of that future. That can be either a success or error.</span>
     <span class='kw'>fn</span> <span class='ident'>or_else</span><span class='op'>&lt;</span><span class='ident'>F</span>, <span class='ident'>A</span><span class='op'>&gt;</span>(<span class='self'>self</span>, <span class='ident'>f</span>: <span class='ident'>F</span>) <span class='op'>-&gt;</span> <span class='ident'>Future</span><span class='op'>&lt;</span><span class='ident'>Self</span>::<span class='ident'>Value</span>, <span class='ident'>Self</span>::<span class='ident'>Error</span><span class='op'>&gt;</span>
-            <span class='kw'>where</span> <span class='ident'>F</span>: <span class='ident'>FnOnce</span>(<span class='ident'>AsyncError</span><span class='op'>&lt;</span><span class='ident'>Self</span>::<span class='ident'>Error</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>A</span> <span class='op'>+</span> <span class='ident'>Send</span>,
+            <span class='kw'>where</span> <span class='ident'>F</span>: <span class='ident'>FnOnce</span>(<span class='ident'>Self</span>::<span class='ident'>Error</span>) <span class='op'>-&gt;</span> <span class='ident'>A</span> <span class='op'>+</span> <span class='ident'>Send</span>,
                   <span class='ident'>A</span>: <span class='ident'>Async</span><span class='op'>&lt;</span><span class='ident'>Value</span><span class='op'>=</span><span class='ident'>Self</span>::<span class='ident'>Value</span>, <span class='ident'>Error</span><span class='op'>=</span><span class='ident'>Self</span>::<span class='ident'>Error</span><span class='op'>&gt;</span> {
 
         <span class='kw'>let</span> (<span class='ident'>complete</span>, <span class='ident'>ret</span>) <span class='op'>=</span> <span class='ident'>Future</span>::<span class='ident'>pair</span>();
@@ -734,7 +755,7 @@
                 <span class='self'>self</span>.<span class='ident'>receive</span>(<span class='kw'>move</span> <span class='op'>|</span><span class='ident'>res</span><span class='op'>|</span> {
                     <span class='kw'>match</span> <span class='ident'>res</span> {
                         <span class='prelude-val'>Ok</span>(<span class='ident'>v</span>) <span class='op'>=&gt;</span> <span class='ident'>complete</span>.<span class='ident'>complete</span>(<span class='ident'>v</span>),
-                        <span class='prelude-val'>Err</span>(<span class='ident'>e</span>) <span class='op'>=&gt;</span> {
+                        <span class='prelude-val'>Err</span>(<span class='ident'>AsyncError</span>::<span class='ident'>Failed</span>(<span class='ident'>e</span>)) <span class='op'>=&gt;</span> {
                             <span class='ident'>f</span>(<span class='ident'>e</span>).<span class='ident'>receive</span>(<span class='kw'>move</span> <span class='op'>|</span><span class='ident'>res</span><span class='op'>|</span> {
                                 <span class='kw'>match</span> <span class='ident'>res</span> {
                                     <span class='prelude-val'>Ok</span>(<span class='ident'>v</span>) <span class='op'>=&gt;</span> <span class='ident'>complete</span>.<span class='ident'>complete</span>(<span class='ident'>v</span>),
@@ -743,6 +764,7 @@
                                 }
                             });
                         }
+                        <span class='prelude-val'>Err</span>(<span class='ident'>AsyncError</span>::<span class='ident'>Aborted</span>) <span class='op'>=&gt;</span> <span class='ident'>drop</span>(<span class='ident'>complete</span>),
                     }
                 });
             }
