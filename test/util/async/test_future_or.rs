@@ -37,7 +37,7 @@ pub fn test_or_else_complete_before_receive() {
     let (tx, rx) = channel();
 
     f.or_else(move |e| {
-        assert_eq!(123, e.unwrap());
+        assert_eq!(123, e);
         Ok("caught")
     }).receive(move |res| {
         tx.send(res.unwrap()).unwrap();

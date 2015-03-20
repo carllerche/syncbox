@@ -146,37 +146,46 @@ pub trait Async : Send + Sized {
      *
      */
 
-    /// This method returns a future whose completion value depends on the completion value of the
-    /// original future.
+    /// This method returns a future whose completion value depends on the
+    /// completion value of the original future.
     ///
-    /// If the original future completes with an error, the future returned by this method
-    /// completes with that error.
+    /// If the original future completes with an error, the future returned by
+    /// this method completes with that error.
     ///
-    /// If the original future completes successfully, the future returned by this method completes
-    /// with the completion value of `next`.
+    /// If the original future completes successfully, the future returned by
+    /// this method completes with the completion value of `next`.
     fn and<U: Async<Error=Self::Error>>(self, next: U) -> Future<U::Value, Self::Error> {
         self.and_then(move |_| next)
     }
 
-    /// This method returns a future whose completion value depends on the completion value of the
-    /// original future.
+    /// This method returns a future whose completion value depends on the
+    /// completion value of the original future.
     ///
-    /// If the original future completes with an error, the future returned by this method
-    /// completes with that error.
+    /// If the original future completes with an error, the future returned by
+    /// this method completes with that error.
     ///
-    /// If the original future completes successfully, the callback to this method is called with
-    /// the value, and the callback returns a new future. The future returned by this method
-    /// then completes with the completion value of that returned future.
+    /// If the original future completes successfully, the callback to this
+    /// method is called with the value, and the callback returns a new future.
+    /// The future returned by this method then completes with the completion
+    /// value of that returned future.
     ///
     /// ```
     /// use syncbox::util::async::*;
-    /// let f = Future::of(1337);
-    /// f.and_then(|v| { assert_eq!(v, 1337); Ok(1007) }).and_then(|v| assert_eq!(v, 1007)).await();
     ///
-    /// let e = Future::error("failed");
-    /// e.or_else(|e| {
-    ///     assert_eq!(e, AsyncError::Failed("failed"));
-    ///     Ok(1337)
+    /// let f = Future::of(1337);
+    ///
+    /// f.and_then(|v| {
+    ///     assert_eq!(v, 1337);
+    ///     Ok(1007)
+    /// }).and_then(|v| {
+    ///     assert_eq!(v, 1007)
+    /// }).await();
+    ///
+    /// let e = Future::<(), &'static str>::error("failed");
+    ///
+    /// e.and_then(|v| {
+    ///     panic!("unreachable");
+    ///     Ok(())
     /// }).await();
     /// ```
     fn and_then<F, U: Async<Error=Self::Error>>(self, f: F) -> Future<U::Value, Self::Error>
@@ -207,31 +216,32 @@ pub trait Async : Send + Sized {
         ret
     }
 
-    /// This method returns a future whose completion value depends on the completion value of the
-    /// original future.
+    /// This method returns a future whose completion value depends on the
+    /// completion value of the original future.
     ///
-    /// If the original future completes successfully, the future returned by this method will
-    /// complete with that value.
+    /// If the original future completes successfully, the future returned by
+    /// this method will complete with that value.
     ///
-    /// If the original future completes with an error, the future returned by this method will
-    /// complete with the completion value of the `alt` future passed in. That can be either a
-    /// success or error.
+    /// If the original future completes with an error, the future returned by
+    /// this method will complete with the completion value of the `alt` future
+    /// passed in. That can be either a success or error.
     fn or<A>(self, alt: A) -> Future<Self::Value, Self::Error>
             where A: Async<Value=Self::Value, Error=Self::Error> {
         self.or_else(move |_| alt)
     }
 
-    /// This method returns a future whose completion value depends on the completion value of the
-    /// original future.
+    /// This method returns a future whose completion value depends on the
+    /// completion value of the original future.
     ///
-    /// If the original future completes successfully, the future returned by this method will
-    /// complete with that value.
+    /// If the original future completes successfully, the future returned by
+    /// this method will complete with that value.
     ///
-    /// If the original future completes with an error, this method will invoke the callback passed
-    /// to the method, which should return a future. The future returned by this method will
-    /// complete with the completion value of that future. That can be either a success or error.
+    /// If the original future completes with an error, this method will invoke
+    /// the callback passed to the method, which should return a future. The
+    /// future returned by this method will complete with the completion value
+    /// of that future. That can be either a success or error.
     fn or_else<F, A>(self, f: F) -> Future<Self::Value, Self::Error>
-            where F: FnOnce(AsyncError<Self::Error>) -> A + Send,
+            where F: FnOnce(Self::Error) -> A + Send,
                   A: Async<Value=Self::Value, Error=Self::Error> {
 
         let (complete, ret) = Future::pair();
@@ -241,7 +251,7 @@ pub trait Async : Send + Sized {
                 self.receive(move |res| {
                     match res {
                         Ok(v) => complete.complete(v),
-                        Err(e) => {
+                        Err(AsyncError::Failed(e)) => {
                             f(e).receive(move |res| {
                                 match res {
                                     Ok(v) => complete.complete(v),
@@ -250,6 +260,7 @@ pub trait Async : Send + Sized {
                                 }
                             });
                         }
+                        Err(AsyncError::Aborted) => drop(complete),
                     }
                 });
             }

@@ -50,35 +50,12 @@ impl<T: Send, E: Send> Future<T, E> {
     /// use syncbox::util::async::*;
     ///
     /// Future::error("hi").or_else(|err| {
-    ///     match err {
-    ///         AsyncError::Failed(e) => assert!(e == "hi"),
-    ///         AsyncError::Aborted => unreachable!()
-    ///     }
-    ///
+    ///     assert!(err == "hi");
     ///     Ok(())
-    /// });
+    /// }).fire();
     /// ```
     pub fn error(err: E) -> Future<T, E> {
         let core = Core::with_value(Err(AsyncError::failed(err)));
-        Future { core: Some(core) }
-    }
-
-    /// Returns a future that will immediately be aborted
-    ///
-    /// ```
-    /// use syncbox::util::async::*;
-    ///
-    /// Future::<&'static str, ()>::aborted().or_else(|err| {
-    ///     match err {
-    ///         AsyncError::Failed(e) => unreachable!(),
-    ///         AsyncError::Aborted => assert!(true)
-    ///     }
-    ///
-    ///     Ok("handled")
-    /// });
-    /// ```
-    pub fn aborted() -> Future<T, E> {
-        let core = Core::with_value(Err(AsyncError::aborted()));
         Future { core: Some(core) }
     }
 
@@ -275,13 +252,9 @@ impl<T: Send, E: Send> Cancel<Future<T, E>> for Receipt<Future<T, E>> {
 /// tx.fail("failed");
 ///
 /// future.or_else(|err| {
-///     match err {
-///         AsyncError::Failed(err) => assert!(err == "failed"),
-///         AsyncError::Aborted => unreachable!(),
-///     }
-///
+///     assert!(err == "failed");
 ///     Ok(123)
-/// });
+/// }).fire();
 /// ```
 #[unsafe_no_drop_flag]
 #[must_use = "Futures must be completed or they will panic on access"]
