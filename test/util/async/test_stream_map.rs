@@ -7,7 +7,7 @@ pub fn test_stream_map_async() {
     let s = nums(0, 5).map(move |i| 2 * i);
     let (tx, rx) = channel();
 
-    fn receive(s: Stream<i32, ()>, tx: mpsc::Sender<i32>) {
+    fn receive(s: Stream<usize, ()>, tx: mpsc::Sender<usize>) {
         debug!("Stream::receive");
         s.receive(move |res| {
             res.map(move |head| {
@@ -21,6 +21,6 @@ pub fn test_stream_map_async() {
 
     receive(s, tx);
 
-    let vals: Vec<i32> = rx.iter().collect();
+    let vals: Vec<usize> = rx.iter().collect();
     assert_eq!([0, 2, 4, 6, 8].as_slice(), vals.as_slice());
 }

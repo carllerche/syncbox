@@ -45,6 +45,7 @@ mod test_stream_each;
 mod test_stream_filter;
 mod test_stream_iter;
 mod test_stream_map;
+mod test_stream_process;
 mod test_stream_receive;
 mod test_stream_reduce;
 mod test_stream_take;
@@ -55,7 +56,7 @@ mod test_stream_take;
  *
  */
 
-fn nums(from: i32, to: i32) -> Stream<i32, ()> {
+fn nums(from: usize, to: usize) -> Stream<usize, ()> {
     Future::lazy(move || {
         debug!("range tick; from={}", from);
 

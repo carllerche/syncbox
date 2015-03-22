@@ -156,6 +156,13 @@ impl<T: Send, E: Send> Stream<T, E> {
         });
     }
 
+    pub fn process<F, U>(self, in_flight: usize, f: F) -> Stream<U::Value, E>
+            where F: Fn(T) -> U + Send,
+                  U: Async<Error=E> {
+        use util::async::process::process;
+        process(self, in_flight, f)
+    }
+
     /// Aggregate all the values of the stream by applying the given function
     /// to each value and the result of the previous application. The first
     /// iteration is seeded with the given initial value.

@@ -68,6 +68,7 @@ use std::fmt;
 mod core;
 mod future;
 mod join;
+mod process;
 mod receipt;
 mod select;
 mod sequence;
