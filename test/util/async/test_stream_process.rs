@@ -1,4 +1,4 @@
-use syncbox::util::async::{Async, Complete, Future, Stream, AsyncError};
+use syncbox::util::async::{Async, Complete, Future, Stream};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{Receiver, channel};
