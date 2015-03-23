@@ -153,7 +153,7 @@ impl<T: Send + 'static> Future<T, ()> {
 
 impl<T: Send, E: Send> Future<Option<(T, Stream<T, E>)>, E> {
     /// An adapter that converts any future into a one-value stream
-    pub fn as_stream(mut self) -> Stream<T, E> {
+    pub fn to_stream(mut self) -> Stream<T, E> {
         stream::from_core(core::take(&mut self.core))
     }
 }

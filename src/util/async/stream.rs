@@ -254,7 +254,7 @@ impl<T: Send, E: Send> Stream<T, E> {
                         _ => Ok(None),
                     }
                 }
-            }).as_stream()
+            }).to_stream()
     }
 
     /*

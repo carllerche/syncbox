@@ -220,5 +220,5 @@ fn nums(from: usize, to: usize) -> Stream<usize, &'static str> {
         } else {
             Ok(None)
         }
-    }).as_stream()
+    }).to_stream()
 }

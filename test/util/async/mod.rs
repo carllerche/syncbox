@@ -65,5 +65,5 @@ fn nums(from: usize, to: usize) -> Stream<usize, ()> {
         } else {
             Ok(None)
         }
-    }).as_stream()
+    }).to_stream()
 }
