@@ -41,6 +41,18 @@ impl<T: Send, E: Send> Stream<T, E> {
         (Sender { core: Some(core) }, stream)
     }
 
+    /// Returns a Stream that will immediately succeed with the supplied value.
+    ///
+    /// ```
+    /// use syncbox::util::async::*;
+    ///
+    /// let stream = Stream::<i32, &'static str>::empty();
+    /// assert!(stream.iter().next().is_none());
+    /// ```
+    pub fn empty() -> Stream<T, E> {
+        Stream { core: Some(Core::with_value(Ok(None))) }
+    }
+
     /// Asyncronously collects the items from the `Stream`, returning them sorted by order of
     /// arrival.
     pub fn collect(self) -> Future<Vec<T>, E> {
