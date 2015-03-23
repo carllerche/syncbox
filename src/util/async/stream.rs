@@ -29,7 +29,7 @@ pub struct Stream<T: Send, E: Send> {
 pub type Head<T, E> = Option<(T, Stream<T, E>)>;
 
 // Shorthand for the core type for Streams
-type StreamCore<T, E> = Core<Head<T, E>, E>;
+pub type StreamCore<T, E> = Core<Head<T, E>, E>;
 
 impl<T: Send, E: Send> Stream<T, E> {
 
