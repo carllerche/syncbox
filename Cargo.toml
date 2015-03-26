@@ -5,11 +5,11 @@ version = "0.1.0"
 authors = ["Carl Lerche <me@carllerche.com>"]
 
 [dependencies]
-log = "0.2.3"
+log = "0.3.0"
 
 [dev-dependencies]
-env_logger = "0.2.2"
-time       = "0.1.20"
+env_logger = "0.3.0"
+time       = "0.1.21"
 
 [[test]]
 

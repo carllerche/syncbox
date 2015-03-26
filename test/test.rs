@@ -1,4 +1,4 @@
-#![feature(core, std_misc)]
+#![feature(std_misc)]
 
 extern crate syncbox;
 
