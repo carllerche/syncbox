@@ -49,11 +49,11 @@ pub fn test_two_threads_task_queue_up() {
         tp.run(move || {
             debug!("send; task={}; msg=hi", i);
             tx.send("hi").unwrap();
-            sleep_ms(50);
+            sleep_ms(200);
 
             debug!("send; task={}; msg=bye", i);
             tx.send("bye").unwrap();
-            sleep_ms(50);
+            sleep_ms(200);
         });
     }
 
