@@ -1,1 +1,1 @@
-initSidebarItems({"mod":[["async","Composable primitives for asynchronous computations"],["atomic",""]],"struct":[["ArrayQueue",""],["LinkedQueue","A queue in which values are contained by a linked list."],["ThreadPool",""]],"trait":[["Queue",""],["Run",""],["SyncQueue",""]]});
+initSidebarItems({"struct":[["ArrayQueue",""],["LinkedQueue","A queue in which values are contained by a linked list."],["ThreadPool",""]],"trait":[["Queue",""],["Run",""],["SyncQueue",""]],"mod":[["async","Composable primitives for asynchronous computations"],["atomic",""]]});
