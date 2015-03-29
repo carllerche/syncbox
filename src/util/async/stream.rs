@@ -189,6 +189,42 @@ impl<T: Send, E: Send> Stream<T, E> {
         });
     }
 
+    /// Returns a new stream with an identical sequence of values as the
+    /// original. If the original stream errors, apply the given function on
+    /// the error and use the result as the error of the new stream.
+    pub fn map_err<F, U>(self, f: F) -> Stream<T, U>
+            where F: FnOnce(E) -> U + Send,
+                  U: Send {
+        let (sender, stream) = Stream::pair();
+
+        sender.receive(move |res| {
+            if let Ok(sender) = res {
+                self.do_map_err(sender, f);
+            }
+        });
+
+        stream
+    }
+
+    fn do_map_err<F, U>(self, sender: Sender<T, U>, f: F)
+            where F: FnOnce(E) -> U + Send,
+                  U: Send {
+        self.receive(move |res| {
+            match res {
+                Ok(Some((val, rest))) => {
+                    sender.send(val).receive(move |res| {
+                        if let Ok(sender) = res {
+                            rest.do_map_err(sender, f);
+                        }
+                    });
+                }
+                Ok(None) => {}
+                Err(AsyncError::Failed(e)) => sender.fail(f(e)),
+                Err(AsyncError::Aborted) => sender.abort(),
+            }
+        });
+    }
+
     pub fn process<F, U>(self, in_flight: usize, f: F) -> Stream<U::Value, E>
             where F: Fn(T) -> U + Send,
                   U: Async<Error=E> {

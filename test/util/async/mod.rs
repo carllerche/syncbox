@@ -25,6 +25,8 @@ use syncbox::util::async::*;
 mod test_future_and;
 mod test_future_await;
 mod test_future_cancel;
+mod test_future_map;
+mod test_future_map_err;
 mod test_future_or;
 mod test_future_receive;
 
@@ -45,6 +47,7 @@ mod test_stream_each;
 mod test_stream_filter;
 mod test_stream_iter;
 mod test_stream_map;
+mod test_stream_map_err;
 mod test_stream_process;
 mod test_stream_receive;
 mod test_stream_reduce;

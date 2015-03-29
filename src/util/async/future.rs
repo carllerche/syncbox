@@ -113,6 +113,29 @@ impl<T: Send, E: Send> Future<T, E> {
         self.and_then(move |val| Ok(f(val)))
     }
 
+    /// Returns a new future with an identical value as the original. If the
+    /// original future fails, apply the given function on the error and use
+    /// the result as the error of the new future.
+    pub fn map_err<F, U>(self, f: F) -> Future<T, U>
+            where F: FnOnce(E) -> U + Send,
+                  U: Send {
+        let (complete, future) = Future::pair();
+
+        complete.receive(move |res| {
+            if let Ok(complete) = res {
+                self.receive(move |res| {
+                    match res {
+                        Ok(v) => complete.complete(v),
+                        Err(AsyncError::Failed(e)) => complete.fail(f(e)),
+                        Err(AsyncError::Aborted) => drop(complete),
+                    }
+                });
+            }
+        });
+
+        future
+    }
+
     /*
      *
      * ===== Internal Helpers =====
