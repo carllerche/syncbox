@@ -56,6 +56,8 @@ mod test_stream_take;
  *
  */
 
+use std::sync::mpsc::{Receiver, channel};
+
 fn nums(from: usize, to: usize) -> Stream<usize, ()> {
     Future::lazy(move || {
         debug!("range tick; from={}", from);
@@ -66,4 +68,17 @@ fn nums(from: usize, to: usize) -> Stream<usize, ()> {
             Ok(None)
         }
     }).to_stream()
+}
+
+fn futures<T: Send, E: Send>(n: u32) -> (Vec<Complete<T, E>>, Receiver<Future<T, E>>) {
+    let mut v = vec![];
+    let (tx, rx) = channel();
+
+    for _ in 0..n {
+        let (complete, future) = Future::pair();
+        tx.send(future).unwrap();
+        v.push(complete);
+    }
+
+    (v, rx)
 }

@@ -1,7 +1,8 @@
-use syncbox::util::async::{Async, Complete, Future, Stream};
+use super::{futures};
+use syncbox::util::async::{Async, Future, Stream};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::mpsc::{Receiver, channel};
+use std::sync::mpsc::channel;
 
 #[test]
 pub fn test_process_sync_result() {
@@ -171,19 +172,6 @@ pub fn test_process_failed_future() {
     // is not currently implemented though.
     assert_eq!(4, counter.val());
     assert!(rx.recv().is_err());
-}
-
-fn futures(n: u32) -> (Vec<Complete<usize, &'static str>>, Receiver<Future<usize, &'static str>>) {
-    let mut v = vec![];
-    let (tx, rx) = channel();
-
-    for _ in 0..n {
-        let (complete, future) = Future::pair();
-        tx.send(future).unwrap();
-        v.push(complete);
-    }
-
-    (v, rx)
 }
 
 struct Counter {
