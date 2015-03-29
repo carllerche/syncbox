@@ -15,7 +15,6 @@ use alloc::heap;
  */
 
 // Core implementation of Future & Stream
-#[unsafe_no_drop_flag]
 pub struct Core<T: Send, E: Send> {
     ptr: NonZero<*mut CoreInner<T, E>>,
 }
@@ -130,9 +129,6 @@ impl<T: Send, E: Send> Clone for Core<T, E> {
 #[unsafe_destructor]
 impl<T: Send, E: Send> Drop for Core<T, E> {
     fn drop(&mut self) {
-        // Handle memory already zeroed out
-        if self.ptr.is_null() { return; }
-
         if self.inner().ref_dec(Release) != 1 {
             return;
         }

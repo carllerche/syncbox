@@ -19,7 +19,6 @@ use std::fmt;
  *
  */
 
-#[unsafe_no_drop_flag]
 #[must_use = "streams are lazy and do nothing unless consumed"]
 pub struct Stream<T: Send, E: Send> {
     core: Option<Core<Head<T, E>, E>>,
@@ -602,7 +601,6 @@ impl<T: Send, E: Send> Cancel<BusySender<T, E>> for Receipt<BusySender<T, E>> {
  *
  */
 
-#[unsafe_no_drop_flag]
 pub struct StreamIter<T: Send, E: Send> {
     core: Option<StreamCore<T, E>>,
 }

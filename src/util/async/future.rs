@@ -16,7 +16,6 @@ use std::fmt;
  * - Add AsyncVal trait that impls all the various monadic fns
  */
 
-#[unsafe_no_drop_flag]
 #[must_use = "futures are lazy and do nothing unless consumed"]
 pub struct Future<T: Send, E: Send> {
     core: Option<Core<T, E>>,
@@ -256,7 +255,6 @@ impl<T: Send, E: Send> Cancel<Future<T, E>> for Receipt<Future<T, E>> {
 ///     Ok(123)
 /// }).fire();
 /// ```
-#[unsafe_no_drop_flag]
 #[must_use = "Futures must be completed or they will panic on access"]
 pub struct Complete<T: Send, E: Send> {
     core: Option<Core<T, E>>,
@@ -367,5 +365,6 @@ impl<T: Send, E: Send> Cancel<Complete<T, E>> for Receipt<Complete<T, E>> {
 pub fn test_size_of_future() {
     use std::mem;
 
-    assert_eq!(mem::size_of::<usize>(), mem::size_of::<Future<String, String>>());
+    // TODO: This should go back to being ptr sized
+    assert_eq!(3 * mem::size_of::<usize>(), mem::size_of::<Future<String, String>>());
 }

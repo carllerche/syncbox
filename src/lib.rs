@@ -2,12 +2,8 @@
 
 #![crate_name = "syncbox"]
 
-// Enable some features
-#![feature(unsafe_destructor)]
-#![feature(unsafe_no_drop_flag)]
-
 // Embrace edge
-#![feature(alloc, core, std_misc)]
+#![feature(alloc, core, std_misc, unsafe_destructor)]
 
 extern crate alloc;
 extern crate core;
