@@ -140,24 +140,46 @@ impl<T: Send, E: Send> Stream<T, E> {
     /// Returns a new stream representing the application of the specified
     /// function to each value of the original stream.
     pub fn map<F: Fn(T) -> U + Send, U: Send>(self, f: F) -> Stream<U, E> {
+        self.map_async(move |val| Ok(f(val)))
+    }
+
+    /// Returns a new stream representing the application of the specified
+    /// function to each value of the original stream. Each iteration waits for
+    /// the async result of the mapping to realize before continuing on to the
+    /// next value.
+    pub fn map_async<F, U>(self, action: F) -> Stream<U::Value, E>
+            where F: Fn(T) -> U + Send,
+                  U: Async<Error=E> {
+
         let (sender, ret) = Stream::pair();
 
         sender.receive(move |res| {
             if let Ok(sender) = res {
-                self.do_map(sender, f);
+                self.do_map(sender, action);
             }
         });
 
         ret
     }
 
-    fn do_map<F: Fn(T) -> U + Send, U: Send>(self, sender: Sender<U, E>, f: F) {
+    fn do_map<F, U>(self, sender: Sender<U::Value, E>, f: F)
+            where F: Fn(T) -> U + Send,
+                  U: Async<Error=E> {
+
         self.receive(move |head| {
             match head {
                 Ok(Some((v, rest))) => {
-                    sender.send(f(v)).receive(move |res| {
-                        if let Ok(sender) = res {
-                            rest.do_map(sender, f);
+                    f(v).receive(move |res| {
+                        match res {
+                            Ok(val) => {
+                                sender.send(val).receive(move |res| {
+                                    if let Ok(sender) = res {
+                                        rest.do_map(sender, f);
+                                    }
+                                });
+                            }
+                            Err(AsyncError::Failed(e)) => sender.fail(e),
+                            Err(AsyncError::Aborted) => sender.abort(),
                         }
                     });
                 }
@@ -182,21 +204,47 @@ impl<T: Send, E: Send> Stream<T, E> {
     /// Returns a future that will be completed with the result of the final
     /// iteration.
     pub fn reduce<F: Fn(U, T) -> U + Send, U: Send>(self, init: U, f: F) -> Future<U, E> {
+        self.reduce_async(init, move |curr, val| Ok(f(curr, val)))
+    }
+
+    /// Aggregate all the values of the stream by applying the given function
+    /// to each value and the realized result of the previous application. The
+    /// first iteration is seeded with the given initial value.
+    ///
+    /// Returns a future that will be completed with the result of the final
+    /// iteration.
+    pub fn reduce_async<F, U, X>(self, init: X, action: F) -> Future<X, E>
+            // TODO: Remove X generic, blocked on rust-lang/rust#23728
+            where F: Fn(X, T) -> U + Send,
+                  U: Async<Value=X, Error=E>,
+                  X: Send {
+
         let (sender, ret) = Future::pair();
 
         sender.receive(move |res| {
             if let Ok(sender) = res {
-                self.do_reduce(sender, init, f);
+                self.do_reduce(sender, init, action);
             }
         });
 
         ret
     }
 
-    fn do_reduce<F: Fn(U, T) -> U + Send, U: Send>(self, complete: Complete<U, E>, curr: U, f: F) {
+    fn do_reduce<F, U>(self, complete: Complete<U::Value, E>, curr: U::Value, f: F)
+            where F: Fn(U::Value, T) -> U + Send,
+                  U: Async<Error=E> {
+
         self.receive(move |head| {
             match head {
-                Ok(Some((v, rest))) => rest.do_reduce(complete, f(curr, v), f),
+                Ok(Some((v, rest))) => {
+                    f(curr, v).receive(move |res| {
+                        match res {
+                            Ok(curr) => rest.do_reduce(complete, curr, f),
+                            Err(AsyncError::Failed(e)) => complete.fail(e),
+                            Err(AsyncError::Aborted) => drop(complete),
+                        }
+                    });
+                }
                 Ok(None) => complete.complete(curr),
                 Err(AsyncError::Failed(e)) => complete.fail(e),
                 Err(AsyncError::Aborted) => drop(complete),

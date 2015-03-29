@@ -19,3 +19,15 @@ pub fn test_stream_reduce_fail() {
     let reduced = rx.reduce(0, move |sum, v| sum + v);
     assert_eq!(Err(AsyncError::Failed(())), reduced.await());
 }
+
+#[test]
+#[ignore]
+pub fn test_stream_reduce_async_success() {
+    // Successfully reduce a stream with async computations
+}
+
+#[test]
+#[ignore]
+pub fn test_stream_reduce_async_fail() {
+    // An async computation returned from a reduction fails
+}

@@ -50,9 +50,13 @@ impl<T: Send, E: Send> Core<T, E> {
         debug!("Core::consumer_await");
 
         let th = thread::current();
-        self.inner().consumer_ready(move |_| th.unpark());
+        self.inner().consumer_ready(move |_| {
+            debug!("Core::consumer_await - unparking thread");
+            th.unpark()
+        });
 
         while !self.consumer_is_ready() {
+            debug!("Core::consumer_await - parking thread");
             thread::park();
         }
 

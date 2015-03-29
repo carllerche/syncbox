@@ -63,6 +63,7 @@ impl<P: Partial<R>, R: Send, E: Send> Progress<P, R, E> {
         // Set an acquire fence to make sure that all values have been acquired
         atomic::fence(Ordering::Acquire);
 
+        debug!("completing join");
         complete.complete(self.inner_mut().vals.consume());
     }
 
