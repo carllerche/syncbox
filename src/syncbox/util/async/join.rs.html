@@ -224,6 +224,7 @@
 <span id="182">182</span>
 <span id="183">183</span>
 <span id="184">184</span>
+<span id="185">185</span>
 </pre><pre class='rust '>
 <span class='kw'>use</span> <span class='ident'>super</span>::{<span class='ident'>Async</span>, <span class='ident'>Future</span>, <span class='ident'>Complete</span>, <span class='ident'>AsyncError</span>};
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>cell</span>::<span class='ident'>UnsafeCell</span>;
@@ -290,6 +291,7 @@
         <span class='comment'>// Set an acquire fence to make sure that all values have been acquired</span>
         <span class='ident'>atomic</span>::<span class='ident'>fence</span>(<span class='ident'>Ordering</span>::<span class='ident'>Acquire</span>);
 
+        <span class='macro'>debug</span><span class='macro'>!</span>(<span class='string'>&quot;completing join&quot;</span>);
         <span class='ident'>complete</span>.<span class='ident'>complete</span>(<span class='self'>self</span>.<span class='ident'>inner_mut</span>().<span class='ident'>vals</span>.<span class='ident'>consume</span>());
     }
 

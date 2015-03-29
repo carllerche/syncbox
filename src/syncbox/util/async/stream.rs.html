@@ -633,6 +633,52 @@
 <span id="591">591</span>
 <span id="592">592</span>
 <span id="593">593</span>
+<span id="594">594</span>
+<span id="595">595</span>
+<span id="596">596</span>
+<span id="597">597</span>
+<span id="598">598</span>
+<span id="599">599</span>
+<span id="600">600</span>
+<span id="601">601</span>
+<span id="602">602</span>
+<span id="603">603</span>
+<span id="604">604</span>
+<span id="605">605</span>
+<span id="606">606</span>
+<span id="607">607</span>
+<span id="608">608</span>
+<span id="609">609</span>
+<span id="610">610</span>
+<span id="611">611</span>
+<span id="612">612</span>
+<span id="613">613</span>
+<span id="614">614</span>
+<span id="615">615</span>
+<span id="616">616</span>
+<span id="617">617</span>
+<span id="618">618</span>
+<span id="619">619</span>
+<span id="620">620</span>
+<span id="621">621</span>
+<span id="622">622</span>
+<span id="623">623</span>
+<span id="624">624</span>
+<span id="625">625</span>
+<span id="626">626</span>
+<span id="627">627</span>
+<span id="628">628</span>
+<span id="629">629</span>
+<span id="630">630</span>
+<span id="631">631</span>
+<span id="632">632</span>
+<span id="633">633</span>
+<span id="634">634</span>
+<span id="635">635</span>
+<span id="636">636</span>
+<span id="637">637</span>
+<span id="638">638</span>
+<span id="639">639</span>
 </pre><pre class='rust '>
 <span class='kw'>use</span> <span class='ident'>util</span>::<span class='ident'>async</span>::{
     <span class='self'>self</span>,
@@ -655,7 +701,6 @@
  *
  */</span>
 
-<span class='attribute'>#[<span class='ident'>unsafe_no_drop_flag</span>]</span>
 <span class='attribute'>#[<span class='ident'>must_use</span> <span class='op'>=</span> <span class='string'>&quot;streams are lazy and do nothing unless consumed&quot;</span>]</span>
 <span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Stream</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Send</span>, <span class='ident'>E</span>: <span class='ident'>Send</span><span class='op'>&gt;</span> {
     <span class='ident'>core</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Core</span><span class='op'>&lt;</span><span class='ident'>Head</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;</span>, <span class='ident'>E</span><span class='op'>&gt;&gt;</span>,
@@ -776,24 +821,46 @@
     <span class='doccomment'>/// Returns a new stream representing the application of the specified</span>
     <span class='doccomment'>/// function to each value of the original stream.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>map</span><span class='op'>&lt;</span><span class='ident'>F</span>: <span class='ident'>Fn</span>(<span class='ident'>T</span>) <span class='op'>-&gt;</span> <span class='ident'>U</span> <span class='op'>+</span> <span class='ident'>Send</span>, <span class='ident'>U</span>: <span class='ident'>Send</span><span class='op'>&gt;</span>(<span class='self'>self</span>, <span class='ident'>f</span>: <span class='ident'>F</span>) <span class='op'>-&gt;</span> <span class='ident'>Stream</span><span class='op'>&lt;</span><span class='ident'>U</span>, <span class='ident'>E</span><span class='op'>&gt;</span> {
+        <span class='self'>self</span>.<span class='ident'>map_async</span>(<span class='kw'>move</span> <span class='op'>|</span><span class='ident'>val</span><span class='op'>|</span> <span class='prelude-val'>Ok</span>(<span class='ident'>f</span>(<span class='ident'>val</span>)))
+    }
+
+    <span class='doccomment'>/// Returns a new stream representing the application of the specified</span>
+    <span class='doccomment'>/// function to each value of the original stream. Each iteration waits for</span>
+    <span class='doccomment'>/// the async result of the mapping to realize before continuing on to the</span>
+    <span class='doccomment'>/// next value.</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>map_async</span><span class='op'>&lt;</span><span class='ident'>F</span>, <span class='ident'>U</span><span class='op'>&gt;</span>(<span class='self'>self</span>, <span class='ident'>action</span>: <span class='ident'>F</span>) <span class='op'>-&gt;</span> <span class='ident'>Stream</span><span class='op'>&lt;</span><span class='ident'>U</span>::<span class='ident'>Value</span>, <span class='ident'>E</span><span class='op'>&gt;</span>
+            <span class='kw'>where</span> <span class='ident'>F</span>: <span class='ident'>Fn</span>(<span class='ident'>T</span>) <span class='op'>-&gt;</span> <span class='ident'>U</span> <span class='op'>+</span> <span class='ident'>Send</span>,
+                  <span class='ident'>U</span>: <span class='ident'>Async</span><span class='op'>&lt;</span><span class='ident'>Error</span><span class='op'>=</span><span class='ident'>E</span><span class='op'>&gt;</span> {
+
         <span class='kw'>let</span> (<span class='ident'>sender</span>, <span class='ident'>ret</span>) <span class='op'>=</span> <span class='ident'>Stream</span>::<span class='ident'>pair</span>();
 
         <span class='ident'>sender</span>.<span class='ident'>receive</span>(<span class='kw'>move</span> <span class='op'>|</span><span class='ident'>res</span><span class='op'>|</span> {
             <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Ok</span>(<span class='ident'>sender</span>) <span class='op'>=</span> <span class='ident'>res</span> {
-                <span class='self'>self</span>.<span class='ident'>do_map</span>(<span class='ident'>sender</span>, <span class='ident'>f</span>);
+                <span class='self'>self</span>.<span class='ident'>do_map</span>(<span class='ident'>sender</span>, <span class='ident'>action</span>);
             }
         });
 
         <span class='ident'>ret</span>
     }
 
-    <span class='kw'>fn</span> <span class='ident'>do_map</span><span class='op'>&lt;</span><span class='ident'>F</span>: <span class='ident'>Fn</span>(<span class='ident'>T</span>) <span class='op'>-&gt;</span> <span class='ident'>U</span> <span class='op'>+</span> <span class='ident'>Send</span>, <span class='ident'>U</span>: <span class='ident'>Send</span><span class='op'>&gt;</span>(<span class='self'>self</span>, <span class='ident'>sender</span>: <span class='ident'>Sender</span><span class='op'>&lt;</span><span class='ident'>U</span>, <span class='ident'>E</span><span class='op'>&gt;</span>, <span class='ident'>f</span>: <span class='ident'>F</span>) {
+    <span class='kw'>fn</span> <span class='ident'>do_map</span><span class='op'>&lt;</span><span class='ident'>F</span>, <span class='ident'>U</span><span class='op'>&gt;</span>(<span class='self'>self</span>, <span class='ident'>sender</span>: <span class='ident'>Sender</span><span class='op'>&lt;</span><span class='ident'>U</span>::<span class='ident'>Value</span>, <span class='ident'>E</span><span class='op'>&gt;</span>, <span class='ident'>f</span>: <span class='ident'>F</span>)
+            <span class='kw'>where</span> <span class='ident'>F</span>: <span class='ident'>Fn</span>(<span class='ident'>T</span>) <span class='op'>-&gt;</span> <span class='ident'>U</span> <span class='op'>+</span> <span class='ident'>Send</span>,
+                  <span class='ident'>U</span>: <span class='ident'>Async</span><span class='op'>&lt;</span><span class='ident'>Error</span><span class='op'>=</span><span class='ident'>E</span><span class='op'>&gt;</span> {
+
         <span class='self'>self</span>.<span class='ident'>receive</span>(<span class='kw'>move</span> <span class='op'>|</span><span class='ident'>head</span><span class='op'>|</span> {
             <span class='kw'>match</span> <span class='ident'>head</span> {
                 <span class='prelude-val'>Ok</span>(<span class='prelude-val'>Some</span>((<span class='ident'>v</span>, <span class='ident'>rest</span>))) <span class='op'>=&gt;</span> {
-                    <span class='ident'>sender</span>.<span class='ident'>send</span>(<span class='ident'>f</span>(<span class='ident'>v</span>)).<span class='ident'>receive</span>(<span class='kw'>move</span> <span class='op'>|</span><span class='ident'>res</span><span class='op'>|</span> {
-                        <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Ok</span>(<span class='ident'>sender</span>) <span class='op'>=</span> <span class='ident'>res</span> {
-                            <span class='ident'>rest</span>.<span class='ident'>do_map</span>(<span class='ident'>sender</span>, <span class='ident'>f</span>);
+                    <span class='ident'>f</span>(<span class='ident'>v</span>).<span class='ident'>receive</span>(<span class='kw'>move</span> <span class='op'>|</span><span class='ident'>res</span><span class='op'>|</span> {
+                        <span class='kw'>match</span> <span class='ident'>res</span> {
+                            <span class='prelude-val'>Ok</span>(<span class='ident'>val</span>) <span class='op'>=&gt;</span> {
+                                <span class='ident'>sender</span>.<span class='ident'>send</span>(<span class='ident'>val</span>).<span class='ident'>receive</span>(<span class='kw'>move</span> <span class='op'>|</span><span class='ident'>res</span><span class='op'>|</span> {
+                                    <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Ok</span>(<span class='ident'>sender</span>) <span class='op'>=</span> <span class='ident'>res</span> {
+                                        <span class='ident'>rest</span>.<span class='ident'>do_map</span>(<span class='ident'>sender</span>, <span class='ident'>f</span>);
+                                    }
+                                });
+                            }
+                            <span class='prelude-val'>Err</span>(<span class='ident'>AsyncError</span>::<span class='ident'>Failed</span>(<span class='ident'>e</span>)) <span class='op'>=&gt;</span> <span class='ident'>sender</span>.<span class='ident'>fail</span>(<span class='ident'>e</span>),
+                            <span class='prelude-val'>Err</span>(<span class='ident'>AsyncError</span>::<span class='ident'>Aborted</span>) <span class='op'>=&gt;</span> <span class='ident'>sender</span>.<span class='ident'>abort</span>(),
                         }
                     });
                 }
@@ -818,21 +885,47 @@
     <span class='doccomment'>/// Returns a future that will be completed with the result of the final</span>
     <span class='doccomment'>/// iteration.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>reduce</span><span class='op'>&lt;</span><span class='ident'>F</span>: <span class='ident'>Fn</span>(<span class='ident'>U</span>, <span class='ident'>T</span>) <span class='op'>-&gt;</span> <span class='ident'>U</span> <span class='op'>+</span> <span class='ident'>Send</span>, <span class='ident'>U</span>: <span class='ident'>Send</span><span class='op'>&gt;</span>(<span class='self'>self</span>, <span class='ident'>init</span>: <span class='ident'>U</span>, <span class='ident'>f</span>: <span class='ident'>F</span>) <span class='op'>-&gt;</span> <span class='ident'>Future</span><span class='op'>&lt;</span><span class='ident'>U</span>, <span class='ident'>E</span><span class='op'>&gt;</span> {
+        <span class='self'>self</span>.<span class='ident'>reduce_async</span>(<span class='ident'>init</span>, <span class='kw'>move</span> <span class='op'>|</span><span class='ident'>curr</span>, <span class='ident'>val</span><span class='op'>|</span> <span class='prelude-val'>Ok</span>(<span class='ident'>f</span>(<span class='ident'>curr</span>, <span class='ident'>val</span>)))
+    }
+
+    <span class='doccomment'>/// Aggregate all the values of the stream by applying the given function</span>
+    <span class='doccomment'>/// to each value and the realized result of the previous application. The</span>
+    <span class='doccomment'>/// first iteration is seeded with the given initial value.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// Returns a future that will be completed with the result of the final</span>
+    <span class='doccomment'>/// iteration.</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>reduce_async</span><span class='op'>&lt;</span><span class='ident'>F</span>, <span class='ident'>U</span>, <span class='ident'>X</span><span class='op'>&gt;</span>(<span class='self'>self</span>, <span class='ident'>init</span>: <span class='ident'>X</span>, <span class='ident'>action</span>: <span class='ident'>F</span>) <span class='op'>-&gt;</span> <span class='ident'>Future</span><span class='op'>&lt;</span><span class='ident'>X</span>, <span class='ident'>E</span><span class='op'>&gt;</span>
+            <span class='comment'>// TODO: Remove X generic, blocked on rust-lang/rust#23728</span>
+            <span class='kw'>where</span> <span class='ident'>F</span>: <span class='ident'>Fn</span>(<span class='ident'>X</span>, <span class='ident'>T</span>) <span class='op'>-&gt;</span> <span class='ident'>U</span> <span class='op'>+</span> <span class='ident'>Send</span>,
+                  <span class='ident'>U</span>: <span class='ident'>Async</span><span class='op'>&lt;</span><span class='ident'>Value</span><span class='op'>=</span><span class='ident'>X</span>, <span class='ident'>Error</span><span class='op'>=</span><span class='ident'>E</span><span class='op'>&gt;</span>,
+                  <span class='ident'>X</span>: <span class='ident'>Send</span> {
+
         <span class='kw'>let</span> (<span class='ident'>sender</span>, <span class='ident'>ret</span>) <span class='op'>=</span> <span class='ident'>Future</span>::<span class='ident'>pair</span>();
 
         <span class='ident'>sender</span>.<span class='ident'>receive</span>(<span class='kw'>move</span> <span class='op'>|</span><span class='ident'>res</span><span class='op'>|</span> {
             <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Ok</span>(<span class='ident'>sender</span>) <span class='op'>=</span> <span class='ident'>res</span> {
-                <span class='self'>self</span>.<span class='ident'>do_reduce</span>(<span class='ident'>sender</span>, <span class='ident'>init</span>, <span class='ident'>f</span>);
+                <span class='self'>self</span>.<span class='ident'>do_reduce</span>(<span class='ident'>sender</span>, <span class='ident'>init</span>, <span class='ident'>action</span>);
             }
         });
 
         <span class='ident'>ret</span>
     }
 
-    <span class='kw'>fn</span> <span class='ident'>do_reduce</span><span class='op'>&lt;</span><span class='ident'>F</span>: <span class='ident'>Fn</span>(<span class='ident'>U</span>, <span class='ident'>T</span>) <span class='op'>-&gt;</span> <span class='ident'>U</span> <span class='op'>+</span> <span class='ident'>Send</span>, <span class='ident'>U</span>: <span class='ident'>Send</span><span class='op'>&gt;</span>(<span class='self'>self</span>, <span class='ident'>complete</span>: <span class='ident'>Complete</span><span class='op'>&lt;</span><span class='ident'>U</span>, <span class='ident'>E</span><span class='op'>&gt;</span>, <span class='ident'>curr</span>: <span class='ident'>U</span>, <span class='ident'>f</span>: <span class='ident'>F</span>) {
+    <span class='kw'>fn</span> <span class='ident'>do_reduce</span><span class='op'>&lt;</span><span class='ident'>F</span>, <span class='ident'>U</span><span class='op'>&gt;</span>(<span class='self'>self</span>, <span class='ident'>complete</span>: <span class='ident'>Complete</span><span class='op'>&lt;</span><span class='ident'>U</span>::<span class='ident'>Value</span>, <span class='ident'>E</span><span class='op'>&gt;</span>, <span class='ident'>curr</span>: <span class='ident'>U</span>::<span class='ident'>Value</span>, <span class='ident'>f</span>: <span class='ident'>F</span>)
+            <span class='kw'>where</span> <span class='ident'>F</span>: <span class='ident'>Fn</span>(<span class='ident'>U</span>::<span class='ident'>Value</span>, <span class='ident'>T</span>) <span class='op'>-&gt;</span> <span class='ident'>U</span> <span class='op'>+</span> <span class='ident'>Send</span>,
+                  <span class='ident'>U</span>: <span class='ident'>Async</span><span class='op'>&lt;</span><span class='ident'>Error</span><span class='op'>=</span><span class='ident'>E</span><span class='op'>&gt;</span> {
+
         <span class='self'>self</span>.<span class='ident'>receive</span>(<span class='kw'>move</span> <span class='op'>|</span><span class='ident'>head</span><span class='op'>|</span> {
             <span class='kw'>match</span> <span class='ident'>head</span> {
-                <span class='prelude-val'>Ok</span>(<span class='prelude-val'>Some</span>((<span class='ident'>v</span>, <span class='ident'>rest</span>))) <span class='op'>=&gt;</span> <span class='ident'>rest</span>.<span class='ident'>do_reduce</span>(<span class='ident'>complete</span>, <span class='ident'>f</span>(<span class='ident'>curr</span>, <span class='ident'>v</span>), <span class='ident'>f</span>),
+                <span class='prelude-val'>Ok</span>(<span class='prelude-val'>Some</span>((<span class='ident'>v</span>, <span class='ident'>rest</span>))) <span class='op'>=&gt;</span> {
+                    <span class='ident'>f</span>(<span class='ident'>curr</span>, <span class='ident'>v</span>).<span class='ident'>receive</span>(<span class='kw'>move</span> <span class='op'>|</span><span class='ident'>res</span><span class='op'>|</span> {
+                        <span class='kw'>match</span> <span class='ident'>res</span> {
+                            <span class='prelude-val'>Ok</span>(<span class='ident'>curr</span>) <span class='op'>=&gt;</span> <span class='ident'>rest</span>.<span class='ident'>do_reduce</span>(<span class='ident'>complete</span>, <span class='ident'>curr</span>, <span class='ident'>f</span>),
+                            <span class='prelude-val'>Err</span>(<span class='ident'>AsyncError</span>::<span class='ident'>Failed</span>(<span class='ident'>e</span>)) <span class='op'>=&gt;</span> <span class='ident'>complete</span>.<span class='ident'>fail</span>(<span class='ident'>e</span>),
+                            <span class='prelude-val'>Err</span>(<span class='ident'>AsyncError</span>::<span class='ident'>Aborted</span>) <span class='op'>=&gt;</span> <span class='ident'>drop</span>(<span class='ident'>complete</span>),
+                        }
+                    });
+                }
                 <span class='prelude-val'>Ok</span>(<span class='prelude-val'>None</span>) <span class='op'>=&gt;</span> <span class='ident'>complete</span>.<span class='ident'>complete</span>(<span class='ident'>curr</span>),
                 <span class='prelude-val'>Err</span>(<span class='ident'>AsyncError</span>::<span class='ident'>Failed</span>(<span class='ident'>e</span>)) <span class='op'>=&gt;</span> <span class='ident'>complete</span>.<span class='ident'>fail</span>(<span class='ident'>e</span>),
                 <span class='prelude-val'>Err</span>(<span class='ident'>AsyncError</span>::<span class='ident'>Aborted</span>) <span class='op'>=&gt;</span> <span class='ident'>drop</span>(<span class='ident'>complete</span>),
@@ -1190,7 +1283,6 @@
  *
  */</span>
 
-<span class='attribute'>#[<span class='ident'>unsafe_no_drop_flag</span>]</span>
 <span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>StreamIter</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Send</span>, <span class='ident'>E</span>: <span class='ident'>Send</span><span class='op'>&gt;</span> {
     <span class='ident'>core</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>StreamCore</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;&gt;</span>,
 }
