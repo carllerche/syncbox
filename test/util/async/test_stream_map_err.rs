@@ -37,10 +37,7 @@ pub fn test_stream_map_err_fail() {
     }
 
     match rx.await() {
-        Ok(Some((v, rest))) => {
-            assert_eq!(234, v);
-            rx = rest;
-        }
+        Ok(Some((v, _))) => assert_eq!(234, v),
         _ => panic!("unexpected value"),
     }
 }

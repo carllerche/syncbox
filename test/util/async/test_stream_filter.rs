@@ -4,7 +4,7 @@ use super::{nums};
 
 #[test]
 pub fn test_stream_map_filter() {
-    let s = nums(0, 5).filter(move |i| i % 2 == 0);
+    let s = nums::<()>(0, 5).filter(move |i| i % 2 == 0);
     let (tx, rx) = channel();
 
     s.each(move |i| tx.send(i).unwrap()).fire();

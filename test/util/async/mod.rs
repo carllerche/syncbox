@@ -61,7 +61,7 @@ mod test_stream_take;
 
 use std::sync::mpsc::{Receiver, channel};
 
-fn nums(from: usize, to: usize) -> Stream<usize, ()> {
+fn nums<E: Send>(from: usize, to: usize) -> Stream<usize, E> {
     Future::lazy(move || {
         debug!("range tick; from={}", from);
 

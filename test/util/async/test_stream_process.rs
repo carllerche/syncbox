@@ -1,5 +1,5 @@
-use super::{futures};
-use syncbox::util::async::{Async, Future, Stream};
+use super::{futures, nums};
+use syncbox::util::async::Async;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::channel;
@@ -12,7 +12,7 @@ pub fn test_process_sync_result() {
     {
         let counter = counter.clone();
 
-        nums(0, 4).process(3, move |val| {
+        nums::<()>(0, 4).process(3, move |val| {
             assert_eq!(val, counter.inc());
             Ok(2 * val)
         }).each(move |val| {
@@ -35,7 +35,7 @@ pub fn test_process_async_result_less_than_buffer() {
     {
         let counter = counter.clone();
 
-        nums(0, 2).process(2, move |val| {
+        nums::<()>(0, 2).process(2, move |val| {
             assert_eq!(val, counter.inc());
             futures.try_recv().unwrap()
         }).each(move |val| {
@@ -61,7 +61,7 @@ pub fn test_process_async_result_more_than_buffer() {
     {
         let counter = counter.clone();
 
-        nums(0, 4)
+        nums::<()>(0, 4)
             .process(2, move |val| {
                 assert_eq!(val, counter.inc());
                 futures.try_recv().unwrap()
@@ -93,7 +93,7 @@ pub fn test_process_drop_stream_before_second_val_complete() {
     let stream = {
         let counter = counter.clone();
 
-        nums(0, 4).process(2, move |val| {
+        nums::<()>(0, 4).process(2, move |val| {
             assert_eq!(val, counter.inc());
             futures.try_recv().unwrap()
         })
@@ -120,7 +120,7 @@ pub fn test_process_drop_stream_after_second_val_complete() {
     let stream = {
         let counter = counter.clone();
 
-        nums(0, 4).process(2, move |val| {
+        nums::<()>(0, 4).process(2, move |val| {
             assert_eq!(val, counter.inc());
             futures.try_recv().unwrap()
         })
@@ -196,17 +196,4 @@ impl Clone for Counter {
     fn clone(&self) -> Counter {
         Counter { atomic: self.atomic.clone() }
     }
-}
-
-// TODO: Remove once Stream::map_err exists
-fn nums(from: usize, to: usize) -> Stream<usize, &'static str> {
-    Future::lazy(move || {
-        debug!("range tick; from={}", from);
-
-        if from < to {
-            Ok(Some((from, nums(from + 1, to))))
-        } else {
-            Ok(None)
-        }
-    }).to_stream()
 }
