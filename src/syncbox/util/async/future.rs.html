@@ -486,7 +486,7 @@
     <span class='doccomment'>///</span>
     <span class='doccomment'>/// Future::error(&quot;hi&quot;).or_else(|err| {</span>
     <span class='doccomment'>///     assert!(err == &quot;hi&quot;);</span>
-    <span class='doccomment'>///     Ok(())</span>
+    <span class='doccomment'>///     Ok::&lt;(), ()&gt;(())</span>
     <span class='doccomment'>/// }).fire();</span>
     <span class='doccomment'>/// ```</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>error</span>(<span class='ident'>err</span>: <span class='ident'>E</span>) <span class='op'>-&gt;</span> <span class='ident'>Future</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>E</span><span class='op'>&gt;</span> {
@@ -702,7 +702,7 @@
 <span class='doccomment'>/// future.and_then(|v| {</span>
 <span class='doccomment'>///     assert!(v == 1);</span>
 <span class='doccomment'>///     Ok(v + v)</span>
-<span class='doccomment'>/// });</span>
+<span class='doccomment'>/// }).fire();</span>
 <span class='doccomment'>///</span>
 <span class='doccomment'>/// tx.complete(1);</span>
 <span class='doccomment'>///</span>
@@ -711,7 +711,7 @@
 <span class='doccomment'>///</span>
 <span class='doccomment'>/// future.or_else(|err| {</span>
 <span class='doccomment'>///     assert!(err == &quot;failed&quot;);</span>
-<span class='doccomment'>///     Ok(123)</span>
+<span class='doccomment'>///     Ok::&lt;u32, &amp;&#39;static str&gt;(123)</span>
 <span class='doccomment'>/// }).fire();</span>
 <span class='doccomment'>/// ```</span>
 <span class='attribute'>#[<span class='ident'>must_use</span> <span class='op'>=</span> <span class='string'>&quot;Futures must be completed or they will panic on access&quot;</span>]</span>
