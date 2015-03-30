@@ -51,6 +51,7 @@ mod test_stream_map_err;
 mod test_stream_process;
 mod test_stream_receive;
 mod test_stream_reduce;
+mod test_stream_send_all;
 mod test_stream_take;
 
 /*

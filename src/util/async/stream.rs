@@ -463,6 +463,7 @@ impl<T: Send, E: Send> Sender<T, E> {
         BusySender { core: Some(core) }
     }
 
+    /// Terminated the stream with the given error.
     pub fn fail(mut self, err: E) {
         core::take(&mut self.core).complete(Err(AsyncError::failed(err)), true);
     }
@@ -472,6 +473,11 @@ impl<T: Send, E: Send> Sender<T, E> {
     /// needed to keep the state correct (see async::sequence)
     pub fn abort(mut self) {
         core::take(&mut self.core).complete(Err(AsyncError::aborted()), true);
+    }
+
+    /// Send all the values in the given source
+    pub fn send_all<S: Source<Value=T>>(self, src: S) -> Future<Self, (S::Error, Self)> {
+        src.send_all(self)
     }
 
     /*
@@ -605,6 +611,53 @@ impl<T: Send, E: Send> fmt::Debug for Sender<T, E> {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         write!(fmt, "Sender<?>")
     }
+}
+
+/*
+ *
+ * ===== Sink / Source =====
+ *
+ */
+
+pub trait Source {
+    type Value: Send;
+    type Error: Send;
+
+    fn send_all<E2: Send>(self, sender: Sender<Self::Value, E2>) ->
+        Future<Sender<Self::Value, E2>, (Self::Error, Sender<Self::Value, E2>)>;
+}
+
+impl<T: Send, E: Send> Source for Stream<T, E> {
+    type Value = T;
+    type Error = E;
+
+    fn send_all<E2: Send>(self, sender: Sender<T, E2>) -> Future<Sender<T, E2>, (E, Sender<T, E2>)> {
+        let (tx, rx) = Future::pair();
+        send_stream(self, sender, tx);
+        rx
+    }
+}
+
+// Perform the send
+fn send_stream<T: Send, E: Send, E2: Send>(
+    src: Stream<T, E>,
+    dst: Sender<T, E2>,
+    complete: Complete<Sender<T, E2>, (E, Sender<T, E2>)>) {
+
+    src.receive(move |res| {
+        match res {
+            Ok(Some((val, rest))) => {
+                dst.send(val).receive(move |res| {
+                    if let Ok(dst) = res {
+                        send_stream(rest, dst, complete);
+                    }
+                });
+            }
+            Ok(None) => complete.complete(dst),
+            Err(AsyncError::Failed(e)) => complete.fail((e, dst)),
+            Err(AsyncError::Aborted) => drop(complete),
+        }
+    })
 }
 
 /*
