@@ -50,7 +50,7 @@ impl<T: Send, E: Send> Future<T, E> {
     ///
     /// Future::error("hi").or_else(|err| {
     ///     assert!(err == "hi");
-    ///     Ok(())
+    ///     Ok::<(), ()>(())
     /// }).fire();
     /// ```
     pub fn error(err: E) -> Future<T, E> {
@@ -266,7 +266,7 @@ impl<T: Send, E: Send> Cancel<Future<T, E>> for Receipt<Future<T, E>> {
 /// future.and_then(|v| {
 ///     assert!(v == 1);
 ///     Ok(v + v)
-/// });
+/// }).fire();
 ///
 /// tx.complete(1);
 ///
@@ -275,7 +275,7 @@ impl<T: Send, E: Send> Cancel<Future<T, E>> for Receipt<Future<T, E>> {
 ///
 /// future.or_else(|err| {
 ///     assert!(err == "failed");
-///     Ok(123)
+///     Ok::<u32, &'static str>(123)
 /// }).fire();
 /// ```
 #[must_use = "Futures must be completed or they will panic on access"]

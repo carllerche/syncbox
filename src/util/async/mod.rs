@@ -226,8 +226,8 @@ pub trait Async : Send + Sized {
     /// If the original future completes with an error, the future returned by
     /// this method will complete with the completion value of the `alt` future
     /// passed in. That can be either a success or error.
-    fn or<A>(self, alt: A) -> Future<Self::Value, Self::Error>
-            where A: Async<Value=Self::Value, Error=Self::Error> {
+    fn or<A>(self, alt: A) -> Future<Self::Value, A::Error>
+            where A: Async<Value=Self::Value> {
         self.or_else(move |_| alt)
     }
 
@@ -241,9 +241,9 @@ pub trait Async : Send + Sized {
     /// the callback passed to the method, which should return a future. The
     /// future returned by this method will complete with the completion value
     /// of that future. That can be either a success or error.
-    fn or_else<F, A>(self, f: F) -> Future<Self::Value, Self::Error>
+    fn or_else<F, A>(self, f: F) -> Future<Self::Value, A::Error>
             where F: FnOnce(Self::Error) -> A + Send,
-                  A: Async<Value=Self::Value, Error=Self::Error> {
+                  A: Async<Value=Self::Value> {
 
         let (complete, ret) = Future::pair();
 
@@ -287,10 +287,10 @@ pub trait Cancel<A: Send> : Send {
  *
  */
 
-impl<T: Send, E: Send> Async for AsyncResult<T, E> {
+impl<T: Send, E: Send> Async for Result<T, E> {
     type Value = T;
     type Error = E;
-    type Cancel = Option<AsyncResult<T, E>>;
+    type Cancel = Option<Result<T, E>>;
 
     fn is_ready(&self) -> bool {
         true
@@ -300,17 +300,17 @@ impl<T: Send, E: Send> Async for AsyncResult<T, E> {
         self.is_err()
     }
 
-    fn poll(self) -> Result<AsyncResult<T, E>, AsyncResult<T, E>> {
-        Ok(self)
+    fn poll(self) -> Result<AsyncResult<T, E>, Result<T, E>> {
+        Ok(self.await())
     }
 
-    fn ready<F: FnOnce(AsyncResult<T, E>) + Send>(self, f: F) -> Option<AsyncResult<T, E>> {
+    fn ready<F: FnOnce(Result<T, E>) + Send>(self, f: F) -> Option<Result<T, E>> {
         f(self);
         None
     }
 
     fn await(self) -> AsyncResult<T, E> {
-        self
+        self.map_err(|e| AsyncError::Failed(e))
     }
 }
 

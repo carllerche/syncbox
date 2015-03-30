@@ -157,7 +157,7 @@ pub fn test_process_failed_future() {
             tx1.send(Ok(val)).unwrap();
         }).or_else(move |err| {
             tx2.send(Err(err)).unwrap();
-            Ok(())
+            Ok::<(), ()>(())
         })
         .fire();
     }

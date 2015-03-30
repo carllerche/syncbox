@@ -38,7 +38,7 @@ pub fn test_or_else_complete_before_receive() {
 
     f.or_else(move |e| {
         assert_eq!(123, e);
-        Ok("caught")
+        Ok::<&'static str, ()>("caught")
     }).receive(move |res| {
         tx.send(res.unwrap()).unwrap();
     });
