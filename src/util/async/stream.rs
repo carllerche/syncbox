@@ -492,9 +492,8 @@ impl<T: Send, E: Send> Sender<T, E> {
 }
 
 impl<T: Send, E: Send> Async for Sender<T, E> {
-
-    type Value  = Sender<T, E>;
-    type Error  = ();
+    type Value = Sender<T, E>;
+    type Error = ();
     type Cancel = Receipt<Sender<T, E>>;
 
     fn is_ready(&self) -> bool {
@@ -625,6 +624,31 @@ pub trait Source {
 
     fn send_all<E2: Send>(self, sender: Sender<Self::Value, E2>) ->
         Future<Sender<Self::Value, E2>, (Self::Error, Sender<Self::Value, E2>)>;
+}
+
+impl<T: Send, E: Send> Source for Future<T, E> {
+    type Value = T;
+    type Error = E;
+
+    fn send_all<E2: Send>(self, sender: Sender<T, E2>) -> Future<Sender<T, E2>, (E, Sender<T, E2>)> {
+        let (tx, rx) = Future::pair();
+
+        self.receive(move |res| {
+            match res {
+                Ok(val) => {
+                    sender.send(val).receive(move |res| {
+                        if let Ok(sender) = res {
+                            tx.complete(sender);
+                        }
+                    });
+                }
+                Err(AsyncError::Failed(e)) => tx.fail((e, sender)),
+                Err(AsyncError::Aborted) => drop(tx),
+            }
+        });
+
+        rx
+    }
 }
 
 impl<T: Send, E: Send> Source for Stream<T, E> {

@@ -60,3 +60,38 @@ pub fn test_stream_consumer_loses_interest() {
     assert_eq!(&[1, 2, 3], &vals);
     assert_eq!(vals, rx.iter().collect());
 }
+
+#[test]
+pub fn test_future_send_success() {
+    let (tx, rx) = Stream::<usize, ()>::pair();
+
+    tx.send(1)
+        .and_then(|tx| {
+            tx.send_all(Future::<usize, ()>::of(2))
+                .map_err(|_| unreachable!())
+        })
+        .and_then(|tx| tx.send(3))
+        .fire();
+
+    let vals: Vec<usize> = rx.iter().collect();
+    assert_eq!(&[1, 2, 3], &vals);
+}
+
+#[test]
+pub fn test_future_send_fail() {
+    let (tx, rx) = Stream::<usize, &'static str>::pair();
+
+    tx.send(1)
+        .and_then(|tx| {
+            tx.send_all(Future::error("nope"))
+                .or_else(|(err, tx)| {
+                    assert_eq!("nope", err);
+                    tx.send(10)
+                })
+        })
+        .and_then(|tx| tx.send(3))
+        .fire();
+
+    let vals: Vec<usize> = rx.iter().collect();
+    assert_eq!(&[1, 10, 3], &vals);
+}
