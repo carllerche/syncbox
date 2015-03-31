@@ -7,7 +7,9 @@ extern crate log;
 extern crate time;
 extern crate env_logger;
 
-mod util;
+mod test_linked_queue;
+mod test_thread_pool;
+
 
 fn spawn<F: FnOnce() + Send + 'static>(f: F) {
     use std::thread;

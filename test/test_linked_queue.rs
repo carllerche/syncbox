@@ -1,5 +1,5 @@
 use {spawn, sleep_ms};
-use syncbox::util::LinkedQueue;
+use syncbox::LinkedQueue;
 use std::thread;
 
 #[test]
