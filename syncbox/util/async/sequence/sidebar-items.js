@@ -1,1 +1,0 @@
-initSidebarItems({"fn":[["sequence","Returns a `Stream` consisting of the completion of the supplied async values in the order that they are completed."]]});

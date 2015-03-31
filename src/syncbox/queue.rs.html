@@ -4,10 +4,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `src/lib.rs`.">
+    <meta name="description" content="Source to the Rust file `src/queue.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
-    <title>lib.rs.html -- source</title>
+    <title>queue.rs.html -- source</title>
 
     <link rel="stylesheet" type="text/css" href="../../main.css">
 
@@ -63,34 +63,30 @@
 <span id="21">21</span>
 <span id="22">22</span>
 <span id="23">23</span>
-<span id="24">24</span>
-<span id="25">25</span>
 </pre><pre class='rust '>
-<span class='doccomment'>//! A collection of utilities for writing concurrent code.</span>
+<span class='comment'>// TODO:</span>
+<span class='comment'>// - Consider splitting up the trait into Consume / Produce.</span>
+<span class='comment'>// - Break up SyncQueue from Queue</span>
+<span class='kw'>pub</span> <span class='kw'>trait</span> <span class='ident'>Queue</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Send</span><span class='op'>&gt;</span> {
 
-<span class='attribute'>#<span class='op'>!</span>[<span class='ident'>crate_name</span> <span class='op'>=</span> <span class='string'>&quot;syncbox&quot;</span>]</span>
+    <span class='doccomment'>/// Retrieves and removes the head of this queue or returns None if the</span>
+    <span class='doccomment'>/// queue is empty.</span>
+    <span class='kw'>fn</span> <span class='ident'>poll</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>;
 
-<span class='comment'>// Embrace edge</span>
-<span class='attribute'>#<span class='op'>!</span>[<span class='ident'>feature</span>(<span class='ident'>alloc</span>, <span class='ident'>core</span>, <span class='ident'>std_misc</span>, <span class='ident'>unsafe_destructor</span>)]</span>
+    <span class='doccomment'>/// Returns true if the underlying data structure does not contain any</span>
+    <span class='doccomment'>/// elements.</span>
+    <span class='kw'>fn</span> <span class='ident'>is_empty</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span>;
 
-<span class='kw'>extern</span> <span class='kw'>crate</span> <span class='ident'>alloc</span>;
-<span class='kw'>extern</span> <span class='kw'>crate</span> <span class='ident'>core</span>;
+    <span class='kw'>fn</span> <span class='ident'>offer</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>e</span>: <span class='ident'>T</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span>(), <span class='ident'>T</span><span class='op'>&gt;</span>;
+}
 
-<span class='attribute'>#[<span class='ident'>macro_use</span>]</span>
-<span class='kw'>extern</span> <span class='kw'>crate</span> <span class='ident'>log</span>;
+<span class='kw'>pub</span> <span class='kw'>trait</span> <span class='ident'>SyncQueue</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Send</span><span class='op'>&gt;</span> : <span class='ident'>Queue</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
+    <span class='doccomment'>/// Retrieves and removes the head of this queue, waiting if necessary</span>
+    <span class='doccomment'>/// until an element becomes available.</span>
+    <span class='kw'>fn</span> <span class='ident'>take</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>T</span>;
 
-<span class='kw'>pub</span> <span class='kw'>use</span> <span class='self'>self</span>::<span class='ident'>array_queue</span>::<span class='ident'>ArrayQueue</span>;
-<span class='kw'>pub</span> <span class='kw'>use</span> <span class='self'>self</span>::<span class='ident'>linked_queue</span>::<span class='ident'>LinkedQueue</span>;
-<span class='kw'>pub</span> <span class='kw'>use</span> <span class='self'>self</span>::<span class='ident'>thread_pool</span>::<span class='ident'>ThreadPool</span>;
-<span class='kw'>pub</span> <span class='kw'>use</span> <span class='self'>self</span>::<span class='ident'>queue</span>::{<span class='ident'>Queue</span>, <span class='ident'>SyncQueue</span>};
-<span class='kw'>pub</span> <span class='kw'>use</span> <span class='self'>self</span>::<span class='ident'>run</span>::<span class='ident'>Run</span>;
-
-<span class='kw'>pub</span> <span class='kw'>mod</span> <span class='ident'>atomic</span>;
-<span class='kw'>mod</span> <span class='ident'>array_queue</span>;
-<span class='kw'>mod</span> <span class='ident'>linked_queue</span>;
-<span class='kw'>mod</span> <span class='ident'>thread_pool</span>;
-<span class='kw'>mod</span> <span class='ident'>queue</span>;
-<span class='kw'>mod</span> <span class='ident'>run</span>;
+    <span class='kw'>fn</span> <span class='ident'>put</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>e</span>: <span class='ident'>T</span>);
+}
 </pre>
 </section>
     <section id='search' class="content hidden"></section>

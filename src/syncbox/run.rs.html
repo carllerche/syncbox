@@ -4,12 +4,12 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="API stability overview for the Rust `syncbox` crate.">
+    <meta name="description" content="Source to the Rust file `src/run.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
-    <title>syncbox - Stability dashboard</title>
+    <title>run.rs.html -- source</title>
 
-    <link rel="stylesheet" type="text/css" href="../main.css">
+    <link rel="stylesheet" type="text/css" href="../../main.css">
 
     
     
@@ -26,7 +26,7 @@
 
     <section class="sidebar">
         
-        <p class='location'></p><script>window.sidebarCurrent = {name: 'syncbox', ty: 'mod', relpath: '../'};</script>
+        
     </section>
 
     <nav class="sub">
@@ -40,18 +40,17 @@
         </form>
     </nav>
 
-    <section id='main' class="content mod"><h1 class='fqn'>Stability dashboard: crate <a class='mod' href='index.html'>syncbox</a></h1>
-This dashboard summarizes the stability levels for all of the public modules of
-the crate, according to the total number of items at each level in the module and
-its children (percentages total for syncbox):
-<blockquote>
-<a class='stability Stable'></a> stable (31%),<br/>
-<a class='stability Unstable'></a> unstable (0%),<br/>
-<a class='stability Deprecated'></a> deprecated (0%),<br/>
-<a class='stability Unmarked'></a> unmarked (68%)
-</blockquote>
-The counts do not include methods or trait
-implementations that are visible only through a re-exported type.<table><tr><td><a href='index.html'>syncbox</a></td><td class='summary-column'><span class='summary Stable' style='width: 31.5789%; display: inline-block'>&nbsp</span><span class='summary Unstable' style='width: 0.0000%; display: inline-block'>&nbsp</span><span class='summary Deprecated' style='width: 0.0000%; display: inline-block'>&nbsp</span><span class='summary Unmarked' style='width: 68.4211%; display: inline-block'>&nbsp</span></td></tr><tr><td><a href='atomic/index.html'>syncbox::atomic</a></td><td class='summary-column'><span class='summary Stable' style='width: 45.9459%; display: inline-block'>&nbsp</span><span class='summary Unstable' style='width: 0.0000%; display: inline-block'>&nbsp</span><span class='summary Deprecated' style='width: 0.0000%; display: inline-block'>&nbsp</span><span class='summary Unmarked' style='width: 54.0541%; display: inline-block'>&nbsp</span></td></tr></table></section>
+    <section id='main' class="content source"><pre class="line-numbers"><span id="1">1</span>
+<span id="2">2</span>
+<span id="3">3</span>
+<span id="4">4</span>
+</pre><pre class='rust '>
+<span class='kw'>pub</span> <span class='kw'>trait</span> <span class='ident'>Run</span> {
+    <span class='doccomment'>/// Runs the task on the underlying executor.</span>
+    <span class='kw'>fn</span> <span class='ident'>run</span><span class='op'>&lt;</span><span class='ident'>F</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>task</span>: <span class='ident'>F</span>) <span class='kw'>where</span> <span class='ident'>F</span>: <span class='ident'>FnOnce</span>() <span class='op'>+</span> <span class='ident'>Send</span>;
+}
+</pre>
+</section>
     <section id='search' class="content hidden"></section>
 
     <section class="footer"></section>
@@ -90,13 +89,13 @@ implementations that are visible only through a re-exported type.<table><tr><td>
     
 
     <script>
-        window.rootPath = "../";
+        window.rootPath = "../../";
         window.currentCrate = "syncbox";
         window.playgroundUrl = "";
     </script>
-    <script src="../jquery.js"></script>
-    <script src="../main.js"></script>
+    <script src="../../jquery.js"></script>
+    <script src="../../main.js"></script>
     
-    <script async src="../search-index.js"></script>
+    <script async src="../../search-index.js"></script>
 </body>
 </html>
