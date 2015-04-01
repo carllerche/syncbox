@@ -1,1 +1,1 @@
-initSidebarItems({"mod":[["atomic",""]],"trait":[["Queue",""],["Run",""],["SyncQueue",""]],"struct":[["ArrayQueue",""],["LinkedQueue","A queue in which values are contained by a linked list."],["ThreadPool",""]]});
+initSidebarItems({"mod":[["atomic",""]],"struct":[["ArrayQueue",""],["LinkedQueue","A queue in which values are contained by a linked list."],["ThreadPool",""]],"trait":[["Queue",""],["Run",""],["SyncQueue",""]]});
