@@ -7,6 +7,8 @@ progress.
 
 - [API documentation](http://carllerche.github.io/syncbox/syncbox/index.html)
 
+Note, Futures & Streams have been moved: [Eventual](https://github.com/carllerche/eventual)
+
 ## Usage
 
 To use `syncbox`, first add this to your `Cargo.toml`:
