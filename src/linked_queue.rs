@@ -1,8 +1,7 @@
 use super::{Queue, SyncQueue};
-use std::{mem, ptr, ops, usize};
+use std::{mem, ptr, ops, usize, u64};
 use std::sync::{Arc, Mutex, MutexGuard, Condvar};
 use std::sync::atomic::{self, AtomicUsize, Ordering};
-use std::time::Duration;
 
 /// A queue in which values are contained by a linked list.
 ///
@@ -152,7 +151,7 @@ impl<T: Send> QueueInner<T> {
     }
 
     fn put(&self, e: T) {
-        self.offer_for(e, Duration::max_value())
+        self.offer_for_ms(e, u64::MAX)
             .ok().expect("something went wrong");
     }
 
@@ -161,16 +160,16 @@ impl<T: Send> QueueInner<T> {
             return Err(e);
         }
 
-        self.offer_for(e, Duration::milliseconds(0))
+        self.offer_for_ms(e, 0)
     }
 
-    fn offer_for(&self, e: T, dur: Duration) -> Result<(), T> {
+    fn offer_for_ms(&self, e: T, dur: u64) -> Result<(), T> {
         // Acquire the write lock
         let mut last = self.last.lock()
             .ok().expect("something went wrong");
 
         while self.len() == self.capacity {
-            if dur.num_milliseconds() <= 0 {
+            if dur <= 0 {
                 return Err(e);
             }
 
@@ -196,7 +195,7 @@ impl<T: Send> QueueInner<T> {
     }
 
     fn take(&self) -> T {
-        self.poll_for(Duration::max_value())
+        self.poll_for_ms(u64::MAX)
             .expect("something went wrong")
     }
 
@@ -206,16 +205,16 @@ impl<T: Send> QueueInner<T> {
             return None;
         }
 
-        self.poll_for(Duration::milliseconds(0))
+        self.poll_for_ms(0)
     }
 
-    fn poll_for(&self, dur: Duration) -> Option<T> {
+    fn poll_for_ms(&self, dur: u64) -> Option<T> {
         // Acquire the read lock
         let mut head = self.head.lock()
             .ok().expect("something went wrong");
 
         while self.len() == 0 {
-            if dur.num_milliseconds() <= 0 {
+            if dur <= 0 {
                 return None;
             }
 
@@ -261,7 +260,6 @@ impl<T: Send> QueueInner<T> {
     }
 }
 
-#[unsafe_destructor]
 impl<T: Send> Drop for QueueInner<T> {
     fn drop(&mut self) {
         while let Some(_) = self.poll() {
@@ -335,6 +333,12 @@ impl<T: Send> ops::Deref for NodePtr<T> {
 impl<T: Send> ops::DerefMut for NodePtr<T> {
     fn deref_mut(&mut self) -> &mut Node<T> {
         unsafe { mem::transmute(self.ptr) }
+    }
+}
+
+impl<T: Send> Clone for NodePtr<T> {
+    fn clone(&self) -> NodePtr<T> {
+        NodePtr { ptr: self.ptr }
     }
 }
 

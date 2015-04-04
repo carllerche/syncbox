@@ -1,7 +1,6 @@
 use super::LinkedQueue;
 use super::queue::SyncQueue;
 use super::run::Run;
-use std::num::FromPrimitive;
 use std::sync::{Arc, Mutex, Condvar};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::thread;
@@ -627,8 +626,7 @@ impl State {
     }
 
     fn lifecycle(&self) -> Lifecycle {
-        FromPrimitive::from_u32(self.state & LIFECYCLE_MASK)
-            .expect("unexpected state value")
+        Lifecycle::from_u32(self.state & LIFECYCLE_MASK)
     }
 
     fn with_lifecycle(&self, lifecycle: Lifecycle) -> State {
@@ -661,13 +659,26 @@ const LIFECYCLE_BITS: u32 = 3;
 const LIFECYCLE_MASK: u32 = 7;
 const CAPACITY: u32 = (1 << (32 - 3)) - 1;
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, FromPrimitive)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd)]
 enum Lifecycle {
     RUNNING    = 0,
     SHUTDOWN   = 1,
     STOP       = 2,
     TIDYING    = 3,
     TERMINATED = 4,
+}
+
+impl Lifecycle {
+    fn from_u32(val: u32) -> Lifecycle {
+        match val {
+            0 => RUNNING,
+            1 => SHUTDOWN,
+            2 => STOP,
+            3 => TIDYING,
+            4 => TERMINATED,
+            _ => panic!("unexpected state value"),
+        }
+    }
 }
 
 trait Task : Send {
