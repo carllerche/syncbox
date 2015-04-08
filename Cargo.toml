@@ -1,8 +1,21 @@
 [package]
 
-name = "syncbox"
-version = "0.1.0"
-authors = ["Carl Lerche <me@carllerche.com>"]
+name          = "syncbox"
+version       = "0.2.0"
+license       = "MIT"
+authors       = ["Carl Lerche <me@carllerche.com>"]
+description   = "Concurrency utilities for Rust"
+documentation = "https://carllerche.github.io/syncbox/syncbox"
+homepage      = "https://github.com/carllerche/syncbox"
+repository    = "https://github.com/carllerche/syncbox"
+readme        = "README.md"
+keywords      = ["concurrency", "threadpool", "queue", "mpmc"]
+exclude       = [
+  ".gitignore",
+  ".travis.yml",
+  "deploy.sh",
+  "test/**/*",
+]
 
 [dependencies]
 log = "0.3.0"
