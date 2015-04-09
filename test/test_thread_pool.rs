@@ -1,5 +1,5 @@
 use {sleep_ms};
-use syncbox::ThreadPool;
+use syncbox::{ThreadPool, Run};
 use std::sync::mpsc::*;
 
 #[test]

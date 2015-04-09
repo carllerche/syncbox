@@ -1,49 +1,38 @@
-use super::LinkedQueue;
-use super::queue::SyncQueue;
-use super::run::Run;
+use {LinkedQueue, SyncQueue, Run, Task};
 use std::sync::{Arc, Mutex, Condvar};
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::thread;
+use std::{thread, usize};
 
-use self::Lifecycle::*;
-
-pub struct ThreadPool {
-    inner: Arc<ThreadPoolInner>,
+pub struct ThreadPool<T: Task+'static> {
+    inner: Arc<ThreadPoolInner<T>>,
 }
 
-impl ThreadPool {
-    pub fn fixed_size(size: u32) -> ThreadPool {
-        ThreadPool::new(size, size, LinkedQueue::new())
+impl<T: Task+'static> ThreadPool<T> {
+    pub fn fixed_size(size: u32) -> ThreadPool<T> {
+        ThreadPool::new(size, size, usize::MAX)
     }
 
-    pub fn single_thread() -> ThreadPool {
+    pub fn single_thread() -> ThreadPool<T> {
         ThreadPool::fixed_size(1)
     }
 
-    pub fn new<Q>(
-        core_pool_size: u32,
-        maximum_pool_size: u32,
-        work_queue: Q) -> ThreadPool
-            where Q: SyncQueue<Option<Box<Task>>> + Send + Sync + Clone + 'static {
-
+    pub fn new(core_pool_size: u32,
+               maximum_pool_size: u32,
+               backlog: usize) -> ThreadPool<T> {
         let inner = ThreadPoolInner::new(
             core_pool_size,
             maximum_pool_size,
-            Box::new(work_queue));
+            LinkedQueue::with_capacity(backlog));
 
         ThreadPool { inner: Arc::new(inner) }
     }
 
-    pub fn run<F>(&self, task: F) where F: FnOnce() + Send + 'static {
-        self.inner.run(task);
-    }
-
     pub fn shutdown(&self) {
-        self.inner.shutdown(SHUTDOWN);
+        self.inner.shutdown(Lifecycle::Shutdown);
     }
 
     pub fn shutdown_now(&self) {
-        self.inner.shutdown(STOP);
+        self.inner.shutdown(Lifecycle::Stop);
     }
 
     pub fn is_shutdown(&self) -> bool {
@@ -55,9 +44,9 @@ impl ThreadPool {
     }
 }
 
-impl Run for ThreadPool {
-    fn run<F>(&self, task: F) where F: FnOnce() + Send + 'static {
-        ThreadPool::run(self, task);
+impl<T: Task+'static> Run<T> for ThreadPool<T> {
+    fn run(&self, task: T) {
+        self.inner.run(task);
     }
 }
 
@@ -70,7 +59,7 @@ impl Run for ThreadPool {
 //
 // - Poison the thread pool if something goes critically wrong
 //
-struct ThreadPoolInner {
+struct ThreadPoolInner<T: Task+'static> {
 
     // Contains the state, condvar, etc..
     core: Arc<Core>,
@@ -80,18 +69,18 @@ struct ThreadPoolInner {
     // None necessarily means that the queue is empty, so rely
     // solely on is_empty to see if the queue is empty (which we must
     // do for example when deciding whether to transition from
-    // SHUTDOWN to TIDYING).  This accommodates special-purpose
+    // Shutdown to Tidying).  This accommodates special-purpose
     // queues such as DelayQueues for which poll() is allowed to
     // return null even if it may later return non-null when delays
     // expire.
-    work_queue: Box<WorkQueue>,
+    work_queue: LinkedQueue<Option<T>>,
 }
 
-impl ThreadPoolInner {
+impl<T: Task+'static> ThreadPoolInner<T> {
 
     fn new(core_pool_size: u32,
            maximum_pool_size: u32,
-           work_queue: Box<WorkQueue>) -> ThreadPoolInner {
+           work_queue: LinkedQueue<Option<T>>) -> ThreadPoolInner<T> {
 
         let core = Arc::new(Core::new(core_pool_size, maximum_pool_size));
 
@@ -101,9 +90,7 @@ impl ThreadPoolInner {
         }
     }
 
-    fn run<F: FnOnce() + Send + 'static>(&self, task: F) {
-        let mut task: Box<Task> = Box::new(task);
-
+    fn run(&self, mut task: T) {
         //  Proceed in 3 steps:
         //
         //  1. If fewer than `core_pool_size` threads are running, try to
@@ -171,7 +158,7 @@ impl ThreadPoolInner {
     }
 
     fn shutdown(&self, target: Lifecycle) {
-        // Transition from RUNNING -> SHUTDOWN
+        // Transition from Running -> Shutdown
         let mut state = self.core.state.load(Ordering::Relaxed);
         let mut next;
 
@@ -180,15 +167,15 @@ impl ThreadPoolInner {
 
         loop {
             next = match state.lifecycle() {
-                RUNNING => {
+                Lifecycle::Running=> {
                     if state.worker_count() == 0 {
-                        state.with_lifecycle(TERMINATED)
+                        state.with_lifecycle(Lifecycle::Terminated)
                     } else {
                         state.with_lifecycle(target)
                     }
                 }
-                SHUTDOWN => {
-                    if target == SHUTDOWN {
+                Lifecycle::Shutdown=> {
+                    if target == Lifecycle::Shutdown {
                         return;
                     }
 
@@ -236,8 +223,8 @@ impl ThreadPoolInner {
         self.core.await_termination();
     }
 
-    fn add_worker(&self, task: Option<Box<Task>>, core: bool)
-            -> Result<(), Option<Box<Task>>> {
+    fn add_worker(&self, task: Option<T>, core: bool)
+            -> Result<(), Option<T>> {
 
         // == Transition the state ==
 
@@ -246,14 +233,14 @@ impl ThreadPoolInner {
         'retry: loop {
             let lifecycle = state.lifecycle();
 
-            if lifecycle >= STOP {
-                // If the lifecycle is greater than STOP than never create a
-                // add a new worker
+            if lifecycle >= Lifecycle::Stop {
+                // If the lifecycle is greater than Lifecycle::Stop than never
+                // create a add a new worker
                 return Err(task);
             }
 
-            if lifecycle == SHUTDOWN {
-                // If the lifecycle is currently SHUTDOWN, only add a new
+            if lifecycle == Lifecycle::Shutdown {
+                // If the lifecycle is currently Shutdown, only add a new
                 // worker if it is needed (there is work to process).
                 if task.is_none() && self.work_queue.is_empty() {
                     return Err(task);
@@ -289,7 +276,7 @@ impl ThreadPoolInner {
 
         let mut worker = Worker::new(
             self.core.clone(), task,
-            self.work_queue.boxed_clone());
+            self.work_queue.clone());
 
         debug!("spawning new worker thread");
 
@@ -299,28 +286,28 @@ impl ThreadPoolInner {
     }
 }
 
-impl Drop for ThreadPoolInner {
+impl<T: Task+'static> Drop for ThreadPoolInner<T> {
     fn drop(&mut self) {
-        self.shutdown(STOP);
+        self.shutdown(Lifecycle::Stop);
     }
 }
 
-struct Worker {
+struct Worker<T: Task+'static> {
     // Core shared by ThreadPool and Worker
     core: Arc<Core>,
 
     // The task to run when the thread first starts
-    initial_task: Option<Box<Task>>,
+    initial_task: Option<T>,
 
     // The queue on which to listen for new tasks
-    work_queue: Box<WorkQueue>,
+    work_queue: LinkedQueue<Option<T>>,
 
     // Checked in the drop function whether or not the thread panicked
     panicked: bool,
 }
 
-impl Worker {
-    fn new(core: Arc<Core>, initial_task: Option<Box<Task>>, queue: Box<WorkQueue>) -> Worker {
+impl<T: Task+'static> Worker<T> {
+    fn new(core: Arc<Core>, initial_task: Option<T>, queue: LinkedQueue<Option<T>>) -> Worker<T> {
         Worker {
             core: core,
             initial_task: initial_task,
@@ -333,7 +320,7 @@ impl Worker {
         self.panicked = true;
 
         while let Some(task) = self.get_task() {
-            task.invoke();
+            task.run();
         }
 
         self.panicked = false;
@@ -341,14 +328,14 @@ impl Worker {
 
     // Gets the next task, blocking if necessary. Returns None if the worker
     // should shutdown
-    fn get_task(&mut self) -> Option<Box<Task>> {
+    fn get_task(&mut self) -> Option<T> {
         let mut task = self.initial_task.take();
 
         // Load the state
         let state = self.core.state.load(Ordering::Relaxed);
 
         loop {
-            if state.lifecycle() >= STOP {
+            if state.lifecycle() >= Lifecycle::Stop {
                 debug!("threadpool is stopped -- aborting task get");
 
                 // No more tasks should be removed from the queue, exit the
@@ -370,7 +357,7 @@ impl Worker {
                     debug!("threadpool over max worker count -- shutting thread down; count={}", wc);
 
                     // This can never be a termination state since the
-                    // lifecycle is not STOP or TERMINATE (checked above) and
+                    // lifecycle is not Stop or Terminate (checked above) and
                     // the queue has not been accessed, so it is unknown
                     // whether or not there is a pending task.
                     //
@@ -386,7 +373,7 @@ impl Worker {
             match self.work_queue.take() {
                 Some(t) => {
                     // Grab the task, but the loop will restart in order to
-                    // check the state again. If the state transitioned to STOP
+                    // check the state again. If the state transitioned to Stop
                     // while the worker was blocked on the queue, the task
                     // should be discarded and the worker shutdown.
                     task = Some(t);
@@ -411,7 +398,7 @@ impl Worker {
 
         if state.worker_count() == 1 {
             if panicking {
-                if state.lifecycle() >= STOP {
+                if state.lifecycle() >= Lifecycle::Stop {
                     let core = self.core.clone();
 
                     thread::spawn(move || {
@@ -425,7 +412,7 @@ impl Worker {
     }
 }
 
-impl Drop for Worker {
+impl<T: Task+'static> Drop for Worker<T> {
     fn drop(&mut self) {
         if self.panicked {
             self.decrement_worker_count(true);
@@ -433,18 +420,7 @@ impl Drop for Worker {
     }
 }
 
-trait WorkQueue : SyncQueue<Option<Box<Task>>> + Send + Sync {
-    fn boxed_clone(&self) -> Box<WorkQueue>;
-}
-
-impl<Q: SyncQueue<Option<Box<Task>>> + Send + Sync + Clone + 'static> WorkQueue for Q {
-    fn boxed_clone(&self) -> Box<WorkQueue> {
-        Box::new(self.clone())
-    }
-}
-
 struct Core {
-
     // The main pool control state is an atomic integer packing two conceptual
     // fields
     //   worker_count: indicating the effective number of threads
@@ -463,40 +439,40 @@ struct Core {
     //
     // The `lifecycle` provides the main lifecyle control, taking on values:
     //
-    //   RUNNING:    Accept new tasks and process queued tasks
-    //   SHUTDOWN:   Don't accept new tasks, but process queued tasks
-    //   STOP:       Don't accept new tasks, don't process queued tasks, and
+    //   Running:    Accept new tasks and process queued tasks
+    //   Shutdown:   Don't accept new tasks, but process queued tasks
+    //   Stop:       Don't accept new tasks, don't process queued tasks, and
     //               interrupt in-progress tasks
-    //   TIDYING:    All tasks have terminated, worker_count is zero, the thread
-    //               transitioning to state TIDYING will run the terminated() hook
+    //   Tidying:    All tasks have terminated, worker_count is zero, the thread
+    //               transitioning to state Tidying will run the terminated() hook
     //               method
-    //   TERMINATED: terminated() has completed
+    //   Terminated: terminated() has completed
     //
     // The numerical order among these values matters, to allow ordered
     // comparisons. The lifecycle monotonically increases over time, but need
     // not hit each state. The transitions are:
     //
-    //   RUNNING -> SHUTDOWN
+    //   Running -> Shutdown
     //      On invocation of shutdown(), perhaps implicitly in finalize()
     //
-    //   (RUNNING or SHUTDOWN) -> STOP
+    //   (Running or Shutdown) -> Stop
     //      On invocation of shutdown_now()
     //
-    //   SHUTDOWN -> TIDYING
+    //   Shutdown -> Tidying
     //      When both queue and pool are empty
     //
-    //   STOP -> TIDYING
+    //   Stop -> Tidying
     //      When pool is empty
     //
-    //   TIDYING -> TERMINATED
+    //   Tidying -> Terminated
     //      When the terminated() hook method has completed
     //
     // Threads waiting in await_termination() will return when the state reaches
-    // TERMINATED.
+    // Terminated.
     //
-    // Detecting the transition from SHUTDOWN to TIDYING is less
+    // Detecting the transition from Shutdown to Tidying is less
     // straightforward than you'd like because the queue may become empty after
-    // non-empty and vice versa during SHUTDOWN state, but we can only
+    // non-empty and vice versa during Shutdown state, but we can only
     // terminate if, after seeing that it is empty, we see that workerCount is
     // 0 (which sometimes entails a recheck -- see below).
     state: AtomicState,
@@ -519,7 +495,7 @@ struct Core {
 impl Core {
     fn new(core_pool_size: u32, maximum_pool_size: u32) -> Core {
         Core {
-            state: AtomicState::new(RUNNING),
+            state: AtomicState::new(Lifecycle::Running),
             mutex: Mutex::new(()),
             termination: Condvar::new(),
             core_pool_size: core_pool_size,
@@ -545,7 +521,7 @@ impl Core {
         let _lock = self.mutex.lock()
             .ok().expect("something went wrong");
 
-        // Transition to TERMINATED
+        // Transition to Terminated
         self.state.transition_to_terminated(Ordering::Relaxed);
 
         // Notify all pending threads
@@ -599,7 +575,7 @@ impl AtomicState {
         let mut state = self.load(order);
 
         loop {
-            let next = state.with_lifecycle(TERMINATED);
+            let next = state.with_lifecycle(Lifecycle::Terminated);
             let actual = self.compare_and_swap(state, next, order);
 
             if state == actual {
@@ -639,11 +615,11 @@ impl State {
     }
 
     fn is_running(&self) -> bool {
-        self.lifecycle() == RUNNING
+        self.lifecycle() == Lifecycle::Running
     }
 
     fn is_terminated(&self) -> bool {
-        self.lifecycle() == TERMINATED
+        self.lifecycle() == Lifecycle::Terminated
     }
 
     fn as_u32(&self) -> u32 {
@@ -661,32 +637,24 @@ const CAPACITY: u32 = (1 << (32 - 3)) - 1;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd)]
 enum Lifecycle {
-    RUNNING    = 0,
-    SHUTDOWN   = 1,
-    STOP       = 2,
-    TIDYING    = 3,
-    TERMINATED = 4,
+    Running    = 0,
+    Shutdown   = 1,
+    Stop       = 2,
+    Tidying    = 3,
+    Terminated = 4,
 }
 
 impl Lifecycle {
     fn from_u32(val: u32) -> Lifecycle {
+        use self::Lifecycle::*;
+
         match val {
-            0 => RUNNING,
-            1 => SHUTDOWN,
-            2 => STOP,
-            3 => TIDYING,
-            4 => TERMINATED,
+            0 => Running,
+            1 => Shutdown,
+            2 => Stop,
+            3 => Tidying,
+            4 => Terminated,
             _ => panic!("unexpected state value"),
         }
-    }
-}
-
-trait Task : Send {
-    fn invoke(self: Box<Self>);
-}
-
-impl<F: FnOnce() + Send> Task for F {
-    fn invoke(self: Box<F>) {
-        (*self)();
     }
 }

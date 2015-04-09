@@ -9,7 +9,7 @@ pub use self::array_queue::ArrayQueue;
 pub use self::linked_queue::LinkedQueue;
 pub use self::thread_pool::ThreadPool;
 pub use self::queue::{Queue, SyncQueue};
-pub use self::run::Run;
+pub use self::run::{Run, Task};
 
 pub mod atomic;
 mod array_queue;
