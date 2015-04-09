@@ -4,10 +4,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="API stability overview for the Rust `syncbox` crate.">
-    <meta name="keywords" content="rust, rustlang, rust-lang">
+    <meta name="description" content="API documentation for the Rust `Task` trait in crate `syncbox`.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, Task">
 
-    <title>syncbox - Stability dashboard</title>
+    <title>syncbox::Task - Rust</title>
 
     <link rel="stylesheet" type="text/css" href="../main.css">
 
@@ -26,7 +26,7 @@
 
     <section class="sidebar">
         
-        <p class='location'></p><script>window.sidebarCurrent = {name: 'syncbox', ty: 'mod', relpath: '../'};</script>
+        <p class='location'><a href='index.html'>syncbox</a></p><script>window.sidebarCurrent = {name: 'Task', ty: 'trait', relpath: ''};</script><script defer src="sidebar-items.js"></script>
     </section>
 
     <nav class="sub">
@@ -40,18 +40,24 @@
         </form>
     </nav>
 
-    <section id='main' class="content mod"><h1 class='fqn'>Stability dashboard: crate <a class='mod' href='index.html'>syncbox</a></h1>
-This dashboard summarizes the stability levels for all of the public modules of
-the crate, according to the total number of items at each level in the module and
-its children (percentages total for syncbox):
-<blockquote>
-<a class='stability Stable'></a> stable (31%),<br/>
-<a class='stability Unstable'></a> unstable (0%),<br/>
-<a class='stability Deprecated'></a> deprecated (0%),<br/>
-<a class='stability Unmarked'></a> unmarked (68%)
-</blockquote>
-The counts do not include methods or trait
-implementations that are visible only through a re-exported type.<table><tr><td><a href='index.html'>syncbox</a></td><td class='summary-column'><span class='summary Stable' style='width: 31.8966%; display: inline-block'>&nbsp</span><span class='summary Unstable' style='width: 0.0000%; display: inline-block'>&nbsp</span><span class='summary Deprecated' style='width: 0.0000%; display: inline-block'>&nbsp</span><span class='summary Unmarked' style='width: 68.1034%; display: inline-block'>&nbsp</span></td></tr><tr><td><a href='atomic/index.html'>syncbox::atomic</a></td><td class='summary-column'><span class='summary Stable' style='width: 46.6667%; display: inline-block'>&nbsp</span><span class='summary Unstable' style='width: 0.0000%; display: inline-block'>&nbsp</span><span class='summary Deprecated' style='width: 0.0000%; display: inline-block'>&nbsp</span><span class='summary Unmarked' style='width: 53.3333%; display: inline-block'>&nbsp</span></td></tr></table></section>
+    <section id='main' class="content trait">
+<h1 class='fqn'><span class='in-band'>Trait <a href='index.html'>syncbox</a>::<wbr><a class='trait' href=''>Task</a><wbr></span><span class='out-of-band'><span id='render-detail'>
+            <a id="collapse-all" href="#">[-]</a>&nbsp;<a id="expand-all" href="#">[+]</a>
+        </span><a id='src-5769' href='../src/syncbox/run.rs.html#8-11'>[src]</a></span></h1>
+<pre class='rust trait'>pub trait Task: <a class='trait' href='http://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a> {
+    fn <a href='#tymethod.run' class='fnname'>run</a>(self);
+}</pre><div class='docblock'><p>A value that can run a unit of work.</p>
+</div>
+            <h2 id='required-methods'>Required Methods</h2>
+            <div class='methods'>
+        <h3 id='tymethod.run' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#tymethod.run' class='fnname'>run</a>(self)</code></h3><div class='docblock'><p>Run the unit of work</p>
+</div></div>
+        <h2 id='implementors'>Implementors</h2>
+        <ul class='item-list' id='implementors-list'>
+    <li><a class='stability Unmarked' title='No stability level'></a><code>impl&lt;F: <a class='trait' href='http://doc.rust-lang.org/nightly/core/ops/trait.FnOnce.html' title='core::ops::FnOnce'>FnOnce</a>() + <a class='trait' href='http://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a>&gt; <a class='trait' href='../syncbox/trait.Task.html' title='syncbox::Task'>Task</a> for F</code></li>
+</ul><script type="text/javascript" async
+                              src="../implementors/syncbox/trait.Task.js">
+                      </script></section>
     <section id='search' class="content hidden"></section>
 
     <section class="footer"></section>
