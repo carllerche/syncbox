@@ -59,6 +59,9 @@
 <span id="17">17</span>
 <span id="18">18</span>
 <span id="19">19</span>
+<span id="20">20</span>
+<span id="21">21</span>
+<span id="22">22</span>
 </pre><pre class='rust '>
 <span class='doccomment'>//! A collection of utilities for writing concurrent code.</span>
 
@@ -66,8 +69,10 @@
 
 <span class='attribute'>#[<span class='ident'>macro_use</span>]</span>
 <span class='kw'>extern</span> <span class='kw'>crate</span> <span class='ident'>log</span>;
+<span class='kw'>extern</span> <span class='kw'>crate</span> <span class='ident'>time</span>;
 
 <span class='kw'>pub</span> <span class='kw'>use</span> <span class='self'>self</span>::<span class='ident'>array_queue</span>::<span class='ident'>ArrayQueue</span>;
+<span class='kw'>pub</span> <span class='kw'>use</span> <span class='self'>self</span>::<span class='ident'>delay_queue</span>::<span class='ident'>DelayQueue</span>;
 <span class='kw'>pub</span> <span class='kw'>use</span> <span class='self'>self</span>::<span class='ident'>linked_queue</span>::<span class='ident'>LinkedQueue</span>;
 <span class='kw'>pub</span> <span class='kw'>use</span> <span class='self'>self</span>::<span class='ident'>thread_pool</span>::<span class='ident'>ThreadPool</span>;
 <span class='kw'>pub</span> <span class='kw'>use</span> <span class='self'>self</span>::<span class='ident'>queue</span>::{<span class='ident'>Queue</span>, <span class='ident'>SyncQueue</span>};
@@ -75,6 +80,7 @@
 
 <span class='kw'>pub</span> <span class='kw'>mod</span> <span class='ident'>atomic</span>;
 <span class='kw'>mod</span> <span class='ident'>array_queue</span>;
+<span class='kw'>mod</span> <span class='ident'>delay_queue</span>;
 <span class='kw'>mod</span> <span class='ident'>linked_queue</span>;
 <span class='kw'>mod</span> <span class='ident'>thread_pool</span>;
 <span class='kw'>mod</span> <span class='ident'>queue</span>;
