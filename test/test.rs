@@ -5,6 +5,7 @@ extern crate log;
 extern crate time;
 extern crate env_logger;
 
+mod test_delay_queue;
 mod test_linked_queue;
 mod test_thread_pool;
 
