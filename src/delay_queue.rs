@@ -2,7 +2,7 @@ use super::{Queue, SyncQueue};
 use std::collections::BinaryHeap;
 use std::cmp::{self, PartialOrd, Ord, PartialEq, Eq, Ordering};
 use std::ops;
-use std::sync::{Mutex, MutexGuard, Condvar};
+use std::sync::{Arc, Mutex, MutexGuard, Condvar};
 use time::{Duration, SteadyTime};
 
 /// A value that should not be used until the delay has expired.
@@ -55,6 +55,10 @@ impl<T> ops::DerefMut for Delay<T> {
 /// off once the specified delay has expired. The head of the queue is the
 /// value whose delay is expired and furthest in the past.
 pub struct DelayQueue<T: Delayed + Send> {
+    inner: Arc<Inner<T>>,
+}
+
+struct Inner<T> {
     queue: Mutex<BinaryHeap<Entry<T>>>,
     condvar: Condvar,
 }
@@ -63,8 +67,10 @@ impl<T: Delayed + Send> DelayQueue<T> {
     /// Create a new `DelayQueue`
     pub fn new() -> DelayQueue<T> {
         DelayQueue {
-            queue: Mutex::new(BinaryHeap::new()),
-            condvar: Condvar::new(),
+            inner: Arc::new(Inner {
+                queue: Mutex::new(BinaryHeap::new()),
+                condvar: Condvar::new(),
+            })
         }
     }
 
@@ -72,7 +78,7 @@ impl<T: Delayed + Send> DelayQueue<T> {
     /// up to `timeout`.
     pub fn poll_timeout(&self, timeout: Duration) -> Option<T> {
         let end = SteadyTime::now() + timeout;
-        let mut queue = self.queue.lock().unwrap();
+        let mut queue = self.inner.queue.lock().unwrap();
 
         loop {
             let now = SteadyTime::now();
@@ -90,7 +96,7 @@ impl<T: Delayed + Send> DelayQueue<T> {
             // TODO: Check the cast
             let timeout = (wait_until - now).num_milliseconds() as u32;
 
-            queue = self.condvar.wait_timeout_ms(queue, timeout).unwrap().0;
+            queue = self.inner.condvar.wait_timeout_ms(queue, timeout).unwrap().0;
         }
 
         Some(self.finish_pop(queue))
@@ -98,7 +104,7 @@ impl<T: Delayed + Send> DelayQueue<T> {
 
     fn finish_pop<'a>(&self, mut queue: MutexGuard<'a, BinaryHeap<Entry<T>>>) -> T {
         if queue.len() > 1 {
-            self.condvar.notify_all();
+            self.inner.condvar.notify_all();
         }
 
         queue.pop().unwrap().val
@@ -107,7 +113,7 @@ impl<T: Delayed + Send> DelayQueue<T> {
 
 impl<T: Delayed + Send> Queue<T> for DelayQueue<T> {
     fn poll(&self) -> Option<T> {
-        let queue = self.queue.lock().unwrap();
+        let queue = self.inner.queue.lock().unwrap();
 
         match queue.peek() {
             Some(e) if e.time > SteadyTime::now() => return None,
@@ -119,22 +125,22 @@ impl<T: Delayed + Send> Queue<T> for DelayQueue<T> {
     }
 
     fn is_empty(&self) -> bool {
-        let queue = self.queue.lock().unwrap();
+        let queue = self.inner.queue.lock().unwrap();
         queue.is_empty()
     }
 
     fn offer(&self, e: T) -> Result<(), T> {
         let delay = e.delay();
         let entry = Entry::new(e, delay);
-        let mut queue = self.queue.lock().unwrap();
+        let mut queue = self.inner.queue.lock().unwrap();
 
         match queue.peek() {
             Some(e) => {
                 if entry.time < e.time {
-                    self.condvar.notify_all()
+                    self.inner.condvar.notify_all()
                 }
             }
-            None => self.condvar.notify_all(),
+            None => self.inner.condvar.notify_all(),
         }
 
         queue.push(entry);
@@ -149,7 +155,7 @@ impl<T: Delayed + Send> SyncQueue<T> for DelayQueue<T> {
             WaitTimeout(Duration),
         }
 
-        let mut queue = self.queue.lock().unwrap();
+        let mut queue = self.inner.queue.lock().unwrap();
 
         loop {
             let now = SteadyTime::now();
@@ -167,13 +173,13 @@ impl<T: Delayed + Send> SyncQueue<T> for DelayQueue<T> {
 
             queue = match need {
                 Need::Wait => {
-                    self.condvar.wait(queue).unwrap()
+                    self.inner.condvar.wait(queue).unwrap()
                 }
                 Need::WaitTimeout(t) => {
                     // TODO: Check the cast
                     let timeout = t.num_milliseconds() as u32;
 
-                    self.condvar.wait_timeout_ms(queue, timeout).unwrap().0
+                    self.inner.condvar.wait_timeout_ms(queue, timeout).unwrap().0
                 }
             };
         }
@@ -183,6 +189,12 @@ impl<T: Delayed + Send> SyncQueue<T> for DelayQueue<T> {
 
     fn put(&self, e: T) {
         self.offer(e).ok().unwrap();
+    }
+}
+
+impl<T: Delayed + Send> Clone for DelayQueue<T> {
+    fn clone(&self) -> DelayQueue<T> {
+        DelayQueue { inner: self.inner.clone() }
     }
 }
 
