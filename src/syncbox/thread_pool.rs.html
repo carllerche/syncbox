@@ -717,12 +717,109 @@
 <span id="675">675</span>
 <span id="676">676</span>
 <span id="677">677</span>
+<span id="678">678</span>
+<span id="679">679</span>
+<span id="680">680</span>
+<span id="681">681</span>
+<span id="682">682</span>
+<span id="683">683</span>
+<span id="684">684</span>
+<span id="685">685</span>
+<span id="686">686</span>
+<span id="687">687</span>
+<span id="688">688</span>
+<span id="689">689</span>
+<span id="690">690</span>
+<span id="691">691</span>
+<span id="692">692</span>
+<span id="693">693</span>
+<span id="694">694</span>
+<span id="695">695</span>
+<span id="696">696</span>
+<span id="697">697</span>
+<span id="698">698</span>
+<span id="699">699</span>
+<span id="700">700</span>
+<span id="701">701</span>
+<span id="702">702</span>
+<span id="703">703</span>
+<span id="704">704</span>
+<span id="705">705</span>
+<span id="706">706</span>
+<span id="707">707</span>
+<span id="708">708</span>
+<span id="709">709</span>
+<span id="710">710</span>
+<span id="711">711</span>
+<span id="712">712</span>
+<span id="713">713</span>
+<span id="714">714</span>
+<span id="715">715</span>
+<span id="716">716</span>
+<span id="717">717</span>
+<span id="718">718</span>
+<span id="719">719</span>
+<span id="720">720</span>
+<span id="721">721</span>
+<span id="722">722</span>
+<span id="723">723</span>
+<span id="724">724</span>
+<span id="725">725</span>
+<span id="726">726</span>
+<span id="727">727</span>
+<span id="728">728</span>
+<span id="729">729</span>
+<span id="730">730</span>
+<span id="731">731</span>
+<span id="732">732</span>
+<span id="733">733</span>
+<span id="734">734</span>
+<span id="735">735</span>
+<span id="736">736</span>
+<span id="737">737</span>
+<span id="738">738</span>
+<span id="739">739</span>
+<span id="740">740</span>
+<span id="741">741</span>
+<span id="742">742</span>
+<span id="743">743</span>
+<span id="744">744</span>
+<span id="745">745</span>
+<span id="746">746</span>
+<span id="747">747</span>
+<span id="748">748</span>
+<span id="749">749</span>
+<span id="750">750</span>
+<span id="751">751</span>
+<span id="752">752</span>
+<span id="753">753</span>
+<span id="754">754</span>
+<span id="755">755</span>
+<span id="756">756</span>
+<span id="757">757</span>
+<span id="758">758</span>
+<span id="759">759</span>
+<span id="760">760</span>
+<span id="761">761</span>
+<span id="762">762</span>
+<span id="763">763</span>
+<span id="764">764</span>
+<span id="765">765</span>
+<span id="766">766</span>
+<span id="767">767</span>
+<span id="768">768</span>
+<span id="769">769</span>
+<span id="770">770</span>
+<span id="771">771</span>
+<span id="772">772</span>
+<span id="773">773</span>
 </pre><pre class='rust '>
-<span class='kw'>use</span> {<span class='ident'>LinkedQueue</span>, <span class='ident'>SyncQueue</span>, <span class='ident'>Run</span>, <span class='ident'>Task</span>};
+<span class='kw'>use</span> {<span class='ident'>LinkedQueue</span>, <span class='ident'>Queue</span>, <span class='ident'>SyncQueue</span>, <span class='ident'>Run</span>, <span class='ident'>Task</span>, <span class='ident'>Delayed</span>, <span class='ident'>DelayQueue</span>};
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>marker</span>::<span class='ident'>PhantomData</span>;
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::{<span class='ident'>Arc</span>, <span class='ident'>Mutex</span>, <span class='ident'>Condvar</span>};
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::<span class='ident'>atomic</span>::{<span class='ident'>AtomicUsize</span>, <span class='ident'>Ordering</span>};
 <span class='kw'>use</span> <span class='ident'>std</span>::{<span class='ident'>thread</span>, <span class='ident'>usize</span>};
+<span class='kw'>use</span> <span class='ident'>time</span>::<span class='ident'>Duration</span>;
 
 <span class='doccomment'>/// A queue that can be used to back a thread pool</span>
 <span class='kw'>pub</span> <span class='kw'>trait</span> <span class='ident'>WorkQueue</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> : <span class='ident'>SyncQueue</span><span class='op'>&lt;</span><span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;&gt;</span> <span class='op'>+</span> <span class='ident'>Clone</span> <span class='op'>+</span> <span class='ident'>Send</span> <span class='op'>+</span> <span class='lifetime'>&#39;static</span> {
@@ -758,6 +855,14 @@
         <span class='ident'>ThreadPool</span> { <span class='ident'>inner</span>: <span class='ident'>Arc</span>::<span class='ident'>new</span>(<span class='ident'>inner</span>) }
     }
 
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>prestart_core_thread</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) {
+        <span class='self'>self</span>.<span class='ident'>inner</span>.<span class='ident'>prestart_core_thread</span>();
+    }
+
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>prestart_all_core_threads</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) {
+        <span class='self'>self</span>.<span class='ident'>inner</span>.<span class='ident'>prestart_all_core_threads</span>();
+    }
+
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>shutdown</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) {
         <span class='self'>self</span>.<span class='ident'>inner</span>.<span class='ident'>shutdown</span>(<span class='ident'>Lifecycle</span>::<span class='ident'>Shutdown</span>);
     }
@@ -777,7 +882,74 @@
 
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Task</span><span class='op'>+</span><span class='lifetime'>&#39;static</span>, <span class='ident'>Q</span>: <span class='ident'>WorkQueue</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;&gt;</span> <span class='ident'>Run</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>ThreadPool</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>Q</span><span class='op'>&gt;</span> {
     <span class='kw'>fn</span> <span class='ident'>run</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>task</span>: <span class='ident'>T</span>) {
-        <span class='self'>self</span>.<span class='ident'>inner</span>.<span class='ident'>run</span>(<span class='ident'>task</span>);
+        <span class='self'>self</span>.<span class='ident'>inner</span>.<span class='ident'>run</span>(<span class='ident'>task</span>, <span class='boolval'>true</span>);
+    }
+}
+
+<span class='doccomment'>/// A thread pool that can schedule tasks to run after a given delay, or to</span>
+<span class='doccomment'>/// execute periodically. Delayed tasks do not run before their associated</span>
+<span class='doccomment'>/// delays, but besides that, there are no real-time guarantees about exactly</span>
+<span class='doccomment'>/// when the task will run.</span>
+<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>ScheduledThreadPool</span> {
+    <span class='ident'>thread_pool</span>: <span class='ident'>ThreadPool</span><span class='op'>&lt;</span><span class='ident'>Scheduled</span>, <span class='ident'>DelayQueue</span><span class='op'>&lt;</span><span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Scheduled</span><span class='op'>&gt;&gt;</span><span class='op'>&gt;</span>,
+}
+
+<span class='kw'>impl</span> <span class='ident'>ScheduledThreadPool</span> {
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>fixed_size</span>(<span class='ident'>size</span>: <span class='ident'>u32</span>) <span class='op'>-&gt;</span> <span class='ident'>ScheduledThreadPool</span> {
+        <span class='macro'>assert</span><span class='macro'>!</span>(<span class='ident'>size</span> <span class='op'>&gt;</span> <span class='number'>0</span>, <span class='string'>&quot;thread pool size must be greater than 0&quot;</span>);
+
+        <span class='ident'>ScheduledThreadPool</span> {
+            <span class='ident'>thread_pool</span>: <span class='ident'>ThreadPool</span>::<span class='ident'>new</span>(<span class='ident'>size</span>, <span class='ident'>size</span>, <span class='ident'>DelayQueue</span>::<span class='ident'>new</span>())
+        }
+    }
+
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>single_thread</span>() <span class='op'>-&gt;</span> <span class='ident'>ScheduledThreadPool</span> {
+        <span class='ident'>ScheduledThreadPool</span>::<span class='ident'>fixed_size</span>(<span class='number'>1</span>)
+    }
+
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>schedule_ms</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Task</span><span class='op'>+</span><span class='lifetime'>&#39;static</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>delay</span>: <span class='ident'>u32</span>, <span class='ident'>task</span>: <span class='ident'>T</span>) {
+        <span class='kw'>let</span> <span class='ident'>delay</span> <span class='op'>=</span> <span class='ident'>Duration</span>::<span class='ident'>milliseconds</span>(<span class='ident'>delay</span> <span class='kw'>as</span> <span class='ident'>i64</span>);
+        <span class='kw'>let</span> <span class='ident'>task</span> <span class='op'>=</span> <span class='ident'>Scheduled</span>::<span class='ident'>Delayed</span>(<span class='ident'>Box</span>::<span class='ident'>new</span>(<span class='ident'>task</span>), <span class='ident'>delay</span>);
+
+        <span class='self'>self</span>.<span class='ident'>thread_pool</span>.<span class='ident'>inner</span>.<span class='ident'>run</span>(<span class='ident'>task</span>, <span class='boolval'>false</span>);
+    }
+}
+
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Task</span><span class='op'>+</span><span class='lifetime'>&#39;static</span><span class='op'>&gt;</span> <span class='ident'>Run</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>ScheduledThreadPool</span> {
+    <span class='kw'>fn</span> <span class='ident'>run</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>task</span>: <span class='ident'>T</span>) {
+        <span class='self'>self</span>.<span class='ident'>schedule_ms</span>(<span class='number'>0</span>, <span class='ident'>task</span>);
+    }
+}
+
+<span class='kw'>enum</span> <span class='ident'>Scheduled</span> {
+    <span class='ident'>Delayed</span>(<span class='ident'>Box</span><span class='op'>&lt;</span><span class='ident'>BoxedTask</span><span class='op'>&gt;</span>, <span class='ident'>Duration</span>),
+}
+
+<span class='kw'>impl</span> <span class='ident'>Delayed</span> <span class='kw'>for</span> <span class='ident'>Scheduled</span> {
+    <span class='kw'>fn</span> <span class='ident'>delay</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>Duration</span> {
+        <span class='kw'>match</span> <span class='op'>*</span><span class='self'>self</span> {
+            <span class='ident'>Scheduled</span>::<span class='ident'>Delayed</span>(_, <span class='ident'>d</span>) <span class='op'>=&gt;</span> <span class='ident'>d</span>,
+        }
+    }
+}
+
+<span class='kw'>impl</span> <span class='ident'>Task</span> <span class='kw'>for</span> <span class='ident'>Scheduled</span> {
+    <span class='kw'>fn</span> <span class='ident'>run</span>(<span class='self'>self</span>) {
+        <span class='macro'>debug</span><span class='macro'>!</span>(<span class='string'>&quot;~~ running scheduled task&quot;</span>);
+        <span class='kw'>match</span> <span class='self'>self</span> {
+            <span class='ident'>Scheduled</span>::<span class='ident'>Delayed</span>(<span class='ident'>t</span>, _) <span class='op'>=&gt;</span> <span class='ident'>t</span>.<span class='ident'>run_boxed</span>(),
+        }
+    }
+}
+
+<span class='kw'>trait</span> <span class='ident'>BoxedTask</span> : <span class='ident'>Task</span> <span class='op'>+</span> <span class='lifetime'>&#39;static</span> {
+    <span class='kw'>fn</span> <span class='ident'>run_boxed</span>(<span class='self'>self</span>: <span class='ident'>Box</span><span class='op'>&lt;</span><span class='kw'>Self</span><span class='op'>&gt;</span>);
+}
+
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Task</span> <span class='op'>+</span> <span class='lifetime'>&#39;static</span><span class='op'>&gt;</span> <span class='ident'>BoxedTask</span> <span class='kw'>for</span> <span class='ident'>T</span> {
+    <span class='kw'>fn</span> <span class='ident'>run_boxed</span>(<span class='self'>self</span>: <span class='ident'>Box</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>) {
+        <span class='kw'>let</span> <span class='ident'>s</span> <span class='op'>=</span> <span class='op'>*</span><span class='self'>self</span>;
+        <span class='ident'>s</span>.<span class='ident'>run</span>();
     }
 }
 
@@ -801,9 +973,8 @@
     <span class='comment'>// solely on is_empty to see if the queue is empty (which we must</span>
     <span class='comment'>// do for example when deciding whether to transition from</span>
     <span class='comment'>// Shutdown to Tidying).  This accommodates special-purpose</span>
-    <span class='comment'>// queues such as DelayQueues for which poll() is allowed to</span>
-    <span class='comment'>// return null even if it may later return non-null when delays</span>
-    <span class='comment'>// expire.</span>
+    <span class='comment'>// queues such as DelayQueue for which poll() is allowed to return null</span>
+    <span class='comment'>// even if it may later return non-null when delays expire.</span>
     <span class='ident'>work_queue</span>: <span class='ident'>Q</span>,
     <span class='ident'>task</span>: <span class='ident'>PhantomData</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>,
 }
@@ -823,7 +994,19 @@
         }
     }
 
-    <span class='kw'>fn</span> <span class='ident'>run</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='kw-2'>mut</span> <span class='ident'>task</span>: <span class='ident'>T</span>) {
+    <span class='kw'>fn</span> <span class='ident'>prestart_core_thread</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) {
+        <span class='kw'>let</span> _ <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>add_worker</span>(<span class='prelude-val'>None</span>, <span class='boolval'>true</span>);
+    }
+
+    <span class='kw'>fn</span> <span class='ident'>prestart_all_core_threads</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) {
+        <span class='kw'>loop</span> {
+            <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>add_worker</span>(<span class='prelude-val'>None</span>, <span class='boolval'>true</span>).<span class='ident'>is_err</span>() {
+                <span class='kw'>return</span>;
+            }
+        }
+    }
+
+    <span class='kw'>fn</span> <span class='ident'>run</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='kw-2'>mut</span> <span class='ident'>task</span>: <span class='ident'>T</span>, <span class='ident'>immediate</span>: <span class='ident'>bool</span>) {
         <span class='comment'>//  Proceed in 3 steps:</span>
         <span class='comment'>//</span>
         <span class='comment'>//  1. If fewer than `core_pool_size` threads are running, try to</span>
@@ -848,13 +1031,20 @@
         <span class='macro'>debug</span><span class='macro'>!</span>(<span class='string'>&quot;running task; tp-state={:?}; worker_count={}&quot;</span>,
                <span class='ident'>state</span>.<span class='ident'>lifecycle</span>(), <span class='ident'>state</span>.<span class='ident'>worker_count</span>());
 
+        <span class='comment'>// An optimization allowing spawning of a worker through with a</span>
+        <span class='comment'>// specified task</span>
         <span class='kw'>if</span> <span class='ident'>state</span>.<span class='ident'>worker_count</span>() <span class='op'>&lt;</span> <span class='self'>self</span>.<span class='ident'>core</span>.<span class='ident'>core_pool_size</span> {
-            <span class='kw'>match</span> <span class='self'>self</span>.<span class='ident'>add_worker</span>(<span class='prelude-val'>Some</span>(<span class='ident'>task</span>), <span class='boolval'>true</span>) {
-                <span class='prelude-val'>Ok</span>(_) <span class='op'>=&gt;</span> {
-                    <span class='macro'>debug</span><span class='macro'>!</span>(<span class='string'>&quot;worker successfully added; core=true&quot;</span>);
-                    <span class='kw'>return</span>
+            <span class='kw'>if</span> <span class='ident'>immediate</span> {
+                <span class='kw'>match</span> <span class='self'>self</span>.<span class='ident'>add_worker</span>(<span class='prelude-val'>Some</span>(<span class='ident'>task</span>), <span class='boolval'>true</span>) {
+                    <span class='prelude-val'>Ok</span>(_) <span class='op'>=&gt;</span> {
+                        <span class='macro'>debug</span><span class='macro'>!</span>(<span class='string'>&quot;worker successfully added; core=true&quot;</span>);
+                        <span class='kw'>return</span>
+                    }
+                    <span class='prelude-val'>Err</span>(<span class='ident'>t</span>) <span class='op'>=&gt;</span> <span class='ident'>task</span> <span class='op'>=</span> <span class='ident'>t</span>.<span class='ident'>expect</span>(<span class='string'>&quot;something went wrong&quot;</span>),
                 }
-                <span class='prelude-val'>Err</span>(<span class='ident'>t</span>) <span class='op'>=&gt;</span> <span class='ident'>task</span> <span class='op'>=</span> <span class='ident'>t</span>.<span class='ident'>expect</span>(<span class='string'>&quot;something went wrong&quot;</span>),
+            } <span class='kw'>else</span> {
+                <span class='comment'>// Simply ensure that there are enough running threads</span>
+                <span class='kw'>let</span> _ <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>add_worker</span>(<span class='prelude-val'>None</span>, <span class='boolval'>false</span>);
             }
 
             <span class='ident'>state</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>core</span>.<span class='ident'>state</span>.<span class='ident'>load</span>(<span class='ident'>Ordering</span>::<span class='ident'>Relaxed</span>);
@@ -1057,6 +1247,7 @@
         <span class='self'>self</span>.<span class='ident'>panicked</span> <span class='op'>=</span> <span class='boolval'>true</span>;
 
         <span class='kw'>while</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>task</span>) <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>get_task</span>() {
+            <span class='macro'>debug</span><span class='macro'>!</span>(<span class='string'>&quot;worker processing task&quot;</span>);
             <span class='ident'>task</span>.<span class='ident'>run</span>();
         }
 
@@ -1107,6 +1298,7 @@
                 <span class='kw'>continue</span>;
             }
 
+            <span class='macro'>debug</span><span class='macro'>!</span>(<span class='string'>&quot;worker waiting for task&quot;</span>);
             <span class='kw'>match</span> <span class='self'>self</span>.<span class='ident'>work_queue</span>.<span class='ident'>take</span>() {
                 <span class='prelude-val'>Some</span>(<span class='ident'>t</span>) <span class='op'>=&gt;</span> {
                     <span class='comment'>// Grab the task, but the loop will restart in order to</span>

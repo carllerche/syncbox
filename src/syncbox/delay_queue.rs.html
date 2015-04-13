@@ -274,6 +274,8 @@
 <span id="232">232</span>
 <span id="233">233</span>
 <span id="234">234</span>
+<span id="235">235</span>
+<span id="236">236</span>
 </pre><pre class='rust '>
 <span class='kw'>use</span> <span class='ident'>super</span>::{<span class='ident'>Queue</span>, <span class='ident'>SyncQueue</span>};
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>collections</span>::<span class='ident'>BinaryHeap</span>;
@@ -410,6 +412,8 @@
         <span class='kw'>let</span> <span class='ident'>delay</span> <span class='op'>=</span> <span class='ident'>e</span>.<span class='ident'>delay</span>();
         <span class='kw'>let</span> <span class='ident'>entry</span> <span class='op'>=</span> <span class='ident'>Entry</span>::<span class='ident'>new</span>(<span class='ident'>e</span>, <span class='ident'>delay</span>);
         <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>queue</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>inner</span>.<span class='ident'>queue</span>.<span class='ident'>lock</span>().<span class='ident'>unwrap</span>();
+
+        <span class='macro'>trace</span><span class='macro'>!</span>(<span class='string'>&quot;offering value to delay queue; delay={}&quot;</span>, <span class='ident'>delay</span>.<span class='ident'>num_milliseconds</span>());
 
         <span class='kw'>match</span> <span class='ident'>queue</span>.<span class='ident'>peek</span>() {
             <span class='prelude-val'>Some</span>(<span class='ident'>e</span>) <span class='op'>=&gt;</span> {
