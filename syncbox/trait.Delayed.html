@@ -4,10 +4,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="API documentation for the Rust `Task` trait in crate `syncbox`.">
-    <meta name="keywords" content="rust, rustlang, rust-lang, Task">
+    <meta name="description" content="API documentation for the Rust `Delayed` trait in crate `syncbox`.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, Delayed">
 
-    <title>syncbox::Task - Rust</title>
+    <title>syncbox::Delayed - Rust</title>
 
     <link rel="stylesheet" type="text/css" href="../main.css">
 
@@ -26,7 +26,7 @@
 
     <section class="sidebar">
         
-        <p class='location'><a href='index.html'>syncbox</a></p><script>window.sidebarCurrent = {name: 'Task', ty: 'trait', relpath: ''};</script><script defer src="sidebar-items.js"></script>
+        <p class='location'><a href='index.html'>syncbox</a></p><script>window.sidebarCurrent = {name: 'Delayed', ty: 'trait', relpath: ''};</script><script defer src="sidebar-items.js"></script>
     </section>
 
     <nav class="sub">
@@ -41,22 +41,22 @@
     </nav>
 
     <section id='main' class="content trait">
-<h1 class='fqn'><span class='in-band'>Trait <a href='index.html'>syncbox</a>::<wbr><a class='trait' href=''>Task</a><wbr></span><span class='out-of-band'><span id='render-detail'>
+<h1 class='fqn'><span class='in-band'>Trait <a href='index.html'>syncbox</a>::<wbr><a class='trait' href=''>Delayed</a><wbr></span><span class='out-of-band'><span id='render-detail'>
             <a id="collapse-all" href="#">[-]</a>&nbsp;<a id="expand-all" href="#">[+]</a>
-        </span><a id='src-7042' href='../src/syncbox/run.rs.html#8-11'>[src]</a></span></h1>
-<pre class='rust trait'>pub trait Task: <a class='trait' href='http://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a> {
-    fn <a href='#tymethod.run' class='fnname'>run</a>(self);
-}</pre><div class='docblock'><p>A value that can run a unit of work.</p>
+        </span><a id='src-1310' href='../src/syncbox/delay_queue.rs.html#9-11'>[src]</a></span></h1>
+<pre class='rust trait'>pub trait Delayed {
+    fn <a href='#tymethod.delay' class='fnname'>delay</a>(&amp;self) -&gt; <a class='struct' href='http://doc.rust-lang.org/time/time/duration/struct.Duration.html' title='time::duration::Duration'>Duration</a>;
+}</pre><div class='docblock'><p>A value that should not be used until the delay has expired.</p>
 </div>
             <h2 id='required-methods'>Required Methods</h2>
             <div class='methods'>
-        <h3 id='tymethod.run' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#tymethod.run' class='fnname'>run</a>(self)</code></h3><div class='docblock'><p>Run the unit of work</p>
-</div></div>
+        <h3 id='tymethod.delay' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#tymethod.delay' class='fnname'>delay</a>(&amp;self) -&gt; <a class='struct' href='http://doc.rust-lang.org/time/time/duration/struct.Duration.html' title='time::duration::Duration'>Duration</a></code></h3></div>
         <h2 id='implementors'>Implementors</h2>
         <ul class='item-list' id='implementors-list'>
-    <li><a class='stability Unmarked' title='No stability level'></a><code>impl&lt;F: <a class='trait' href='http://doc.rust-lang.org/nightly/core/ops/trait.FnOnce.html' title='core::ops::FnOnce'>FnOnce</a>() + <a class='trait' href='http://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a>&gt; <a class='trait' href='../syncbox/trait.Task.html' title='syncbox::Task'>Task</a> for F</code></li>
+    <li><a class='stability Unmarked' title='No stability level'></a><code>impl&lt;T: <a class='trait' href='../syncbox/trait.Delayed.html' title='syncbox::Delayed'>Delayed</a>&gt; <a class='trait' href='../syncbox/trait.Delayed.html' title='syncbox::Delayed'>Delayed</a> for <a class='enum' href='http://doc.rust-lang.org/nightly/core/option/enum.Option.html' title='core::option::Option'>Option</a>&lt;T&gt;</code></li>
+<li><a class='stability Unmarked' title='No stability level'></a><code>impl&lt;T&gt; <a class='trait' href='../syncbox/trait.Delayed.html' title='syncbox::Delayed'>Delayed</a> for <a class='struct' href='../syncbox/struct.Delay.html' title='syncbox::Delay'>Delay</a>&lt;T&gt;</code></li>
 </ul><script type="text/javascript" async
-                              src="../implementors/syncbox/trait.Task.js">
+                              src="../implementors/syncbox/trait.Delayed.js">
                       </script></section>
     <section id='search' class="content hidden"></section>
 
