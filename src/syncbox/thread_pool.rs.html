@@ -700,32 +700,60 @@
 <span id="658">658</span>
 <span id="659">659</span>
 <span id="660">660</span>
+<span id="661">661</span>
+<span id="662">662</span>
+<span id="663">663</span>
+<span id="664">664</span>
+<span id="665">665</span>
+<span id="666">666</span>
+<span id="667">667</span>
+<span id="668">668</span>
+<span id="669">669</span>
+<span id="670">670</span>
+<span id="671">671</span>
+<span id="672">672</span>
+<span id="673">673</span>
+<span id="674">674</span>
+<span id="675">675</span>
+<span id="676">676</span>
+<span id="677">677</span>
 </pre><pre class='rust '>
 <span class='kw'>use</span> {<span class='ident'>LinkedQueue</span>, <span class='ident'>SyncQueue</span>, <span class='ident'>Run</span>, <span class='ident'>Task</span>};
+<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>marker</span>::<span class='ident'>PhantomData</span>;
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::{<span class='ident'>Arc</span>, <span class='ident'>Mutex</span>, <span class='ident'>Condvar</span>};
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::<span class='ident'>atomic</span>::{<span class='ident'>AtomicUsize</span>, <span class='ident'>Ordering</span>};
 <span class='kw'>use</span> <span class='ident'>std</span>::{<span class='ident'>thread</span>, <span class='ident'>usize</span>};
 
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>ThreadPool</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Task</span><span class='op'>+</span><span class='lifetime'>&#39;static</span><span class='op'>&gt;</span> {
-    <span class='ident'>inner</span>: <span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>ThreadPoolInner</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;&gt;</span>,
+<span class='doccomment'>/// A queue that can be used to back a thread pool</span>
+<span class='kw'>pub</span> <span class='kw'>trait</span> <span class='ident'>WorkQueue</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> : <span class='ident'>SyncQueue</span><span class='op'>&lt;</span><span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;&gt;</span> <span class='op'>+</span> <span class='ident'>Clone</span> <span class='op'>+</span> <span class='ident'>Send</span> <span class='op'>+</span> <span class='lifetime'>&#39;static</span> {
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Task</span><span class='op'>+</span><span class='lifetime'>&#39;static</span><span class='op'>&gt;</span> <span class='ident'>ThreadPool</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>fixed_size</span>(<span class='ident'>size</span>: <span class='ident'>u32</span>) <span class='op'>-&gt;</span> <span class='ident'>ThreadPool</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
-        <span class='ident'>ThreadPool</span>::<span class='ident'>new</span>(<span class='ident'>size</span>, <span class='ident'>size</span>, <span class='ident'>usize</span>::<span class='ident'>MAX</span>)
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>Q</span>: <span class='ident'>SyncQueue</span><span class='op'>&lt;</span><span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;&gt;</span> <span class='op'>+</span> <span class='ident'>Clone</span> <span class='op'>+</span> <span class='ident'>Send</span> <span class='op'>+</span> <span class='lifetime'>&#39;static</span><span class='op'>&gt;</span> <span class='ident'>WorkQueue</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>Q</span> {
+}
+
+<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>ThreadPool</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Task</span><span class='op'>+</span><span class='lifetime'>&#39;static</span>, <span class='ident'>Q</span>: <span class='ident'>WorkQueue</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> <span class='op'>=</span> <span class='ident'>LinkedQueue</span><span class='op'>&lt;</span><span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;&gt;</span><span class='op'>&gt;</span> {
+    <span class='ident'>inner</span>: <span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>ThreadPoolInner</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>Q</span><span class='op'>&gt;&gt;</span>,
+}
+
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Task</span><span class='op'>+</span><span class='lifetime'>&#39;static</span><span class='op'>&gt;</span> <span class='ident'>ThreadPool</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>LinkedQueue</span><span class='op'>&lt;</span><span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;&gt;</span><span class='op'>&gt;</span> {
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>fixed_size</span>(<span class='ident'>size</span>: <span class='ident'>u32</span>) <span class='op'>-&gt;</span> <span class='ident'>ThreadPool</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>LinkedQueue</span><span class='op'>&lt;</span><span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;&gt;</span><span class='op'>&gt;</span> {
+        <span class='ident'>ThreadPool</span>::<span class='ident'>new</span>(<span class='ident'>size</span>, <span class='ident'>size</span>, <span class='ident'>LinkedQueue</span>::<span class='ident'>with_capacity</span>(<span class='ident'>usize</span>::<span class='ident'>MAX</span>))
     }
 
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>single_thread</span>() <span class='op'>-&gt;</span> <span class='ident'>ThreadPool</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>single_thread</span>() <span class='op'>-&gt;</span> <span class='ident'>ThreadPool</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>LinkedQueue</span><span class='op'>&lt;</span><span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;&gt;</span><span class='op'>&gt;</span> {
         <span class='ident'>ThreadPool</span>::<span class='ident'>fixed_size</span>(<span class='number'>1</span>)
     }
+}
 
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Task</span><span class='op'>+</span><span class='lifetime'>&#39;static</span>, <span class='ident'>Q</span>: <span class='ident'>WorkQueue</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;&gt;</span> <span class='ident'>ThreadPool</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>Q</span><span class='op'>&gt;</span> {
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>(<span class='ident'>core_pool_size</span>: <span class='ident'>u32</span>,
                <span class='ident'>maximum_pool_size</span>: <span class='ident'>u32</span>,
-               <span class='ident'>backlog</span>: <span class='ident'>usize</span>) <span class='op'>-&gt;</span> <span class='ident'>ThreadPool</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
+               <span class='ident'>work_queue</span>: <span class='ident'>Q</span>) <span class='op'>-&gt;</span> <span class='ident'>ThreadPool</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>Q</span><span class='op'>&gt;</span> {
+
         <span class='kw'>let</span> <span class='ident'>inner</span> <span class='op'>=</span> <span class='ident'>ThreadPoolInner</span>::<span class='ident'>new</span>(
             <span class='ident'>core_pool_size</span>,
             <span class='ident'>maximum_pool_size</span>,
-            <span class='ident'>LinkedQueue</span>::<span class='ident'>with_capacity</span>(<span class='ident'>backlog</span>));
+            <span class='ident'>work_queue</span>);
 
         <span class='ident'>ThreadPool</span> { <span class='ident'>inner</span>: <span class='ident'>Arc</span>::<span class='ident'>new</span>(<span class='ident'>inner</span>) }
     }
@@ -747,7 +775,7 @@
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Task</span><span class='op'>+</span><span class='lifetime'>&#39;static</span><span class='op'>&gt;</span> <span class='ident'>Run</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>ThreadPool</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Task</span><span class='op'>+</span><span class='lifetime'>&#39;static</span>, <span class='ident'>Q</span>: <span class='ident'>WorkQueue</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;&gt;</span> <span class='ident'>Run</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>ThreadPool</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>Q</span><span class='op'>&gt;</span> {
     <span class='kw'>fn</span> <span class='ident'>run</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>task</span>: <span class='ident'>T</span>) {
         <span class='self'>self</span>.<span class='ident'>inner</span>.<span class='ident'>run</span>(<span class='ident'>task</span>);
     }
@@ -762,7 +790,7 @@
 <span class='comment'>//</span>
 <span class='comment'>// - Poison the thread pool if something goes critically wrong</span>
 <span class='comment'>//</span>
-<span class='kw'>struct</span> <span class='ident'>ThreadPoolInner</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Task</span><span class='op'>+</span><span class='lifetime'>&#39;static</span><span class='op'>&gt;</span> {
+<span class='kw'>struct</span> <span class='ident'>ThreadPoolInner</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Task</span><span class='op'>+</span><span class='lifetime'>&#39;static</span>, <span class='ident'>Q</span>: <span class='ident'>WorkQueue</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;&gt;</span> {
 
     <span class='comment'>// Contains the state, condvar, etc..</span>
     <span class='ident'>core</span>: <span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>Core</span><span class='op'>&gt;</span>,
@@ -776,20 +804,22 @@
     <span class='comment'>// queues such as DelayQueues for which poll() is allowed to</span>
     <span class='comment'>// return null even if it may later return non-null when delays</span>
     <span class='comment'>// expire.</span>
-    <span class='ident'>work_queue</span>: <span class='ident'>LinkedQueue</span><span class='op'>&lt;</span><span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;&gt;</span>,
+    <span class='ident'>work_queue</span>: <span class='ident'>Q</span>,
+    <span class='ident'>task</span>: <span class='ident'>PhantomData</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>,
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Task</span><span class='op'>+</span><span class='lifetime'>&#39;static</span><span class='op'>&gt;</span> <span class='ident'>ThreadPoolInner</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Task</span><span class='op'>+</span><span class='lifetime'>&#39;static</span>, <span class='ident'>Q</span>: <span class='ident'>WorkQueue</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;&gt;</span> <span class='ident'>ThreadPoolInner</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>Q</span><span class='op'>&gt;</span> {
 
     <span class='kw'>fn</span> <span class='ident'>new</span>(<span class='ident'>core_pool_size</span>: <span class='ident'>u32</span>,
            <span class='ident'>maximum_pool_size</span>: <span class='ident'>u32</span>,
-           <span class='ident'>work_queue</span>: <span class='ident'>LinkedQueue</span><span class='op'>&lt;</span><span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>ThreadPoolInner</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
+           <span class='ident'>work_queue</span>: <span class='ident'>Q</span>) <span class='op'>-&gt;</span> <span class='ident'>ThreadPoolInner</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>Q</span><span class='op'>&gt;</span> {
 
         <span class='kw'>let</span> <span class='ident'>core</span> <span class='op'>=</span> <span class='ident'>Arc</span>::<span class='ident'>new</span>(<span class='ident'>Core</span>::<span class='ident'>new</span>(<span class='ident'>core_pool_size</span>, <span class='ident'>maximum_pool_size</span>));
 
         <span class='ident'>ThreadPoolInner</span> {
             <span class='ident'>core</span>: <span class='ident'>core</span>,
             <span class='ident'>work_queue</span>: <span class='ident'>work_queue</span>,
+            <span class='ident'>task</span>: <span class='ident'>PhantomData</span>,
         }
     }
 
@@ -989,13 +1019,17 @@
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Task</span><span class='op'>+</span><span class='lifetime'>&#39;static</span><span class='op'>&gt;</span> <span class='ident'>Drop</span> <span class='kw'>for</span> <span class='ident'>ThreadPoolInner</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Task</span><span class='op'>+</span><span class='lifetime'>&#39;static</span>, <span class='ident'>Q</span>: <span class='ident'>WorkQueue</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;&gt;</span> <span class='ident'>Drop</span> <span class='kw'>for</span> <span class='ident'>ThreadPoolInner</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>Q</span><span class='op'>&gt;</span> {
     <span class='kw'>fn</span> <span class='ident'>drop</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) {
         <span class='self'>self</span>.<span class='ident'>shutdown</span>(<span class='ident'>Lifecycle</span>::<span class='ident'>Stop</span>);
     }
 }
 
-<span class='kw'>struct</span> <span class='ident'>Worker</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Task</span><span class='op'>+</span><span class='lifetime'>&#39;static</span><span class='op'>&gt;</span> {
+<span class='comment'>// Needed because of the PhantomData marker</span>
+<span class='kw'>unsafe</span> <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Task</span><span class='op'>+</span><span class='lifetime'>&#39;static</span>, <span class='ident'>Q</span>: <span class='ident'>WorkQueue</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;&gt;</span> <span class='ident'>Send</span> <span class='kw'>for</span> <span class='ident'>ThreadPoolInner</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>Q</span><span class='op'>&gt;</span> { }
+<span class='kw'>unsafe</span> <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Task</span><span class='op'>+</span><span class='lifetime'>&#39;static</span>, <span class='ident'>Q</span>: <span class='ident'>WorkQueue</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;&gt;</span> <span class='ident'>Sync</span> <span class='kw'>for</span> <span class='ident'>ThreadPoolInner</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>Q</span><span class='op'>&gt;</span> { }
+
+<span class='kw'>struct</span> <span class='ident'>Worker</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Task</span><span class='op'>+</span><span class='lifetime'>&#39;static</span>, <span class='ident'>Q</span>: <span class='ident'>WorkQueue</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;&gt;</span> {
     <span class='comment'>// Core shared by ThreadPool and Worker</span>
     <span class='ident'>core</span>: <span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>Core</span><span class='op'>&gt;</span>,
 
@@ -1003,14 +1037,14 @@
     <span class='ident'>initial_task</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>,
 
     <span class='comment'>// The queue on which to listen for new tasks</span>
-    <span class='ident'>work_queue</span>: <span class='ident'>LinkedQueue</span><span class='op'>&lt;</span><span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;&gt;</span>,
+    <span class='ident'>work_queue</span>: <span class='ident'>Q</span>,
 
     <span class='comment'>// Checked in the drop function whether or not the thread panicked</span>
     <span class='ident'>panicked</span>: <span class='ident'>bool</span>,
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Task</span><span class='op'>+</span><span class='lifetime'>&#39;static</span><span class='op'>&gt;</span> <span class='ident'>Worker</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
-    <span class='kw'>fn</span> <span class='ident'>new</span>(<span class='ident'>core</span>: <span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>Core</span><span class='op'>&gt;</span>, <span class='ident'>initial_task</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>, <span class='ident'>queue</span>: <span class='ident'>LinkedQueue</span><span class='op'>&lt;</span><span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>Worker</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Task</span><span class='op'>+</span><span class='lifetime'>&#39;static</span>, <span class='ident'>Q</span>: <span class='ident'>WorkQueue</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;&gt;</span> <span class='ident'>Worker</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>Q</span><span class='op'>&gt;</span> {
+    <span class='kw'>fn</span> <span class='ident'>new</span>(<span class='ident'>core</span>: <span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>Core</span><span class='op'>&gt;</span>, <span class='ident'>initial_task</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>, <span class='ident'>queue</span>: <span class='ident'>Q</span>) <span class='op'>-&gt;</span> <span class='ident'>Worker</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>Q</span><span class='op'>&gt;</span> {
         <span class='ident'>Worker</span> {
             <span class='ident'>core</span>: <span class='ident'>core</span>,
             <span class='ident'>initial_task</span>: <span class='ident'>initial_task</span>,
@@ -1115,7 +1149,7 @@
     }
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Task</span><span class='op'>+</span><span class='lifetime'>&#39;static</span><span class='op'>&gt;</span> <span class='ident'>Drop</span> <span class='kw'>for</span> <span class='ident'>Worker</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Task</span><span class='op'>+</span><span class='lifetime'>&#39;static</span>, <span class='ident'>Q</span>: <span class='ident'>WorkQueue</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;&gt;</span> <span class='ident'>Drop</span> <span class='kw'>for</span> <span class='ident'>Worker</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>Q</span><span class='op'>&gt;</span> {
     <span class='kw'>fn</span> <span class='ident'>drop</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) {
         <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>panicked</span> {
             <span class='self'>self</span>.<span class='ident'>decrement_worker_count</span>(<span class='boolval'>true</span>);
