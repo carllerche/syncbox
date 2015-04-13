@@ -10,7 +10,7 @@ extern crate time;
 pub use self::array_queue::ArrayQueue;
 pub use self::delay_queue::{DelayQueue, Delayed, Delay};
 pub use self::linked_queue::LinkedQueue;
-pub use self::thread_pool::ThreadPool;
+pub use self::thread_pool::{ThreadPool, ScheduledThreadPool};
 pub use self::queue::{Queue, SyncQueue};
 pub use self::run::{Run, Task};
 

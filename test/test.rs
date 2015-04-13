@@ -7,8 +7,8 @@ extern crate env_logger;
 
 mod test_delay_queue;
 mod test_linked_queue;
+mod test_scheduled_pool;
 mod test_thread_pool;
-
 
 fn spawn<F: FnOnce() + Send + 'static>(f: F) {
     use std::thread;

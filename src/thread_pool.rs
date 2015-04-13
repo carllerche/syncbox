@@ -1,8 +1,9 @@
-use {LinkedQueue, SyncQueue, Run, Task};
+use {LinkedQueue, Queue, SyncQueue, Run, Task, Delayed, DelayQueue};
 use std::marker::PhantomData;
 use std::sync::{Arc, Mutex, Condvar};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::{thread, usize};
+use time::Duration;
 
 /// A queue that can be used to back a thread pool
 pub trait WorkQueue<T> : SyncQueue<Option<T>> + Clone + Send + 'static {
@@ -38,6 +39,14 @@ impl<T: Task+'static, Q: WorkQueue<T>> ThreadPool<T, Q> {
         ThreadPool { inner: Arc::new(inner) }
     }
 
+    pub fn prestart_core_thread(&self) {
+        self.inner.prestart_core_thread();
+    }
+
+    pub fn prestart_all_core_threads(&self) {
+        self.inner.prestart_all_core_threads();
+    }
+
     pub fn shutdown(&self) {
         self.inner.shutdown(Lifecycle::Shutdown);
     }
@@ -57,7 +66,74 @@ impl<T: Task+'static, Q: WorkQueue<T>> ThreadPool<T, Q> {
 
 impl<T: Task+'static, Q: WorkQueue<T>> Run<T> for ThreadPool<T, Q> {
     fn run(&self, task: T) {
-        self.inner.run(task);
+        self.inner.run(task, true);
+    }
+}
+
+/// A thread pool that can schedule tasks to run after a given delay, or to
+/// execute periodically. Delayed tasks do not run before their associated
+/// delays, but besides that, there are no real-time guarantees about exactly
+/// when the task will run.
+pub struct ScheduledThreadPool {
+    thread_pool: ThreadPool<Scheduled, DelayQueue<Option<Scheduled>>>,
+}
+
+impl ScheduledThreadPool {
+    pub fn fixed_size(size: u32) -> ScheduledThreadPool {
+        assert!(size > 0, "thread pool size must be greater than 0");
+
+        ScheduledThreadPool {
+            thread_pool: ThreadPool::new(size, size, DelayQueue::new())
+        }
+    }
+
+    pub fn single_thread() -> ScheduledThreadPool {
+        ScheduledThreadPool::fixed_size(1)
+    }
+
+    pub fn schedule_ms<T: Task+'static>(&self, delay: u32, task: T) {
+        let delay = Duration::milliseconds(delay as i64);
+        let task = Scheduled::Delayed(Box::new(task), delay);
+
+        self.thread_pool.inner.run(task, false);
+    }
+}
+
+impl<T: Task+'static> Run<T> for ScheduledThreadPool {
+    fn run(&self, task: T) {
+        self.schedule_ms(0, task);
+    }
+}
+
+enum Scheduled {
+    Delayed(Box<BoxedTask>, Duration),
+}
+
+impl Delayed for Scheduled {
+    fn delay(&self) -> Duration {
+        match *self {
+            Scheduled::Delayed(_, d) => d,
+        }
+    }
+}
+
+impl Task for Scheduled {
+    fn run(self) {
+        debug!("~~ running scheduled task");
+        match self {
+            Scheduled::Delayed(t, _) => t.run_boxed(),
+        }
+    }
+}
+
+trait BoxedTask : Task + 'static {
+    fn run_boxed(self: Box<Self>);
+}
+
+impl<T: Task + 'static> BoxedTask for T {
+    fn run_boxed(self: Box<T>) {
+        let s = *self;
+        s.run();
     }
 }
 
@@ -81,9 +157,8 @@ struct ThreadPoolInner<T: Task+'static, Q: WorkQueue<T>> {
     // solely on is_empty to see if the queue is empty (which we must
     // do for example when deciding whether to transition from
     // Shutdown to Tidying).  This accommodates special-purpose
-    // queues such as DelayQueues for which poll() is allowed to
-    // return null even if it may later return non-null when delays
-    // expire.
+    // queues such as DelayQueue for which poll() is allowed to return null
+    // even if it may later return non-null when delays expire.
     work_queue: Q,
     task: PhantomData<T>,
 }
@@ -103,7 +178,19 @@ impl<T: Task+'static, Q: WorkQueue<T>> ThreadPoolInner<T, Q> {
         }
     }
 
-    fn run(&self, mut task: T) {
+    fn prestart_core_thread(&self) {
+        let _ = self.add_worker(None, true);
+    }
+
+    fn prestart_all_core_threads(&self) {
+        loop {
+            if self.add_worker(None, true).is_err() {
+                return;
+            }
+        }
+    }
+
+    fn run(&self, mut task: T, immediate: bool) {
         //  Proceed in 3 steps:
         //
         //  1. If fewer than `core_pool_size` threads are running, try to
@@ -128,13 +215,20 @@ impl<T: Task+'static, Q: WorkQueue<T>> ThreadPoolInner<T, Q> {
         debug!("running task; tp-state={:?}; worker_count={}",
                state.lifecycle(), state.worker_count());
 
+        // An optimization allowing spawning of a worker through with a
+        // specified task
         if state.worker_count() < self.core.core_pool_size {
-            match self.add_worker(Some(task), true) {
-                Ok(_) => {
-                    debug!("worker successfully added; core=true");
-                    return
+            if immediate {
+                match self.add_worker(Some(task), true) {
+                    Ok(_) => {
+                        debug!("worker successfully added; core=true");
+                        return
+                    }
+                    Err(t) => task = t.expect("something went wrong"),
                 }
-                Err(t) => task = t.expect("something went wrong"),
+            } else {
+                // Simply ensure that there are enough running threads
+                let _ = self.add_worker(None, false);
             }
 
             state = self.core.state.load(Ordering::Relaxed);
@@ -337,6 +431,7 @@ impl<T: Task+'static, Q: WorkQueue<T>> Worker<T, Q> {
         self.panicked = true;
 
         while let Some(task) = self.get_task() {
+            debug!("worker processing task");
             task.run();
         }
 
@@ -387,6 +482,7 @@ impl<T: Task+'static, Q: WorkQueue<T>> Worker<T, Q> {
                 continue;
             }
 
+            debug!("worker waiting for task");
             match self.work_queue.take() {
                 Some(t) => {
                     // Grab the task, but the loop will restart in order to

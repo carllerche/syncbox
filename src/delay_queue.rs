@@ -134,6 +134,8 @@ impl<T: Delayed + Send> Queue<T> for DelayQueue<T> {
         let entry = Entry::new(e, delay);
         let mut queue = self.inner.queue.lock().unwrap();
 
+        trace!("offering value to delay queue; delay={}", delay.num_milliseconds());
+
         match queue.peek() {
             Some(e) => {
                 if entry.time < e.time {
