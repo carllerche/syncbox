@@ -1,28 +1,39 @@
 use {LinkedQueue, SyncQueue, Run, Task};
+use std::marker::PhantomData;
 use std::sync::{Arc, Mutex, Condvar};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::{thread, usize};
 
-pub struct ThreadPool<T: Task+'static> {
-    inner: Arc<ThreadPoolInner<T>>,
+/// A queue that can be used to back a thread pool
+pub trait WorkQueue<T> : SyncQueue<Option<T>> + Clone + Send + 'static {
 }
 
-impl<T: Task+'static> ThreadPool<T> {
-    pub fn fixed_size(size: u32) -> ThreadPool<T> {
-        ThreadPool::new(size, size, usize::MAX)
+impl<T, Q: SyncQueue<Option<T>> + Clone + Send + 'static> WorkQueue<T> for Q {
+}
+
+pub struct ThreadPool<T: Task+'static, Q: WorkQueue<T> = LinkedQueue<Option<T>>> {
+    inner: Arc<ThreadPoolInner<T, Q>>,
+}
+
+impl<T: Task+'static> ThreadPool<T, LinkedQueue<Option<T>>> {
+    pub fn fixed_size(size: u32) -> ThreadPool<T, LinkedQueue<Option<T>>> {
+        ThreadPool::new(size, size, LinkedQueue::with_capacity(usize::MAX))
     }
 
-    pub fn single_thread() -> ThreadPool<T> {
+    pub fn single_thread() -> ThreadPool<T, LinkedQueue<Option<T>>> {
         ThreadPool::fixed_size(1)
     }
+}
 
+impl<T: Task+'static, Q: WorkQueue<T>> ThreadPool<T, Q> {
     pub fn new(core_pool_size: u32,
                maximum_pool_size: u32,
-               backlog: usize) -> ThreadPool<T> {
+               work_queue: Q) -> ThreadPool<T, Q> {
+
         let inner = ThreadPoolInner::new(
             core_pool_size,
             maximum_pool_size,
-            LinkedQueue::with_capacity(backlog));
+            work_queue);
 
         ThreadPool { inner: Arc::new(inner) }
     }
@@ -44,7 +55,7 @@ impl<T: Task+'static> ThreadPool<T> {
     }
 }
 
-impl<T: Task+'static> Run<T> for ThreadPool<T> {
+impl<T: Task+'static, Q: WorkQueue<T>> Run<T> for ThreadPool<T, Q> {
     fn run(&self, task: T) {
         self.inner.run(task);
     }
@@ -59,7 +70,7 @@ impl<T: Task+'static> Run<T> for ThreadPool<T> {
 //
 // - Poison the thread pool if something goes critically wrong
 //
-struct ThreadPoolInner<T: Task+'static> {
+struct ThreadPoolInner<T: Task+'static, Q: WorkQueue<T>> {
 
     // Contains the state, condvar, etc..
     core: Arc<Core>,
@@ -73,20 +84,22 @@ struct ThreadPoolInner<T: Task+'static> {
     // queues such as DelayQueues for which poll() is allowed to
     // return null even if it may later return non-null when delays
     // expire.
-    work_queue: LinkedQueue<Option<T>>,
+    work_queue: Q,
+    task: PhantomData<T>,
 }
 
-impl<T: Task+'static> ThreadPoolInner<T> {
+impl<T: Task+'static, Q: WorkQueue<T>> ThreadPoolInner<T, Q> {
 
     fn new(core_pool_size: u32,
            maximum_pool_size: u32,
-           work_queue: LinkedQueue<Option<T>>) -> ThreadPoolInner<T> {
+           work_queue: Q) -> ThreadPoolInner<T, Q> {
 
         let core = Arc::new(Core::new(core_pool_size, maximum_pool_size));
 
         ThreadPoolInner {
             core: core,
             work_queue: work_queue,
+            task: PhantomData,
         }
     }
 
@@ -286,13 +299,17 @@ impl<T: Task+'static> ThreadPoolInner<T> {
     }
 }
 
-impl<T: Task+'static> Drop for ThreadPoolInner<T> {
+impl<T: Task+'static, Q: WorkQueue<T>> Drop for ThreadPoolInner<T, Q> {
     fn drop(&mut self) {
         self.shutdown(Lifecycle::Stop);
     }
 }
 
-struct Worker<T: Task+'static> {
+// Needed because of the PhantomData marker
+unsafe impl<T: Task+'static, Q: WorkQueue<T>> Send for ThreadPoolInner<T, Q> { }
+unsafe impl<T: Task+'static, Q: WorkQueue<T>> Sync for ThreadPoolInner<T, Q> { }
+
+struct Worker<T: Task+'static, Q: WorkQueue<T>> {
     // Core shared by ThreadPool and Worker
     core: Arc<Core>,
 
@@ -300,14 +317,14 @@ struct Worker<T: Task+'static> {
     initial_task: Option<T>,
 
     // The queue on which to listen for new tasks
-    work_queue: LinkedQueue<Option<T>>,
+    work_queue: Q,
 
     // Checked in the drop function whether or not the thread panicked
     panicked: bool,
 }
 
-impl<T: Task+'static> Worker<T> {
-    fn new(core: Arc<Core>, initial_task: Option<T>, queue: LinkedQueue<Option<T>>) -> Worker<T> {
+impl<T: Task+'static, Q: WorkQueue<T>> Worker<T, Q> {
+    fn new(core: Arc<Core>, initial_task: Option<T>, queue: Q) -> Worker<T, Q> {
         Worker {
             core: core,
             initial_task: initial_task,
@@ -412,7 +429,7 @@ impl<T: Task+'static> Worker<T> {
     }
 }
 
-impl<T: Task+'static> Drop for Worker<T> {
+impl<T: Task+'static, Q: WorkQueue<T>> Drop for Worker<T, Q> {
     fn drop(&mut self) {
         if self.panicked {
             self.decrement_worker_count(true);

@@ -63,3 +63,13 @@ pub fn test_two_threads_task_queue_up() {
         assert_eq!(msg, rx.recv().unwrap());
     }
 }
+
+#[test]
+pub fn test_thread_pool_is_send() {
+    fn check<R: Run<F> + Send, F: FnOnce() + Send>(tp: &R) {
+    }
+
+    let tp = ThreadPool::fixed_size(2);
+    check(&tp);
+    tp.run(|| { assert!(true); });
+}
