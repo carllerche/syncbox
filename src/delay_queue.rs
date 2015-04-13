@@ -1,43 +1,71 @@
 use super::{Queue, SyncQueue};
 use std::collections::BinaryHeap;
 use std::cmp::{self, PartialOrd, Ord, PartialEq, Eq, Ordering};
+use std::ops;
 use std::sync::{Mutex, MutexGuard, Condvar};
 use time::{Duration, SteadyTime};
+
+/// A value that should not be used until the delay has expired.
+pub trait Delayed {
+    fn delay(&self) -> Duration;
+}
+
+impl<T: Delayed> Delayed for Option<T> {
+    /// The delay associated with the value
+    fn delay(&self) -> Duration {
+        match *self {
+            Some(ref v) => v.delay(),
+            None => Duration::nanoseconds(0),
+        }
+    }
+}
+
+/// Associate a delay with a value
+#[derive(Eq, PartialEq, Ord, PartialOrd, Debug)]
+pub struct Delay<T>(pub T, pub Duration);
+
+impl<T> Delay<T> {
+    pub fn unwrap(self) -> T {
+        self.0
+    }
+}
+
+impl<T> Delayed for Delay<T> {
+    fn delay(&self) -> Duration {
+        self.1
+    }
+}
+
+impl<T> ops::Deref for Delay<T> {
+    type Target = T;
+
+    fn deref(&self) -> &T {
+        &self.0
+    }
+}
+
+impl<T> ops::DerefMut for Delay<T> {
+    fn deref_mut(&mut self) -> &mut T {
+        &mut self.0
+    }
+}
 
 /// An unbounded blocking queue of delayed values. When a value is pushed onto
 /// the queue, a delay is included. The value will only be able to be popped
 /// off once the specified delay has expired. The head of the queue is the
 /// value whose delay is expired and furthest in the past.
-pub struct DelayQueue<T: Send> {
+pub struct DelayQueue<T: Delayed + Send> {
     queue: Mutex<BinaryHeap<Entry<T>>>,
     condvar: Condvar,
 }
 
-impl<T: Send> DelayQueue<T> {
+impl<T: Delayed + Send> DelayQueue<T> {
     /// Create a new `DelayQueue`
     pub fn new() -> DelayQueue<T> {
         DelayQueue {
             queue: Mutex::new(BinaryHeap::new()),
             condvar: Condvar::new(),
         }
-    }
-
-    /// Push a value on the queue that will be available after `delay` has
-    /// expired.
-    pub fn offer_delay(&self, val: T, delay: Duration) {
-        let entry = Entry::new(val, delay);
-        let mut queue = self.queue.lock().unwrap();
-
-        match queue.peek() {
-            Some(e) => {
-                if entry.time < e.time {
-                    self.condvar.notify_all()
-                }
-            }
-            None => self.condvar.notify_all(),
-        }
-
-        queue.push(entry);
     }
 
     /// Retrieves and removes the head of the queue, blocking if necessary for
@@ -77,7 +105,7 @@ impl<T: Send> DelayQueue<T> {
     }
 }
 
-impl<T: Send> Queue<T> for DelayQueue<T> {
+impl<T: Delayed + Send> Queue<T> for DelayQueue<T> {
     fn poll(&self) -> Option<T> {
         let queue = self.queue.lock().unwrap();
 
@@ -96,12 +124,25 @@ impl<T: Send> Queue<T> for DelayQueue<T> {
     }
 
     fn offer(&self, e: T) -> Result<(), T> {
-        self.offer_delay(e, Duration::nanoseconds(0));
+        let delay = e.delay();
+        let entry = Entry::new(e, delay);
+        let mut queue = self.queue.lock().unwrap();
+
+        match queue.peek() {
+            Some(e) => {
+                if entry.time < e.time {
+                    self.condvar.notify_all()
+                }
+            }
+            None => self.condvar.notify_all(),
+        }
+
+        queue.push(entry);
         Ok(())
     }
 }
 
-impl<T: Send> SyncQueue<T> for DelayQueue<T> {
+impl<T: Delayed + Send> SyncQueue<T> for DelayQueue<T> {
     fn take(&self) -> T {
         enum Need {
             Wait,

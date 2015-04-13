@@ -8,7 +8,7 @@ extern crate log;
 extern crate time;
 
 pub use self::array_queue::ArrayQueue;
-pub use self::delay_queue::DelayQueue;
+pub use self::delay_queue::{DelayQueue, Delayed, Delay};
 pub use self::linked_queue::LinkedQueue;
 pub use self::thread_pool::ThreadPool;
 pub use self::queue::{Queue, SyncQueue};
