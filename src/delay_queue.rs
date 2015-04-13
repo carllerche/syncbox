@@ -1,3 +1,4 @@
+use super::{Queue, SyncQueue};
 use std::collections::BinaryHeap;
 use std::cmp::{self, PartialOrd, Ord, PartialEq, Eq, Ordering};
 use std::sync::{Mutex, MutexGuard, Condvar};
@@ -23,7 +24,7 @@ impl<T: Send> DelayQueue<T> {
 
     /// Push a value on the queue that will be available after `delay` has
     /// expired.
-    pub fn push(&self, val: T, delay: Duration) {
+    pub fn offer_delay(&self, val: T, delay: Duration) {
         let entry = Entry::new(val, delay);
         let mut queue = self.queue.lock().unwrap();
 
@@ -37,28 +38,6 @@ impl<T: Send> DelayQueue<T> {
         }
 
         queue.push(entry);
-    }
-
-    fn finish_pop<'a>(&self, mut queue: MutexGuard<'a, BinaryHeap<Entry<T>>>) -> T {
-        if queue.len() > 1 {
-            self.condvar.notify_all();
-        }
-
-        queue.pop().unwrap().val
-    }
-
-    /// Removes the head of the queue. If there are any expired values in the
-    /// queue, returns `None`.
-    pub fn poll(&self) -> Option<T> {
-        let queue = self.queue.lock().unwrap();
-
-        match queue.peek() {
-            Some(e) if e.time > SteadyTime::now() => return None,
-            Some(_) => {}
-            None => return None,
-        }
-
-        Some(self.finish_pop(queue))
     }
 
     /// Retrieves and removes the head of the queue, blocking if necessary for
@@ -89,9 +68,41 @@ impl<T: Send> DelayQueue<T> {
         Some(self.finish_pop(queue))
     }
 
-    /// Retrieves and removes the head of the queue, blocking if necessary for
-    /// an indefinite amount of time.
-    pub fn pop(&self) -> T {
+    fn finish_pop<'a>(&self, mut queue: MutexGuard<'a, BinaryHeap<Entry<T>>>) -> T {
+        if queue.len() > 1 {
+            self.condvar.notify_all();
+        }
+
+        queue.pop().unwrap().val
+    }
+}
+
+impl<T: Send> Queue<T> for DelayQueue<T> {
+    fn poll(&self) -> Option<T> {
+        let queue = self.queue.lock().unwrap();
+
+        match queue.peek() {
+            Some(e) if e.time > SteadyTime::now() => return None,
+            Some(_) => {}
+            None => return None,
+        }
+
+        Some(self.finish_pop(queue))
+    }
+
+    fn is_empty(&self) -> bool {
+        let queue = self.queue.lock().unwrap();
+        queue.is_empty()
+    }
+
+    fn offer(&self, e: T) -> Result<(), T> {
+        self.offer_delay(e, Duration::nanoseconds(0));
+        Ok(())
+    }
+}
+
+impl<T: Send> SyncQueue<T> for DelayQueue<T> {
+    fn take(&self) -> T {
         enum Need {
             Wait,
             WaitTimeout(Duration),
@@ -127,6 +138,10 @@ impl<T: Send> DelayQueue<T> {
         }
 
         self.finish_pop(queue)
+    }
+
+    fn put(&self, e: T) {
+        self.offer(e).ok().unwrap();
     }
 }
 

@@ -66,7 +66,7 @@ pub fn test_two_threads_task_queue_up() {
 
 #[test]
 pub fn test_thread_pool_is_send() {
-    fn check<R: Run<F> + Send, F: FnOnce() + Send>(tp: &R) {
+    fn check<R: Run<F> + Send, F: FnOnce() + Send>(_: &R) {
     }
 
     let tp = ThreadPool::fixed_size(2);
