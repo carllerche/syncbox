@@ -813,6 +813,18 @@
 <span id="771">771</span>
 <span id="772">772</span>
 <span id="773">773</span>
+<span id="774">774</span>
+<span id="775">775</span>
+<span id="776">776</span>
+<span id="777">777</span>
+<span id="778">778</span>
+<span id="779">779</span>
+<span id="780">780</span>
+<span id="781">781</span>
+<span id="782">782</span>
+<span id="783">783</span>
+<span id="784">784</span>
+<span id="785">785</span>
 </pre><pre class='rust '>
 <span class='kw'>use</span> {<span class='ident'>LinkedQueue</span>, <span class='ident'>Queue</span>, <span class='ident'>SyncQueue</span>, <span class='ident'>Run</span>, <span class='ident'>Task</span>, <span class='ident'>Delayed</span>, <span class='ident'>DelayQueue</span>};
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>marker</span>::<span class='ident'>PhantomData</span>;
@@ -886,6 +898,12 @@
     }
 }
 
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Task</span><span class='op'>+</span><span class='lifetime'>&#39;static</span>, <span class='ident'>Q</span>: <span class='ident'>WorkQueue</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;&gt;</span> <span class='ident'>Clone</span> <span class='kw'>for</span> <span class='ident'>ThreadPool</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>Q</span><span class='op'>&gt;</span> {
+    <span class='kw'>fn</span> <span class='ident'>clone</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>ThreadPool</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>Q</span><span class='op'>&gt;</span> {
+        <span class='ident'>ThreadPool</span> { <span class='ident'>inner</span>: <span class='self'>self</span>.<span class='ident'>inner</span>.<span class='ident'>clone</span>() }
+    }
+}
+
 <span class='doccomment'>/// A thread pool that can schedule tasks to run after a given delay, or to</span>
 <span class='doccomment'>/// execute periodically. Delayed tasks do not run before their associated</span>
 <span class='doccomment'>/// delays, but besides that, there are no real-time guarantees about exactly</span>
@@ -918,6 +936,12 @@
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Task</span><span class='op'>+</span><span class='lifetime'>&#39;static</span><span class='op'>&gt;</span> <span class='ident'>Run</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>ScheduledThreadPool</span> {
     <span class='kw'>fn</span> <span class='ident'>run</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>task</span>: <span class='ident'>T</span>) {
         <span class='self'>self</span>.<span class='ident'>schedule_ms</span>(<span class='number'>0</span>, <span class='ident'>task</span>);
+    }
+}
+
+<span class='kw'>impl</span> <span class='ident'>Clone</span> <span class='kw'>for</span> <span class='ident'>ScheduledThreadPool</span> {
+    <span class='kw'>fn</span> <span class='ident'>clone</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>ScheduledThreadPool</span> {
+        <span class='ident'>ScheduledThreadPool</span> { <span class='ident'>thread_pool</span>: <span class='self'>self</span>.<span class='ident'>thread_pool</span>.<span class='ident'>clone</span>() }
     }
 }
 
