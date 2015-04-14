@@ -70,6 +70,12 @@ impl<T: Task+'static, Q: WorkQueue<T>> Run<T> for ThreadPool<T, Q> {
     }
 }
 
+impl<T: Task+'static, Q: WorkQueue<T>> Clone for ThreadPool<T, Q> {
+    fn clone(&self) -> ThreadPool<T, Q> {
+        ThreadPool { inner: self.inner.clone() }
+    }
+}
+
 /// A thread pool that can schedule tasks to run after a given delay, or to
 /// execute periodically. Delayed tasks do not run before their associated
 /// delays, but besides that, there are no real-time guarantees about exactly
@@ -102,6 +108,12 @@ impl ScheduledThreadPool {
 impl<T: Task+'static> Run<T> for ScheduledThreadPool {
     fn run(&self, task: T) {
         self.schedule_ms(0, task);
+    }
+}
+
+impl Clone for ScheduledThreadPool {
+    fn clone(&self) -> ScheduledThreadPool {
+        ScheduledThreadPool { thread_pool: self.thread_pool.clone() }
     }
 }
 
