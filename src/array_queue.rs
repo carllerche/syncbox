@@ -39,7 +39,7 @@ struct Node<T> {
     value: Option<T>,
 }
 
-unsafe impl<T: Send> Send for Node<T> {}
+unsafe impl<T: Send + 'static> Send for Node<T> {}
 unsafe impl<T: Sync> Sync for Node<T> {}
 
 struct State<T> {
@@ -53,14 +53,14 @@ struct State<T> {
     _pad3: [u8; 64],
 }
 
-unsafe impl<T: Send> Send for State<T> {}
+unsafe impl<T: Send + 'static> Send for State<T> {}
 unsafe impl<T: Sync> Sync for State<T> {}
 
 pub struct ArrayQueue<T> {
     state: Arc<State<T>>,
 }
 
-impl<T: Send> ArrayQueue<T> {
+impl<T: Send + 'static> ArrayQueue<T> {
     pub fn with_capacity(capacity: usize) -> ArrayQueue<T> {
         ArrayQueue{
             state: Arc::new(State::with_capacity(capacity))
@@ -76,13 +76,13 @@ impl<T: Send> ArrayQueue<T> {
     }
 }
 
-impl<T: Send> Clone for ArrayQueue<T> {
+impl<T: Send + 'static> Clone for ArrayQueue<T> {
     fn clone(&self) -> ArrayQueue<T> {
         ArrayQueue { state: self.state.clone() }
     }
 }
 
-impl<T: Send> State<T> {
+impl<T: Send + 'static> State<T> {
     fn with_capacity(capacity: usize) -> State<T> {
         let capacity = if capacity < 2 || (capacity & (capacity - 1)) != 0 {
             if capacity < 2 {
