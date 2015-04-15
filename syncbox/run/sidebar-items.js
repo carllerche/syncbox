@@ -1,1 +1,1 @@
-initSidebarItems({"trait":[["Run",""],["Task","A value that can run a unit of work."]]});
+initSidebarItems({"trait":[["Run",""],["Task","A value that can run a unit of work."],["TaskBox",""]]});

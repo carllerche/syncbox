@@ -57,6 +57,27 @@
 <span id="15">15</span>
 <span id="16">16</span>
 <span id="17">17</span>
+<span id="18">18</span>
+<span id="19">19</span>
+<span id="20">20</span>
+<span id="21">21</span>
+<span id="22">22</span>
+<span id="23">23</span>
+<span id="24">24</span>
+<span id="25">25</span>
+<span id="26">26</span>
+<span id="27">27</span>
+<span id="28">28</span>
+<span id="29">29</span>
+<span id="30">30</span>
+<span id="31">31</span>
+<span id="32">32</span>
+<span id="33">33</span>
+<span id="34">34</span>
+<span id="35">35</span>
+<span id="36">36</span>
+<span id="37">37</span>
+<span id="38">38</span>
 </pre><pre class='rust '>
 
 <span class='kw'>pub</span> <span class='kw'>trait</span> <span class='ident'>Run</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Task</span><span class='op'>&gt;</span> {
@@ -65,16 +86,37 @@
 }
 
 <span class='doccomment'>/// A value that can run a unit of work.</span>
-<span class='kw'>pub</span> <span class='kw'>trait</span> <span class='ident'>Task</span> : <span class='ident'>Send</span> {
+<span class='kw'>pub</span> <span class='kw'>trait</span> <span class='ident'>Task</span> : <span class='ident'>Send</span> <span class='op'>+</span> <span class='lifetime'>&#39;static</span> {
     <span class='doccomment'>/// Run the unit of work</span>
     <span class='kw'>fn</span> <span class='ident'>run</span>(<span class='self'>self</span>);
 }
 
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>F</span>: <span class='ident'>FnOnce</span>() <span class='op'>+</span> <span class='ident'>Send</span><span class='op'>&gt;</span> <span class='ident'>Task</span> <span class='kw'>for</span> <span class='ident'>F</span> {
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>F</span>: <span class='ident'>FnOnce</span>() <span class='op'>+</span> <span class='ident'>Send</span> <span class='op'>+</span> <span class='lifetime'>&#39;static</span><span class='op'>&gt;</span> <span class='ident'>Task</span> <span class='kw'>for</span> <span class='ident'>F</span> {
     <span class='kw'>fn</span> <span class='ident'>run</span>(<span class='self'>self</span>) {
         <span class='self'>self</span>()
     }
 }
+
+<span class='comment'>// ToDO unneeded with v1 of rust. This is to get</span>
+<span class='comment'>// around the fact that FnBox and the like are</span>
+<span class='comment'>// are unstable</span>
+<span class='kw'>impl</span> <span class='ident'>Task</span> <span class='kw'>for</span> <span class='ident'>Box</span><span class='op'>&lt;</span><span class='ident'>TaskBox</span><span class='op'>&gt;</span>{
+    <span class='kw'>fn</span> <span class='ident'>run</span>(<span class='self'>self</span>) {
+        <span class='self'>self</span>.<span class='ident'>run_boxes</span>();
+    }
+}
+
+<span class='kw'>pub</span> <span class='kw'>trait</span> <span class='ident'>TaskBox</span>: <span class='ident'>Send</span> <span class='op'>+</span> <span class='lifetime'>&#39;static</span> {
+    <span class='kw'>fn</span> <span class='ident'>run_boxes</span>(<span class='self'>self</span>: <span class='ident'>Box</span><span class='op'>&lt;</span><span class='kw'>Self</span><span class='op'>&gt;</span>);
+}
+
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>F</span>: <span class='ident'>FnOnce</span>() <span class='op'>+</span> <span class='ident'>Send</span> <span class='op'>+</span> <span class='lifetime'>&#39;static</span> <span class='op'>&gt;</span> <span class='ident'>TaskBox</span> <span class='kw'>for</span> <span class='ident'>F</span> {
+    <span class='kw'>fn</span> <span class='ident'>run_boxes</span>(<span class='self'>self</span>: <span class='ident'>Box</span><span class='op'>&lt;</span><span class='kw'>Self</span><span class='op'>&gt;</span>) {
+        <span class='self'>self</span>.<span class='ident'>run</span>()
+    }
+
+}
+
 </pre>
 </section>
     <section id='search' class="content hidden"></section>
