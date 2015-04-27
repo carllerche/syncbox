@@ -41,20 +41,20 @@
     </nav>
 
     <section id='main' class="content trait">
-<h1 class='fqn'><span class='in-band'>Trait <a href='index.html'>syncbox</a>::<wbr><a class='trait' href=''>Run</a></span><span class='out-of-band'><span id='render-detail'>
-            <a id="toggle-all-docs" href="#" title="collapse all docs">[-]</a>
-        </span><a id='src-7676' class='srclink' href='../src/syncbox/run.rs.html#2-5' title='goto source code'>[src]</a></span></h1>
+<h1 class='fqn'><span class='in-band'>Trait <a href='index.html'>syncbox</a>::<wbr><a class='trait' href=''>Run</a><wbr></span><span class='out-of-band'><span id='render-detail'>
+            <a id="collapse-all" href="#">[-]</a>&nbsp;<a id="expand-all" href="#">[+]</a>
+        </span><a id='src-7676' href='../src/syncbox/run.rs.html#2-5'>[src]</a></span></h1>
 <pre class='rust trait'>pub trait Run&lt;T: <a class='trait' href='../syncbox/trait.Task.html' title='syncbox::Task'>Task</a>&gt; {
     fn <a href='#tymethod.run' class='fnname'>run</a>(&amp;self, task: T);
 }</pre>
             <h2 id='required-methods'>Required Methods</h2>
             <div class='methods'>
-        <h3 id='tymethod.run' class='method stab '><code>fn <a href='#tymethod.run' class='fnname'>run</a>(&amp;self, task: T)</code></h3><div class='docblock'><p>Runs the task on the underlying executor.</p>
+        <h3 id='tymethod.run' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#tymethod.run' class='fnname'>run</a>(&amp;self, task: T)</code></h3><div class='docblock'><p>Runs the task on the underlying executor.</p>
 </div></div>
         <h2 id='implementors'>Implementors</h2>
         <ul class='item-list' id='implementors-list'>
-    <li><code>impl&lt;T: <a class='trait' href='../syncbox/trait.Task.html' title='syncbox::Task'>Task</a> + 'static, Q: WorkQueue&lt;T&gt;&gt; <a class='trait' href='../syncbox/trait.Run.html' title='syncbox::Run'>Run</a>&lt;T&gt; for <a class='struct' href='../syncbox/struct.ThreadPool.html' title='syncbox::ThreadPool'>ThreadPool</a>&lt;T, Q&gt;</code></li>
-<li><code>impl&lt;T: <a class='trait' href='../syncbox/trait.Task.html' title='syncbox::Task'>Task</a> + 'static&gt; <a class='trait' href='../syncbox/trait.Run.html' title='syncbox::Run'>Run</a>&lt;T&gt; for <a class='struct' href='../syncbox/struct.ScheduledThreadPool.html' title='syncbox::ScheduledThreadPool'>ScheduledThreadPool</a></code></li>
+    <li><a class='stability Unmarked' title='No stability level'></a><code>impl&lt;T: <a class='trait' href='../syncbox/trait.Task.html' title='syncbox::Task'>Task</a> + 'static, Q: WorkQueue&lt;T&gt;&gt; <a class='trait' href='../syncbox/trait.Run.html' title='syncbox::Run'>Run</a>&lt;T&gt; for <a class='struct' href='../syncbox/struct.ThreadPool.html' title='syncbox::ThreadPool'>ThreadPool</a>&lt;T, Q&gt;</code></li>
+<li><a class='stability Unmarked' title='No stability level'></a><code>impl&lt;T: <a class='trait' href='../syncbox/trait.Task.html' title='syncbox::Task'>Task</a> + 'static&gt; <a class='trait' href='../syncbox/trait.Run.html' title='syncbox::Run'>Run</a>&lt;T&gt; for <a class='struct' href='../syncbox/struct.ScheduledThreadPool.html' title='syncbox::ScheduledThreadPool'>ScheduledThreadPool</a></code></li>
 </ul><script type="text/javascript" async
                               src="../implementors/syncbox/trait.Run.js">
                       </script></section>

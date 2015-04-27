@@ -41,22 +41,22 @@
     </nav>
 
     <section id='main' class="content trait">
-<h1 class='fqn'><span class='in-band'>Trait <a href='index.html'>syncbox</a>::<wbr><a class='trait' href=''>SyncQueue</a></span><span class='out-of-band'><span id='render-detail'>
-            <a id="toggle-all-docs" href="#" title="collapse all docs">[-]</a>
-        </span><a id='src-7654' class='srclink' href='../src/syncbox/queue.rs.html#17-23' title='goto source code'>[src]</a></span></h1>
+<h1 class='fqn'><span class='in-band'>Trait <a href='index.html'>syncbox</a>::<wbr><a class='trait' href=''>SyncQueue</a><wbr></span><span class='out-of-band'><span id='render-detail'>
+            <a id="collapse-all" href="#">[-]</a>&nbsp;<a id="expand-all" href="#">[+]</a>
+        </span><a id='src-7654' href='../src/syncbox/queue.rs.html#17-23'>[src]</a></span></h1>
 <pre class='rust trait'>pub trait SyncQueue&lt;T: <a class='trait' href='http://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a>&gt;: <a class='trait' href='../syncbox/trait.Queue.html' title='syncbox::Queue'>Queue</a>&lt;T&gt; {
     fn <a href='#tymethod.take' class='fnname'>take</a>(&amp;self) -&gt; T;
     fn <a href='#tymethod.put' class='fnname'>put</a>(&amp;self, e: T);
 }</pre>
             <h2 id='required-methods'>Required Methods</h2>
             <div class='methods'>
-        <h3 id='tymethod.take' class='method stab '><code>fn <a href='#tymethod.take' class='fnname'>take</a>(&amp;self) -&gt; T</code></h3><div class='docblock'><p>Retrieves and removes the head of this queue, waiting if necessary
+        <h3 id='tymethod.take' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#tymethod.take' class='fnname'>take</a>(&amp;self) -&gt; T</code></h3><div class='docblock'><p>Retrieves and removes the head of this queue, waiting if necessary
 until an element becomes available.</p>
-</div><h3 id='tymethod.put' class='method stab '><code>fn <a href='#tymethod.put' class='fnname'>put</a>(&amp;self, e: T)</code></h3></div>
+</div><h3 id='tymethod.put' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#tymethod.put' class='fnname'>put</a>(&amp;self, e: T)</code></h3></div>
         <h2 id='implementors'>Implementors</h2>
         <ul class='item-list' id='implementors-list'>
-    <li><code>impl&lt;T: <a class='trait' href='../syncbox/trait.Delayed.html' title='syncbox::Delayed'>Delayed</a> + <a class='trait' href='http://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a>&gt; <a class='trait' href='../syncbox/trait.SyncQueue.html' title='syncbox::SyncQueue'>SyncQueue</a>&lt;T&gt; for <a class='struct' href='../syncbox/struct.DelayQueue.html' title='syncbox::DelayQueue'>DelayQueue</a>&lt;T&gt;</code></li>
-<li><code>impl&lt;T: <a class='trait' href='http://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a>&gt; <a class='trait' href='../syncbox/trait.SyncQueue.html' title='syncbox::SyncQueue'>SyncQueue</a>&lt;T&gt; for <a class='struct' href='../syncbox/struct.LinkedQueue.html' title='syncbox::LinkedQueue'>LinkedQueue</a>&lt;T&gt;</code></li>
+    <li><a class='stability Unmarked' title='No stability level'></a><code>impl&lt;T: <a class='trait' href='../syncbox/trait.Delayed.html' title='syncbox::Delayed'>Delayed</a> + <a class='trait' href='http://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a>&gt; <a class='trait' href='../syncbox/trait.SyncQueue.html' title='syncbox::SyncQueue'>SyncQueue</a>&lt;T&gt; for <a class='struct' href='../syncbox/struct.DelayQueue.html' title='syncbox::DelayQueue'>DelayQueue</a>&lt;T&gt;</code></li>
+<li><a class='stability Unmarked' title='No stability level'></a><code>impl&lt;T: <a class='trait' href='http://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a>&gt; <a class='trait' href='../syncbox/trait.SyncQueue.html' title='syncbox::SyncQueue'>SyncQueue</a>&lt;T&gt; for <a class='struct' href='../syncbox/struct.LinkedQueue.html' title='syncbox::LinkedQueue'>LinkedQueue</a>&lt;T&gt;</code></li>
 </ul><script type="text/javascript" async
                               src="../implementors/syncbox/trait.SyncQueue.js">
                       </script></section>

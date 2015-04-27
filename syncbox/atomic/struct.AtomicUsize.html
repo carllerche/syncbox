@@ -41,13 +41,13 @@
     </nav>
 
     <section id='main' class="content struct">
-<h1 class='fqn'><span class='in-band'>Struct <a href='../index.html'>syncbox</a>::<wbr><a href='index.html'>atomic</a>::<wbr><a class='struct' href=''>AtomicUsize</a></span><span class='out-of-band'><span id='render-detail'>
-            <a id="toggle-all-docs" href="#" title="collapse all docs">[-]</a>
-        </span><a id='src-90703' class='srclink' href='http://doc.rust-lang.org/nightly/core/atomic/struct.AtomicUsize.html?gotosrc=90703' title='goto source code'>[src]</a></span></h1>
+<h1 class='fqn'><span class='in-band'>Struct <a href='../index.html'>syncbox</a>::<wbr><a href='index.html'>atomic</a>::<wbr><a class='struct' href=''>AtomicUsize</a><wbr><a class='stability Stable' title=''>Stable</a></span><span class='out-of-band'><span id='render-detail'>
+            <a id="collapse-all" href="#">[-]</a>&nbsp;<a id="expand-all" href="#">[+]</a>
+        </span><a id='src-89822' href='http://doc.rust-lang.org/nightly/core/atomic/struct.AtomicUsize.html?gotosrc=89822'>[src]</a></span></h1>
 <pre class='rust struct'>pub struct AtomicUsize {
     // some fields omitted
 }</pre><div class='docblock'><p>An unsigned integer type which can be safely shared between threads.</p>
-</div><h2 id='methods'>Methods</h2><h3 class='impl'><code>impl <a class='struct' href='../../syncbox/atomic/struct.AtomicUsize.html' title='syncbox::atomic::AtomicUsize'>AtomicUsize</a></code></h3><div class='impl-items'><h4 id='method.new' class='method'><code>fn <a href='#method.new' class='fnname'>new</a>(v: <a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a>) -&gt; <a class='struct' href='../../syncbox/atomic/struct.AtomicUsize.html' title='syncbox::atomic::AtomicUsize'>AtomicUsize</a></code></h4>
+</div><h2 id='methods'>Methods</h2><h3 class='impl'><a class='stability Stable' title='Stable'></a><code>impl <a class='struct' href='../../syncbox/atomic/struct.AtomicUsize.html' title='syncbox::atomic::AtomicUsize'>AtomicUsize</a></code></h3><div class='impl-items'><h4 id='method.new' class='method'><a class='stability Stable' title='Stable'></a><code>fn <a href='#method.new' class='fnname'>new</a>(v: <a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a>) -&gt; <a class='struct' href='../../syncbox/atomic/struct.AtomicUsize.html' title='syncbox::atomic::AtomicUsize'>AtomicUsize</a></code></h4>
 <div class='docblock'><p>Creates a new <code>AtomicUsize</code>.</p>
 
 <h1 id="examples" class='section-header'><a
@@ -56,7 +56,7 @@
 
 <span class='kw'>let</span> <span class='ident'>atomic_forty_two</span> <span class='op'>=</span> <span class='ident'>AtomicUsize</span>::<span class='ident'>new</span>(<span class='number'>42</span>);
 </pre>
-</div><h4 id='method.load' class='method'><code>fn <a href='#method.load' class='fnname'>load</a>(&amp;self, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>) -&gt; <a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a></code></h4>
+</div><h4 id='method.load' class='method'><a class='stability Stable' title='Stable'></a><code>fn <a href='#method.load' class='fnname'>load</a>(&amp;self, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>) -&gt; <a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a></code></h4>
 <div class='docblock'><p>Loads a value from the usize.</p>
 
 <p><code>load</code> takes an <code>Ordering</code> argument which describes the memory ordering of this operation.</p>
@@ -73,7 +73,7 @@
 
 <span class='kw'>let</span> <span class='ident'>value</span> <span class='op'>=</span> <span class='ident'>some_usize</span>.<span class='ident'>load</span>(<span class='ident'>Ordering</span>::<span class='ident'>Relaxed</span>);
 </pre>
-</div><h4 id='method.store' class='method'><code>fn <a href='#method.store' class='fnname'>store</a>(&amp;self, val: <a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a>, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>)</code></h4>
+</div><h4 id='method.store' class='method'><a class='stability Stable' title='Stable'></a><code>fn <a href='#method.store' class='fnname'>store</a>(&amp;self, val: <a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a>, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>)</code></h4>
 <div class='docblock'><p>Stores a value into the usize.</p>
 
 <p><code>store</code> takes an <code>Ordering</code> argument which describes the memory ordering of this operation.</p>
@@ -90,7 +90,7 @@
 <h1 id="panics" class='section-header'><a
                            href="#panics">Panics</a></h1>
 <p>Panics if <code>order</code> is <code>Acquire</code> or <code>AcqRel</code>.</p>
-</div><h4 id='method.swap' class='method'><code>fn <a href='#method.swap' class='fnname'>swap</a>(&amp;self, val: <a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a>, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>) -&gt; <a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a></code></h4>
+</div><h4 id='method.swap' class='method'><a class='stability Stable' title='Stable'></a><code>fn <a href='#method.swap' class='fnname'>swap</a>(&amp;self, val: <a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a>, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>) -&gt; <a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a></code></h4>
 <div class='docblock'><p>Stores a value into the usize, returning the old value.</p>
 
 <p><code>swap</code> takes an <code>Ordering</code> argument which describes the memory ordering of this operation.</p>
@@ -103,7 +103,7 @@
 
 <span class='kw'>let</span> <span class='ident'>value</span> <span class='op'>=</span> <span class='ident'>some_usize</span>.<span class='ident'>swap</span>(<span class='number'>10</span>, <span class='ident'>Ordering</span>::<span class='ident'>Relaxed</span>);
 </pre>
-</div><h4 id='method.compare_and_swap' class='method'><code>fn <a href='#method.compare_and_swap' class='fnname'>compare_and_swap</a>(&amp;self, old: <a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a>, new: <a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a>, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>) -&gt; <a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a></code></h4>
+</div><h4 id='method.compare_and_swap' class='method'><a class='stability Stable' title='Stable'></a><code>fn <a href='#method.compare_and_swap' class='fnname'>compare_and_swap</a>(&amp;self, old: <a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a>, new: <a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a>, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>) -&gt; <a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a></code></h4>
 <div class='docblock'><p>Stores a value into the usize if the current value is the same as the expected value.</p>
 
 <p>The return value is always the previous value. If it is equal to <code>old</code>, then the value was
@@ -120,7 +120,7 @@ this operation.</p>
 
 <span class='kw'>let</span> <span class='ident'>value</span> <span class='op'>=</span> <span class='ident'>some_usize</span>.<span class='ident'>compare_and_swap</span>(<span class='number'>5</span>, <span class='number'>10</span>, <span class='ident'>Ordering</span>::<span class='ident'>Relaxed</span>);
 </pre>
-</div><h4 id='method.fetch_add' class='method'><code>fn <a href='#method.fetch_add' class='fnname'>fetch_add</a>(&amp;self, val: <a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a>, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>) -&gt; <a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a></code></h4>
+</div><h4 id='method.fetch_add' class='method'><a class='stability Stable' title='Stable'></a><code>fn <a href='#method.fetch_add' class='fnname'>fetch_add</a>(&amp;self, val: <a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a>, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>) -&gt; <a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a></code></h4>
 <div class='docblock'><p>Add to the current usize, returning the previous value.</p>
 
 <h1 id="examples" class='section-header'><a
@@ -131,7 +131,7 @@ this operation.</p>
 <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='number'>0</span>, <span class='ident'>foo</span>.<span class='ident'>fetch_add</span>(<span class='number'>10</span>, <span class='ident'>Ordering</span>::<span class='ident'>SeqCst</span>));
 <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='number'>10</span>, <span class='ident'>foo</span>.<span class='ident'>load</span>(<span class='ident'>Ordering</span>::<span class='ident'>SeqCst</span>));
 </pre>
-</div><h4 id='method.fetch_sub' class='method'><code>fn <a href='#method.fetch_sub' class='fnname'>fetch_sub</a>(&amp;self, val: <a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a>, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>) -&gt; <a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a></code></h4>
+</div><h4 id='method.fetch_sub' class='method'><a class='stability Stable' title='Stable'></a><code>fn <a href='#method.fetch_sub' class='fnname'>fetch_sub</a>(&amp;self, val: <a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a>, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>) -&gt; <a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a></code></h4>
 <div class='docblock'><p>Subtract from the current usize, returning the previous value.</p>
 
 <h1 id="examples" class='section-header'><a
@@ -142,7 +142,7 @@ this operation.</p>
 <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='number'>10</span>, <span class='ident'>foo</span>.<span class='ident'>fetch_sub</span>(<span class='number'>10</span>, <span class='ident'>Ordering</span>::<span class='ident'>SeqCst</span>));
 <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='number'>0</span>, <span class='ident'>foo</span>.<span class='ident'>load</span>(<span class='ident'>Ordering</span>::<span class='ident'>SeqCst</span>));
 </pre>
-</div><h4 id='method.fetch_and' class='method'><code>fn <a href='#method.fetch_and' class='fnname'>fetch_and</a>(&amp;self, val: <a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a>, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>) -&gt; <a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a></code></h4>
+</div><h4 id='method.fetch_and' class='method'><a class='stability Stable' title='Stable'></a><code>fn <a href='#method.fetch_and' class='fnname'>fetch_and</a>(&amp;self, val: <a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a>, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>) -&gt; <a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a></code></h4>
 <div class='docblock'><p>Bitwise and with the current usize, returning the previous value.</p>
 
 <h1 id="examples" class='section-header'><a
@@ -153,7 +153,7 @@ this operation.</p>
 <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='number'>0b101101</span>, <span class='ident'>foo</span>.<span class='ident'>fetch_and</span>(<span class='number'>0b110011</span>, <span class='ident'>Ordering</span>::<span class='ident'>SeqCst</span>));
 <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='number'>0b100001</span>, <span class='ident'>foo</span>.<span class='ident'>load</span>(<span class='ident'>Ordering</span>::<span class='ident'>SeqCst</span>));
 </pre>
-</div><h4 id='method.fetch_or' class='method'><code>fn <a href='#method.fetch_or' class='fnname'>fetch_or</a>(&amp;self, val: <a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a>, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>) -&gt; <a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a></code></h4>
+</div><h4 id='method.fetch_or' class='method'><a class='stability Stable' title='Stable'></a><code>fn <a href='#method.fetch_or' class='fnname'>fetch_or</a>(&amp;self, val: <a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a>, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>) -&gt; <a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a></code></h4>
 <div class='docblock'><p>Bitwise or with the current usize, returning the previous value.</p>
 
 <h1 id="examples" class='section-header'><a
@@ -164,7 +164,7 @@ this operation.</p>
 <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='number'>0b101101</span>, <span class='ident'>foo</span>.<span class='ident'>fetch_or</span>(<span class='number'>0b110011</span>, <span class='ident'>Ordering</span>::<span class='ident'>SeqCst</span>));
 <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='number'>0b111111</span>, <span class='ident'>foo</span>.<span class='ident'>load</span>(<span class='ident'>Ordering</span>::<span class='ident'>SeqCst</span>));
 </pre>
-</div><h4 id='method.fetch_xor' class='method'><code>fn <a href='#method.fetch_xor' class='fnname'>fetch_xor</a>(&amp;self, val: <a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a>, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>) -&gt; <a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a></code></h4>
+</div><h4 id='method.fetch_xor' class='method'><a class='stability Stable' title='Stable'></a><code>fn <a href='#method.fetch_xor' class='fnname'>fetch_xor</a>(&amp;self, val: <a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a>, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>) -&gt; <a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a></code></h4>
 <div class='docblock'><p>Bitwise xor with the current usize, returning the previous value.</p>
 
 <h1 id="examples" class='section-header'><a
@@ -175,12 +175,12 @@ this operation.</p>
 <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='number'>0b101101</span>, <span class='ident'>foo</span>.<span class='ident'>fetch_xor</span>(<span class='number'>0b110011</span>, <span class='ident'>Ordering</span>::<span class='ident'>SeqCst</span>));
 <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='number'>0b011110</span>, <span class='ident'>foo</span>.<span class='ident'>load</span>(<span class='ident'>Ordering</span>::<span class='ident'>SeqCst</span>));
 </pre>
-</div></div><h2 id='implementations'>Trait Implementations</h2><h3 class='impl'><code>impl <a class='trait' href='http://doc.rust-lang.org/nightly/core/default/trait.Default.html' title='core::default::Default'>Default</a> for <a class='struct' href='../../syncbox/atomic/struct.AtomicUsize.html' title='syncbox::atomic::AtomicUsize'>AtomicUsize</a></code></h3><div class='impl-items'><h4 id='method.default' class='method'><code>fn <a href='http://doc.rust-lang.org/nightly/core/default/trait.Default.html#method.default' class='fnname'>default</a>() -&gt; <a class='struct' href='../../syncbox/atomic/struct.AtomicUsize.html' title='syncbox::atomic::AtomicUsize'>AtomicUsize</a></code></h4>
-</div><h3 class='impl'><code>impl <a class='trait' href='http://doc.rust-lang.org/nightly/core/marker/trait.Sync.html' title='core::marker::Sync'>Sync</a> for <a class='struct' href='../../syncbox/atomic/struct.AtomicUsize.html' title='syncbox::atomic::AtomicUsize'>AtomicUsize</a></code></h3><div class='impl-items'></div><h3 class='impl'><code>impl <a class='trait' href='../../syncbox/atomic/trait.Atomic.html' title='syncbox::atomic::Atomic'>Atomic</a>&lt;<a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a>&gt; for <a class='struct' href='../../syncbox/atomic/struct.AtomicUsize.html' title='syncbox::atomic::AtomicUsize'>AtomicUsize</a></code></h3><div class='impl-items'><h4 id='method.new' class='method'><code>fn <a href='../../syncbox/atomic/trait.Atomic.html#method.new' class='fnname'>new</a>(val: <a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a>) -&gt; <a class='struct' href='../../syncbox/atomic/struct.AtomicUsize.html' title='syncbox::atomic::AtomicUsize'>AtomicUsize</a></code></h4>
-<h4 id='method.load' class='method'><code>fn <a href='../../syncbox/atomic/trait.Atomic.html#method.load' class='fnname'>load</a>(&amp;self, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>) -&gt; <a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a></code></h4>
-<h4 id='method.store' class='method'><code>fn <a href='../../syncbox/atomic/trait.Atomic.html#method.store' class='fnname'>store</a>(&amp;self, val: <a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a>, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>)</code></h4>
-<h4 id='method.swap' class='method'><code>fn <a href='../../syncbox/atomic/trait.Atomic.html#method.swap' class='fnname'>swap</a>(&amp;self, val: <a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a>, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>) -&gt; <a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a></code></h4>
-<h4 id='method.compare_and_swap' class='method'><code>fn <a href='../../syncbox/atomic/trait.Atomic.html#method.compare_and_swap' class='fnname'>compare_and_swap</a>(&amp;self, old: <a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a>, new: <a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a>, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>) -&gt; <a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a></code></h4>
+</div></div><h2 id='implementations'>Trait Implementations</h2><h3 class='impl'><a class='stability Stable' title='Stable'></a><code>impl <a class='trait' href='http://doc.rust-lang.org/nightly/core/default/trait.Default.html' title='core::default::Default'>Default</a> for <a class='struct' href='../../syncbox/atomic/struct.AtomicUsize.html' title='syncbox::atomic::AtomicUsize'>AtomicUsize</a></code></h3><div class='impl-items'><h4 id='method.default' class='method'><a class='stability Stable' title='Stable'></a><code>fn <a href='http://doc.rust-lang.org/nightly/core/default/trait.Default.html#method.default' class='fnname'>default</a>() -&gt; <a class='struct' href='../../syncbox/atomic/struct.AtomicUsize.html' title='syncbox::atomic::AtomicUsize'>AtomicUsize</a></code></h4>
+</div><h3 class='impl'><a class='stability Stable' title='Stable'></a><code>impl <a class='trait' href='http://doc.rust-lang.org/nightly/core/marker/trait.Sync.html' title='core::marker::Sync'>Sync</a> for <a class='struct' href='../../syncbox/atomic/struct.AtomicUsize.html' title='syncbox::atomic::AtomicUsize'>AtomicUsize</a></code></h3><div class='impl-items'></div><h3 class='impl'><a class='stability Unmarked' title='No stability level'></a><code>impl <a class='trait' href='../../syncbox/atomic/trait.Atomic.html' title='syncbox::atomic::Atomic'>Atomic</a>&lt;<a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a>&gt; for <a class='struct' href='../../syncbox/atomic/struct.AtomicUsize.html' title='syncbox::atomic::AtomicUsize'>AtomicUsize</a></code></h3><div class='impl-items'><h4 id='method.new' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='../../syncbox/atomic/trait.Atomic.html#method.new' class='fnname'>new</a>(val: <a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a>) -&gt; <a class='struct' href='../../syncbox/atomic/struct.AtomicUsize.html' title='syncbox::atomic::AtomicUsize'>AtomicUsize</a></code></h4>
+<h4 id='method.load' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='../../syncbox/atomic/trait.Atomic.html#method.load' class='fnname'>load</a>(&amp;self, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>) -&gt; <a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a></code></h4>
+<h4 id='method.store' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='../../syncbox/atomic/trait.Atomic.html#method.store' class='fnname'>store</a>(&amp;self, val: <a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a>, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>)</code></h4>
+<h4 id='method.swap' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='../../syncbox/atomic/trait.Atomic.html#method.swap' class='fnname'>swap</a>(&amp;self, val: <a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a>, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>) -&gt; <a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a></code></h4>
+<h4 id='method.compare_and_swap' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='../../syncbox/atomic/trait.Atomic.html#method.compare_and_swap' class='fnname'>compare_and_swap</a>(&amp;self, old: <a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a>, new: <a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a>, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>) -&gt; <a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a></code></h4>
 </div></section>
     <section id='search' class="content hidden"></section>
 
