@@ -41,18 +41,18 @@
     </nav>
 
     <section id='main' class="content trait">
-<h1 class='fqn'><span class='in-band'>Trait <a href='index.html'>syncbox</a>::<wbr><a class='trait' href=''>TaskBox</a><wbr></span><span class='out-of-band'><span id='render-detail'>
-            <a id="collapse-all" href="#">[-]</a>&nbsp;<a id="expand-all" href="#">[+]</a>
-        </span><a id='src-7727' href='../src/syncbox/run.rs.html#28-30'>[src]</a></span></h1>
+<h1 class='fqn'><span class='in-band'>Trait <a href='index.html'>syncbox</a>::<wbr><a class='trait' href=''>TaskBox</a></span><span class='out-of-band'><span id='render-detail'>
+            <a id="toggle-all-docs" href="#" title="collapse all docs">[-]</a>
+        </span><a id='src-7727' class='srclink' href='../src/syncbox/run.rs.html#28-30' title='goto source code'>[src]</a></span></h1>
 <pre class='rust trait'>pub trait TaskBox: <a class='trait' href='http://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a> + 'static {
     fn <a href='#tymethod.run_boxes' class='fnname'>run_boxes</a>(self: <a class='struct' href='http://doc.rust-lang.org/nightly/alloc/boxed/struct.Box.html' title='alloc::boxed::Box'>Box</a>&lt;Self&gt;);
 }</pre>
             <h2 id='required-methods'>Required Methods</h2>
             <div class='methods'>
-        <h3 id='tymethod.run_boxes' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#tymethod.run_boxes' class='fnname'>run_boxes</a>(self: <a class='struct' href='http://doc.rust-lang.org/nightly/alloc/boxed/struct.Box.html' title='alloc::boxed::Box'>Box</a>&lt;Self&gt;)</code></h3></div>
+        <h3 id='tymethod.run_boxes' class='method stab '><code>fn <a href='#tymethod.run_boxes' class='fnname'>run_boxes</a>(self: <a class='struct' href='http://doc.rust-lang.org/nightly/alloc/boxed/struct.Box.html' title='alloc::boxed::Box'>Box</a>&lt;Self&gt;)</code></h3></div>
         <h2 id='implementors'>Implementors</h2>
         <ul class='item-list' id='implementors-list'>
-    <li><a class='stability Unmarked' title='No stability level'></a><code>impl&lt;F: <a class='trait' href='http://doc.rust-lang.org/nightly/core/ops/trait.FnOnce.html' title='core::ops::FnOnce'>FnOnce</a>() + <a class='trait' href='http://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a> + 'static&gt; <a class='trait' href='../syncbox/trait.TaskBox.html' title='syncbox::TaskBox'>TaskBox</a> for F</code></li>
+    <li><code>impl&lt;F: <a class='trait' href='http://doc.rust-lang.org/nightly/core/ops/trait.FnOnce.html' title='core::ops::FnOnce'>FnOnce</a>() + <a class='trait' href='http://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a> + 'static&gt; <a class='trait' href='../syncbox/trait.TaskBox.html' title='syncbox::TaskBox'>TaskBox</a> for F</code></li>
 </ul><script type="text/javascript" async
                               src="../implementors/syncbox/trait.TaskBox.js">
                       </script></section>
