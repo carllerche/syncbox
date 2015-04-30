@@ -41,9 +41,9 @@
     </nav>
 
     <section id='main' class="content trait">
-<h1 class='fqn'><span class='in-band'>Trait <a href='../index.html'>syncbox</a>::<wbr><a href='index.html'>atomic</a>::<wbr><a class='trait' href=''>Atomic</a></span><span class='out-of-band'><span id='render-detail'>
-            <a id="toggle-all-docs" href="#" title="collapse all docs">[&minus;]</a>
-        </span><a id='src-33' class='srclink' href='../../src/syncbox/atomic.rs.html#22-39' title='goto source code'>[src]</a></span></h1>
+<h1 class='fqn'><span class='in-band'>Trait <a href='../index.html'>syncbox</a>::<wbr><a href='index.html'>atomic</a>::<wbr><a class='trait' href=''>Atomic</a><wbr></span><span class='out-of-band'><span id='render-detail'>
+            <a id="collapse-all" href="#">[-]</a>&nbsp;<a id="expand-all" href="#">[+]</a>
+        </span><a id='src-33' href='../../src/syncbox/atomic.rs.html#22-39'>[src]</a></span></h1>
 <pre class='rust trait'>pub trait Atomic&lt;T&gt;: <a class='trait' href='http://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a> + <a class='trait' href='http://doc.rust-lang.org/nightly/core/marker/trait.Sync.html' title='core::marker::Sync'>Sync</a> {
     fn <a href='#tymethod.new' class='fnname'>new</a>(val: T) -&gt; Self;
     fn <a href='#tymethod.load' class='fnname'>load</a>(&amp;self, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>) -&gt; T;
@@ -54,17 +54,17 @@
 </div>
             <h2 id='required-methods'>Required Methods</h2>
             <div class='methods'>
-        <h3 id='tymethod.new' class='method stab '><code>fn <a href='#tymethod.new' class='fnname'>new</a>(val: T) -&gt; Self</code></h3><div class='docblock'><p>Returns a new atomic box</p>
-</div><h3 id='tymethod.load' class='method stab '><code>fn <a href='#tymethod.load' class='fnname'>load</a>(&amp;self, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>) -&gt; T</code></h3><div class='docblock'><p>Atomically loads the value from the box with the given ordering</p>
-</div><h3 id='tymethod.store' class='method stab '><code>fn <a href='#tymethod.store' class='fnname'>store</a>(&amp;self, val: T, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>)</code></h3><div class='docblock'><p>Atomically stores the value from the box with the given ordering</p>
-</div><h3 id='tymethod.swap' class='method stab '><code>fn <a href='#tymethod.swap' class='fnname'>swap</a>(&amp;self, val: T, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>) -&gt; T</code></h3><div class='docblock'><p>Atomically swaps the value in the box with the given ordering</p>
-</div><h3 id='tymethod.compare_and_swap' class='method stab '><code>fn <a href='#tymethod.compare_and_swap' class='fnname'>compare_and_swap</a>(&amp;self, old: T, new: T, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>) -&gt; T</code></h3><div class='docblock'><p>Swaps the value in the box if and only if the existing value is equal
+        <h3 id='tymethod.new' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#tymethod.new' class='fnname'>new</a>(val: T) -&gt; Self</code></h3><div class='docblock'><p>Returns a new atomic box</p>
+</div><h3 id='tymethod.load' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#tymethod.load' class='fnname'>load</a>(&amp;self, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>) -&gt; T</code></h3><div class='docblock'><p>Atomically loads the value from the box with the given ordering</p>
+</div><h3 id='tymethod.store' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#tymethod.store' class='fnname'>store</a>(&amp;self, val: T, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>)</code></h3><div class='docblock'><p>Atomically stores the value from the box with the given ordering</p>
+</div><h3 id='tymethod.swap' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#tymethod.swap' class='fnname'>swap</a>(&amp;self, val: T, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>) -&gt; T</code></h3><div class='docblock'><p>Atomically swaps the value in the box with the given ordering</p>
+</div><h3 id='tymethod.compare_and_swap' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#tymethod.compare_and_swap' class='fnname'>compare_and_swap</a>(&amp;self, old: T, new: T, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>) -&gt; T</code></h3><div class='docblock'><p>Swaps the value in the box if and only if the existing value is equal
 to <code>old</code>.</p>
 </div></div>
         <h2 id='implementors'>Implementors</h2>
         <ul class='item-list' id='implementors-list'>
-    <li><code>impl&lt;T: <a class='trait' href='../../syncbox/atomic/trait.ToAtomicRepr.html' title='syncbox::atomic::ToAtomicRepr'>ToAtomicRepr</a>, A: <a class='trait' href='../../syncbox/atomic/trait.Atomic.html' title='syncbox::atomic::Atomic'>Atomic</a>&lt;T&gt;&gt; <a class='trait' href='../../syncbox/atomic/trait.Atomic.html' title='syncbox::atomic::Atomic'>Atomic</a>&lt;T&gt; for <a class='struct' href='../../syncbox/atomic/struct.AtomicVal.html' title='syncbox::atomic::AtomicVal'>AtomicVal</a>&lt;T, A&gt;</code></li>
-<li><code>impl <a class='trait' href='../../syncbox/atomic/trait.Atomic.html' title='syncbox::atomic::Atomic'>Atomic</a>&lt;<a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a>&gt; for <a class='struct' href='../../syncbox/atomic/struct.AtomicUsize.html' title='syncbox::atomic::AtomicUsize'>AtomicUsize</a></code></li>
+    <li><a class='stability Unmarked' title='No stability level'></a><code>impl&lt;T: <a class='trait' href='../../syncbox/atomic/trait.ToAtomicRepr.html' title='syncbox::atomic::ToAtomicRepr'>ToAtomicRepr</a>, A: <a class='trait' href='../../syncbox/atomic/trait.Atomic.html' title='syncbox::atomic::Atomic'>Atomic</a>&lt;T&gt;&gt; <a class='trait' href='../../syncbox/atomic/trait.Atomic.html' title='syncbox::atomic::Atomic'>Atomic</a>&lt;T&gt; for <a class='struct' href='../../syncbox/atomic/struct.AtomicVal.html' title='syncbox::atomic::AtomicVal'>AtomicVal</a>&lt;T, A&gt;</code></li>
+<li><a class='stability Unmarked' title='No stability level'></a><code>impl <a class='trait' href='../../syncbox/atomic/trait.Atomic.html' title='syncbox::atomic::Atomic'>Atomic</a>&lt;<a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a>&gt; for <a class='struct' href='../../syncbox/atomic/struct.AtomicUsize.html' title='syncbox::atomic::AtomicUsize'>AtomicUsize</a></code></li>
 </ul><script type="text/javascript" async
                               src="../../implementors/syncbox/atomic/trait.Atomic.js">
                       </script></section>
