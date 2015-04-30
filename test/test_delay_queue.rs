@@ -34,6 +34,6 @@ fn test_poll_timeout() {
     queue.offer(Delay(3i32, Duration::days(1))).unwrap();
 
     assert_eq!(1, *queue.poll_timeout(Duration::milliseconds(250)).unwrap());
-    assert_eq!(2, *queue.poll_timeout(Duration::milliseconds(300)).unwrap());
+    assert_eq!(2, *queue.poll_timeout(Duration::milliseconds(500)).unwrap());
     assert_eq!(None, queue.poll_timeout(Duration::milliseconds(500)));
 }
