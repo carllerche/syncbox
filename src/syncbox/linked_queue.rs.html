@@ -386,9 +386,55 @@
 <span id="344">344</span>
 <span id="345">345</span>
 <span id="346">346</span>
+<span id="347">347</span>
+<span id="348">348</span>
+<span id="349">349</span>
+<span id="350">350</span>
+<span id="351">351</span>
+<span id="352">352</span>
+<span id="353">353</span>
+<span id="354">354</span>
+<span id="355">355</span>
+<span id="356">356</span>
+<span id="357">357</span>
+<span id="358">358</span>
+<span id="359">359</span>
+<span id="360">360</span>
+<span id="361">361</span>
+<span id="362">362</span>
+<span id="363">363</span>
+<span id="364">364</span>
+<span id="365">365</span>
+<span id="366">366</span>
+<span id="367">367</span>
+<span id="368">368</span>
+<span id="369">369</span>
+<span id="370">370</span>
+<span id="371">371</span>
+<span id="372">372</span>
+<span id="373">373</span>
+<span id="374">374</span>
+<span id="375">375</span>
+<span id="376">376</span>
+<span id="377">377</span>
+<span id="378">378</span>
+<span id="379">379</span>
+<span id="380">380</span>
+<span id="381">381</span>
+<span id="382">382</span>
+<span id="383">383</span>
+<span id="384">384</span>
+<span id="385">385</span>
+<span id="386">386</span>
+<span id="387">387</span>
+<span id="388">388</span>
+<span id="389">389</span>
+<span id="390">390</span>
+<span id="391">391</span>
 </pre><pre class='rust '>
 <span class='kw'>use</span> <span class='ident'>super</span>::{<span class='ident'>Queue</span>, <span class='ident'>SyncQueue</span>};
-<span class='kw'>use</span> <span class='ident'>std</span>::{<span class='ident'>mem</span>, <span class='ident'>ptr</span>, <span class='ident'>ops</span>, <span class='ident'>usize</span>, <span class='ident'>u64</span>};
+<span class='kw'>use</span> <span class='ident'>time</span>;
+<span class='kw'>use</span> <span class='ident'>std</span>::{<span class='ident'>mem</span>, <span class='ident'>ptr</span>, <span class='ident'>ops</span>, <span class='ident'>usize</span>, <span class='ident'>u32</span>};
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::{<span class='ident'>Arc</span>, <span class='ident'>Mutex</span>, <span class='ident'>MutexGuard</span>, <span class='ident'>Condvar</span>};
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::<span class='ident'>atomic</span>::{<span class='self'>self</span>, <span class='ident'>AtomicUsize</span>, <span class='ident'>Ordering</span>};
 
@@ -424,12 +470,20 @@
         <span class='self'>self</span>.<span class='ident'>inner</span>.<span class='ident'>offer</span>(<span class='ident'>e</span>)
     }
 
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>offer_ms</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>e</span>: <span class='ident'>T</span>, <span class='ident'>ms</span>: <span class='ident'>u32</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span>(), <span class='ident'>T</span><span class='op'>&gt;</span> {
+        <span class='self'>self</span>.<span class='ident'>inner</span>.<span class='ident'>offer_ms</span>(<span class='ident'>e</span>, <span class='ident'>ms</span>)
+    }
+
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>put</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>e</span>: <span class='ident'>T</span>) {
         <span class='self'>self</span>.<span class='ident'>inner</span>.<span class='ident'>put</span>(<span class='ident'>e</span>);
     }
 
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>poll</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
         <span class='self'>self</span>.<span class='ident'>inner</span>.<span class='ident'>poll</span>()
+    }
+
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>poll_ms</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>ms</span>: <span class='ident'>u32</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
+        <span class='self'>self</span>.<span class='ident'>inner</span>.<span class='ident'>poll_ms</span>(<span class='ident'>ms</span>)
     }
 
     <span class='doccomment'>/// Takes from the queue, blocking until there is an element available.</span>
@@ -540,7 +594,7 @@
     }
 
     <span class='kw'>fn</span> <span class='ident'>put</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>e</span>: <span class='ident'>T</span>) {
-        <span class='self'>self</span>.<span class='ident'>offer_for_ms</span>(<span class='ident'>e</span>, <span class='ident'>u64</span>::<span class='ident'>MAX</span>)
+        <span class='self'>self</span>.<span class='ident'>offer_ms</span>(<span class='ident'>e</span>, <span class='ident'>u32</span>::<span class='ident'>MAX</span>)
             .<span class='ident'>ok</span>().<span class='ident'>expect</span>(<span class='string'>&quot;something went wrong&quot;</span>);
     }
 
@@ -549,21 +603,39 @@
             <span class='kw'>return</span> <span class='prelude-val'>Err</span>(<span class='ident'>e</span>);
         }
 
-        <span class='self'>self</span>.<span class='ident'>offer_for_ms</span>(<span class='ident'>e</span>, <span class='number'>0</span>)
+        <span class='self'>self</span>.<span class='ident'>offer_ms</span>(<span class='ident'>e</span>, <span class='number'>0</span>)
     }
 
-    <span class='kw'>fn</span> <span class='ident'>offer_for_ms</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>e</span>: <span class='ident'>T</span>, <span class='ident'>dur</span>: <span class='ident'>u64</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span>(), <span class='ident'>T</span><span class='op'>&gt;</span> {
+    <span class='kw'>fn</span> <span class='ident'>offer_ms</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>e</span>: <span class='ident'>T</span>, <span class='kw-2'>mut</span> <span class='ident'>dur</span>: <span class='ident'>u32</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span>(), <span class='ident'>T</span><span class='op'>&gt;</span> {
         <span class='comment'>// Acquire the write lock</span>
         <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>last</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>last</span>.<span class='ident'>lock</span>()
             .<span class='ident'>ok</span>().<span class='ident'>expect</span>(<span class='string'>&quot;something went wrong&quot;</span>);
 
-        <span class='kw'>while</span> <span class='self'>self</span>.<span class='ident'>len</span>() <span class='op'>==</span> <span class='self'>self</span>.<span class='ident'>capacity</span> {
-            <span class='kw'>if</span> <span class='ident'>dur</span> <span class='op'>&lt;=</span> <span class='number'>0</span> {
-                <span class='kw'>return</span> <span class='prelude-val'>Err</span>(<span class='ident'>e</span>);
-            }
+        <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>len</span>() <span class='op'>==</span> <span class='self'>self</span>.<span class='ident'>capacity</span> {
+            <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>now</span> <span class='op'>=</span> <span class='ident'>time</span>::<span class='ident'>precise_time_ns</span>();
 
-            <span class='ident'>last</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>not_full</span>.<span class='ident'>wait</span>(<span class='ident'>last</span>)
-                .<span class='ident'>ok</span>().<span class='ident'>expect</span>(<span class='string'>&quot;something went wrong&quot;</span>);
+            <span class='kw'>loop</span> {
+                <span class='kw'>if</span> <span class='ident'>dur</span> <span class='op'>==</span> <span class='number'>0</span> {
+                    <span class='kw'>return</span> <span class='prelude-val'>Err</span>(<span class='ident'>e</span>);
+                }
+
+                <span class='ident'>last</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>not_full</span>.<span class='ident'>wait_timeout_ms</span>(<span class='ident'>last</span>, <span class='ident'>dur</span>)
+                    .<span class='ident'>ok</span>().<span class='ident'>expect</span>(<span class='string'>&quot;something went wrong&quot;</span>).<span class='number'>0</span>;
+
+                <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>len</span>() <span class='op'>!=</span> <span class='self'>self</span>.<span class='ident'>capacity</span> {
+                    <span class='kw'>break</span>;
+                }
+
+                <span class='kw'>let</span> <span class='ident'>n</span> <span class='op'>=</span> <span class='ident'>time</span>::<span class='ident'>precise_time_ns</span>();
+                <span class='kw'>let</span> <span class='ident'>d</span> <span class='op'>=</span> (<span class='ident'>n</span> <span class='op'>-</span> <span class='ident'>now</span>) <span class='op'>/</span> <span class='number'>1_000_000</span>;
+
+                <span class='kw'>if</span> <span class='ident'>d</span> <span class='op'>&gt;=</span> <span class='ident'>dur</span> <span class='kw'>as</span> <span class='ident'>u64</span> {
+                    <span class='ident'>dur</span> <span class='op'>=</span> <span class='number'>0</span>;
+                } <span class='kw'>else</span> {
+                    <span class='ident'>dur</span> <span class='op'>-=</span> <span class='ident'>d</span> <span class='kw'>as</span> <span class='ident'>u32</span>;
+                    <span class='ident'>now</span> <span class='op'>=</span> <span class='ident'>n</span>;
+                }
+            }
         }
 
         <span class='comment'>// Enqueue the node</span>
@@ -584,7 +656,7 @@
     }
 
     <span class='kw'>fn</span> <span class='ident'>take</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>T</span> {
-        <span class='self'>self</span>.<span class='ident'>poll_for_ms</span>(<span class='ident'>u64</span>::<span class='ident'>MAX</span>)
+        <span class='self'>self</span>.<span class='ident'>poll_ms</span>(<span class='ident'>u32</span>::<span class='ident'>MAX</span>)
             .<span class='ident'>expect</span>(<span class='string'>&quot;something went wrong&quot;</span>)
     }
 
@@ -594,21 +666,39 @@
             <span class='kw'>return</span> <span class='prelude-val'>None</span>;
         }
 
-        <span class='self'>self</span>.<span class='ident'>poll_for_ms</span>(<span class='number'>0</span>)
+        <span class='self'>self</span>.<span class='ident'>poll_ms</span>(<span class='number'>0</span>)
     }
 
-    <span class='kw'>fn</span> <span class='ident'>poll_for_ms</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>dur</span>: <span class='ident'>u64</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
+    <span class='kw'>fn</span> <span class='ident'>poll_ms</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='kw-2'>mut</span> <span class='ident'>dur</span>: <span class='ident'>u32</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
         <span class='comment'>// Acquire the read lock</span>
         <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>head</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>head</span>.<span class='ident'>lock</span>()
             .<span class='ident'>ok</span>().<span class='ident'>expect</span>(<span class='string'>&quot;something went wrong&quot;</span>);
 
-        <span class='kw'>while</span> <span class='self'>self</span>.<span class='ident'>len</span>() <span class='op'>==</span> <span class='number'>0</span> {
-            <span class='kw'>if</span> <span class='ident'>dur</span> <span class='op'>&lt;=</span> <span class='number'>0</span> {
-                <span class='kw'>return</span> <span class='prelude-val'>None</span>;
-            }
+        <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>len</span>() <span class='op'>==</span> <span class='number'>0</span> {
+            <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>now</span> <span class='op'>=</span> <span class='ident'>time</span>::<span class='ident'>precise_time_ns</span>();
 
-            <span class='ident'>head</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>not_empty</span>.<span class='ident'>wait</span>(<span class='ident'>head</span>)
-                .<span class='ident'>ok</span>().<span class='ident'>expect</span>(<span class='string'>&quot;something went wrong&quot;</span>);
+            <span class='kw'>loop</span> {
+                <span class='kw'>if</span> <span class='ident'>dur</span> <span class='op'>==</span> <span class='number'>0</span> {
+                    <span class='kw'>return</span> <span class='prelude-val'>None</span>;
+                }
+
+                <span class='ident'>head</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>not_empty</span>.<span class='ident'>wait_timeout_ms</span>(<span class='ident'>head</span>, <span class='ident'>dur</span>)
+                    .<span class='ident'>ok</span>().<span class='ident'>expect</span>(<span class='string'>&quot;something went wrong&quot;</span>).<span class='number'>0</span>;
+
+                <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>len</span>() <span class='op'>!=</span> <span class='number'>0</span> {
+                    <span class='kw'>break</span>;
+                }
+
+                <span class='kw'>let</span> <span class='ident'>n</span> <span class='op'>=</span> <span class='ident'>time</span>::<span class='ident'>precise_time_ns</span>();
+                <span class='kw'>let</span> <span class='ident'>d</span> <span class='op'>=</span> (<span class='ident'>n</span> <span class='op'>-</span> <span class='ident'>now</span>) <span class='op'>/</span> <span class='number'>1_000_000</span>;
+
+                <span class='kw'>if</span> <span class='ident'>d</span> <span class='op'>&gt;=</span> <span class='ident'>dur</span> <span class='kw'>as</span> <span class='ident'>u64</span> {
+                    <span class='ident'>dur</span> <span class='op'>=</span> <span class='number'>0</span>;
+                } <span class='kw'>else</span> {
+                    <span class='ident'>dur</span> <span class='op'>-=</span> <span class='ident'>d</span> <span class='kw'>as</span> <span class='ident'>u32</span>;
+                    <span class='ident'>now</span> <span class='op'>=</span> <span class='ident'>n</span>;
+                }
+            }
         }
 
         <span class='comment'>// Acquire memory from write side</span>
