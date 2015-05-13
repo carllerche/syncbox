@@ -1,5 +1,6 @@
 use super::{Queue, SyncQueue};
-use std::{mem, ptr, ops, usize, u64};
+use time;
+use std::{mem, ptr, ops, usize, u32};
 use std::sync::{Arc, Mutex, MutexGuard, Condvar};
 use std::sync::atomic::{self, AtomicUsize, Ordering};
 
@@ -35,12 +36,20 @@ impl<T: Send> LinkedQueue<T> {
         self.inner.offer(e)
     }
 
+    pub fn offer_ms(&self, e: T, ms: u32) -> Result<(), T> {
+        self.inner.offer_ms(e, ms)
+    }
+
     pub fn put(&self, e: T) {
         self.inner.put(e);
     }
 
     pub fn poll(&self) -> Option<T> {
         self.inner.poll()
+    }
+
+    pub fn poll_ms(&self, ms: u32) -> Option<T> {
+        self.inner.poll_ms(ms)
     }
 
     /// Takes from the queue, blocking until there is an element available.
@@ -151,7 +160,7 @@ impl<T: Send> QueueInner<T> {
     }
 
     fn put(&self, e: T) {
-        self.offer_for_ms(e, u64::MAX)
+        self.offer_ms(e, u32::MAX)
             .ok().expect("something went wrong");
     }
 
@@ -160,21 +169,39 @@ impl<T: Send> QueueInner<T> {
             return Err(e);
         }
 
-        self.offer_for_ms(e, 0)
+        self.offer_ms(e, 0)
     }
 
-    fn offer_for_ms(&self, e: T, dur: u64) -> Result<(), T> {
+    fn offer_ms(&self, e: T, mut dur: u32) -> Result<(), T> {
         // Acquire the write lock
         let mut last = self.last.lock()
             .ok().expect("something went wrong");
 
-        while self.len() == self.capacity {
-            if dur <= 0 {
-                return Err(e);
-            }
+        if self.len() == self.capacity {
+            let mut now = time::precise_time_ns();
 
-            last = self.not_full.wait(last)
-                .ok().expect("something went wrong");
+            loop {
+                if dur == 0 {
+                    return Err(e);
+                }
+
+                last = self.not_full.wait_timeout_ms(last, dur)
+                    .ok().expect("something went wrong").0;
+
+                if self.len() != self.capacity {
+                    break;
+                }
+
+                let n = time::precise_time_ns();
+                let d = (n - now) / 1_000_000;
+
+                if d >= dur as u64 {
+                    dur = 0;
+                } else {
+                    dur -= d as u32;
+                    now = n;
+                }
+            }
         }
 
         // Enqueue the node
@@ -195,7 +222,7 @@ impl<T: Send> QueueInner<T> {
     }
 
     fn take(&self) -> T {
-        self.poll_for_ms(u64::MAX)
+        self.poll_ms(u32::MAX)
             .expect("something went wrong")
     }
 
@@ -205,21 +232,39 @@ impl<T: Send> QueueInner<T> {
             return None;
         }
 
-        self.poll_for_ms(0)
+        self.poll_ms(0)
     }
 
-    fn poll_for_ms(&self, dur: u64) -> Option<T> {
+    fn poll_ms(&self, mut dur: u32) -> Option<T> {
         // Acquire the read lock
         let mut head = self.head.lock()
             .ok().expect("something went wrong");
 
-        while self.len() == 0 {
-            if dur <= 0 {
-                return None;
-            }
+        if self.len() == 0 {
+            let mut now = time::precise_time_ns();
 
-            head = self.not_empty.wait(head)
-                .ok().expect("something went wrong");
+            loop {
+                if dur == 0 {
+                    return None;
+                }
+
+                head = self.not_empty.wait_timeout_ms(head, dur)
+                    .ok().expect("something went wrong").0;
+
+                if self.len() != 0 {
+                    break;
+                }
+
+                let n = time::precise_time_ns();
+                let d = (n - now) / 1_000_000;
+
+                if d >= dur as u64 {
+                    dur = 0;
+                } else {
+                    dur -= d as u32;
+                    now = n;
+                }
+            }
         }
 
         // Acquire memory from write side

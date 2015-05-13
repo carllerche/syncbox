@@ -1,5 +1,6 @@
 use {spawn, sleep_ms};
 use syncbox::LinkedQueue;
+use time;
 use std::thread;
 
 #[test]
@@ -23,6 +24,28 @@ pub fn test_single_threaded_put_take() {
 
     // Try taking on an empty queue
     assert!(q.poll().is_none());
+}
+
+#[test]
+pub fn test_single_threaded_offer_timeout() {
+    let q = LinkedQueue::with_capacity(1);
+
+    q.offer(1);
+
+    let now = time::precise_time_ns();
+    q.offer_ms(2, 200);
+    let delta = time::precise_time_ns() - now;
+    assert!(delta >= 200_000_000, "actual={}", delta);
+}
+
+#[test]
+pub fn test_single_threaded_poll_timeout() {
+    let q = LinkedQueue::<u32>::new();
+
+    let now = time::precise_time_ns();
+    q.poll_ms(200);
+    let delta = time::precise_time_ns() - now;
+    assert!(delta >= 200_000_000, "actual={}", delta);
 }
 
 #[test]
