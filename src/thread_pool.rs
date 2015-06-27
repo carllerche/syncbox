@@ -407,7 +407,7 @@ impl<T: Task+'static, Q: WorkQueue<T>> ThreadPoolInner<T, Q> {
 
 impl<T: Task+'static, Q: WorkQueue<T>> Drop for ThreadPoolInner<T, Q> {
     fn drop(&mut self) {
-        self.shutdown(Lifecycle::Stop);
+        self.shutdown(Lifecycle::Shutdown);
     }
 }
 

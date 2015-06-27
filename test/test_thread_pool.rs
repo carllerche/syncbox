@@ -1,5 +1,7 @@
 use {sleep_ms};
 use syncbox::{ThreadPool, Run};
+use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::*;
 
 #[test]
@@ -72,4 +74,37 @@ pub fn test_thread_pool_is_send() {
     let tp = ThreadPool::fixed_size(2);
     check(&tp);
     tp.run(|| { assert!(true); });
+}
+
+#[test]
+pub fn test_thread_pool_drains_queue_before_shutdown() {
+    // This is a racy test, so we run it a bunch of times
+    'repeat:
+    for _ in 0..20 {
+        let tp = ThreadPool::single_thread();
+        let cnt = Arc::new(AtomicUsize::new(0));
+
+        for _ in 0..20 {
+            let cnt = cnt.clone();
+            tp.run(move || {
+                cnt.fetch_add(1, Ordering::Relaxed);
+            });
+        }
+
+        // Drop the pool, cleanly shutdown
+        drop(tp);
+
+        // Wait up to 1 second
+        for _ in 0..20 {
+            let i = cnt.load(Ordering::Relaxed);
+
+            if i == 20 {
+                break 'repeat;
+            }
+
+            sleep_ms(50);
+        }
+
+        panic!("failed to run all submitted tasks");
+    }
 }
