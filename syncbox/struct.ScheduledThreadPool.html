@@ -41,21 +41,23 @@
     </nav>
 
     <section id='main' class="content struct">
-<h1 class='fqn'><span class='in-band'>Struct <a href='index.html'>syncbox</a>::<wbr><a class='struct' href=''>ScheduledThreadPool</a><wbr></span><span class='out-of-band'><span id='render-detail'>
-            <a id="collapse-all" href="#">[-]</a>&nbsp;<a id="expand-all" href="#">[+]</a>
-        </span><a id='src-3881' href='../src/syncbox/thread_pool.rs.html#83-85'>[src]</a></span></h1>
+<h1 class='fqn'><span class='in-band'>Struct <a href='index.html'>syncbox</a>::<wbr><a class='struct' href=''>ScheduledThreadPool</a></span><span class='out-of-band'><span id='render-detail'>
+            <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
+                [<span class='inner'>&#x2212;</span>]
+            </a>
+        </span><a id='src-3883' class='srclink' href='../src/syncbox/thread_pool.rs.html#83-85' title='goto source code'>[src]</a></span></h1>
 <pre class='rust struct'>pub struct ScheduledThreadPool {
     // some fields omitted
 }</pre><div class='docblock'><p>A thread pool that can schedule tasks to run after a given delay, or to
 execute periodically. Delayed tasks do not run before their associated
 delays, but besides that, there are no real-time guarantees about exactly
 when the task will run.</p>
-</div><h2 id='methods'>Methods</h2><h3 class='impl'><a class='stability Unmarked' title='No stability level'></a><code>impl <a class='struct' href='../syncbox/struct.ScheduledThreadPool.html' title='syncbox::ScheduledThreadPool'>ScheduledThreadPool</a></code></h3><div class='impl-items'><h4 id='method.fixed_size' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#method.fixed_size' class='fnname'>fixed_size</a>(size: <a href='http://doc.rust-lang.org/nightly/std/primitive.u32.html'>u32</a>) -&gt; <a class='struct' href='../syncbox/struct.ScheduledThreadPool.html' title='syncbox::ScheduledThreadPool'>ScheduledThreadPool</a></code></h4>
-<h4 id='method.single_thread' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#method.single_thread' class='fnname'>single_thread</a>() -&gt; <a class='struct' href='../syncbox/struct.ScheduledThreadPool.html' title='syncbox::ScheduledThreadPool'>ScheduledThreadPool</a></code></h4>
-<h4 id='method.schedule_ms' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#method.schedule_ms' class='fnname'>schedule_ms</a>&lt;T: <a class='trait' href='../syncbox/trait.Task.html' title='syncbox::Task'>Task</a> + 'static&gt;(&amp;self, delay: <a href='http://doc.rust-lang.org/nightly/std/primitive.u32.html'>u32</a>, task: T)</code></h4>
-</div><h2 id='implementations'>Trait Implementations</h2><h3 class='impl'><a class='stability Unmarked' title='No stability level'></a><code>impl&lt;T: <a class='trait' href='../syncbox/trait.Task.html' title='syncbox::Task'>Task</a> + 'static&gt; <a class='trait' href='../syncbox/trait.Run.html' title='syncbox::Run'>Run</a>&lt;T&gt; for <a class='struct' href='../syncbox/struct.ScheduledThreadPool.html' title='syncbox::ScheduledThreadPool'>ScheduledThreadPool</a></code></h3><div class='impl-items'><h4 id='method.run' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='../syncbox/trait.Run.html#method.run' class='fnname'>run</a>(&amp;self, task: T)</code></h4>
-</div><h3 class='impl'><a class='stability Stable' title='Stable'></a><code>impl <a class='trait' href='http://doc.rust-lang.org/nightly/core/clone/trait.Clone.html' title='core::clone::Clone'>Clone</a> for <a class='struct' href='../syncbox/struct.ScheduledThreadPool.html' title='syncbox::ScheduledThreadPool'>ScheduledThreadPool</a></code></h3><div class='impl-items'><h4 id='method.clone' class='method'><a class='stability Stable' title='Stable'></a><code>fn <a href='http://doc.rust-lang.org/nightly/core/clone/trait.Clone.html#method.clone' class='fnname'>clone</a>(&amp;self) -&gt; <a class='struct' href='../syncbox/struct.ScheduledThreadPool.html' title='syncbox::ScheduledThreadPool'>ScheduledThreadPool</a></code></h4>
-<h4 id='method.clone_from' class='method'><a class='stability Stable' title='Stable'></a><code>fn <a href='http://doc.rust-lang.org/nightly/core/clone/trait.Clone.html#method.clone_from' class='fnname'>clone_from</a>(&amp;mut self, source: &amp;Self)</code></h4>
+</div><h2 id='methods'>Methods</h2><h3 class='impl'><code>impl <a class='struct' href='../syncbox/struct.ScheduledThreadPool.html' title='syncbox::ScheduledThreadPool'>ScheduledThreadPool</a></code></h3><div class='impl-items'><h4 id='method.fixed_size' class='method'><code>fn <a href='#method.fixed_size' class='fnname'>fixed_size</a>(size: <a href='http://doc.rust-lang.org/nightly/std/primitive.u32.html'>u32</a>) -&gt; <a class='struct' href='../syncbox/struct.ScheduledThreadPool.html' title='syncbox::ScheduledThreadPool'>ScheduledThreadPool</a></code></h4>
+<h4 id='method.single_thread' class='method'><code>fn <a href='#method.single_thread' class='fnname'>single_thread</a>() -&gt; <a class='struct' href='../syncbox/struct.ScheduledThreadPool.html' title='syncbox::ScheduledThreadPool'>ScheduledThreadPool</a></code></h4>
+<h4 id='method.schedule_ms' class='method'><code>fn <a href='#method.schedule_ms' class='fnname'>schedule_ms</a>&lt;T: <a class='trait' href='../syncbox/trait.Task.html' title='syncbox::Task'>Task</a> + 'static&gt;(&amp;self, delay: <a href='http://doc.rust-lang.org/nightly/std/primitive.u32.html'>u32</a>, task: T)</code></h4>
+</div><h2 id='implementations'>Trait Implementations</h2><h3 class='impl'><code>impl&lt;T: <a class='trait' href='../syncbox/trait.Task.html' title='syncbox::Task'>Task</a> + 'static&gt; <a class='trait' href='../syncbox/trait.Run.html' title='syncbox::Run'>Run</a>&lt;T&gt; for <a class='struct' href='../syncbox/struct.ScheduledThreadPool.html' title='syncbox::ScheduledThreadPool'>ScheduledThreadPool</a></code></h3><div class='impl-items'><h4 id='method.run' class='method'><code>fn <a href='../syncbox/trait.Run.html#method.run' class='fnname'>run</a>(&amp;self, task: T)</code></h4>
+</div><h3 class='impl'><code>impl <a class='trait' href='http://doc.rust-lang.org/nightly/core/clone/trait.Clone.html' title='core::clone::Clone'>Clone</a> for <a class='struct' href='../syncbox/struct.ScheduledThreadPool.html' title='syncbox::ScheduledThreadPool'>ScheduledThreadPool</a></code></h3><div class='impl-items'><h4 id='method.clone' class='method'><code>fn <a href='http://doc.rust-lang.org/nightly/core/clone/trait.Clone.html#method.clone' class='fnname'>clone</a>(&amp;self) -&gt; <a class='struct' href='../syncbox/struct.ScheduledThreadPool.html' title='syncbox::ScheduledThreadPool'>ScheduledThreadPool</a></code></h4>
+<h4 id='method.clone_from' class='method'><code>fn <a href='http://doc.rust-lang.org/nightly/core/clone/trait.Clone.html#method.clone_from' class='fnname'>clone_from</a>(&amp;mut self, source: &amp;Self)</code></h4>
 </div></section>
     <section id='search' class="content hidden"></section>
 
@@ -88,6 +90,10 @@ when the task will run.</p>
                 <code>struct</code>, <code>enum</code>,
                 <code>trait</code>, <code>typedef</code> (or
                 <code>tdef</code>).
+            </p>
+            <p>
+                Search functions by type signature (e.g.
+                <code>vec -> usize</code>)
             </p>
         </div>
     </div>

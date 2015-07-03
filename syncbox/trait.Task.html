@@ -41,21 +41,22 @@
     </nav>
 
     <section id='main' class="content trait">
-<h1 class='fqn'><span class='in-band'>Trait <a href='index.html'>syncbox</a>::<wbr><a class='trait' href=''>Task</a><wbr></span><span class='out-of-band'><span id='render-detail'>
-            <a id="collapse-all" href="#">[-]</a>&nbsp;<a id="expand-all" href="#">[+]</a>
-        </span><a id='src-7835' href='../src/syncbox/run.rs.html#8-11'>[src]</a></span></h1>
+<h1 class='fqn'><span class='in-band'>Trait <a href='index.html'>syncbox</a>::<wbr><a class='trait' href=''>Task</a></span><span class='out-of-band'><span id='render-detail'>
+            <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
+                [<span class='inner'>&#x2212;</span>]
+            </a>
+        </span><a id='src-7941' class='srclink' href='../src/syncbox/run.rs.html#8-11' title='goto source code'>[src]</a></span></h1>
 <pre class='rust trait'>pub trait Task: <a class='trait' href='http://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a> + 'static {
     fn <a href='#tymethod.run' class='fnname'>run</a>(self);
 }</pre><div class='docblock'><p>A value that can run a unit of work.</p>
 </div>
             <h2 id='required-methods'>Required Methods</h2>
             <div class='methods'>
-        <h3 id='tymethod.run' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#tymethod.run' class='fnname'>run</a>(self)</code></h3><div class='docblock'><p>Run the unit of work</p>
+        <h3 id='tymethod.run' class='method stab '><code>fn <a href='#tymethod.run' class='fnname'>run</a>(self)</code></h3><div class='docblock'><p>Run the unit of work</p>
 </div></div>
         <h2 id='implementors'>Implementors</h2>
         <ul class='item-list' id='implementors-list'>
-    <li><a class='stability Unmarked' title='No stability level'></a><code>impl&lt;F: <a class='trait' href='http://doc.rust-lang.org/nightly/core/ops/trait.FnOnce.html' title='core::ops::FnOnce'>FnOnce</a>() + <a class='trait' href='http://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a> + 'static&gt; <a class='trait' href='../syncbox/trait.Task.html' title='syncbox::Task'>Task</a> for F</code></li>
-<li><a class='stability Unmarked' title='No stability level'></a><code>impl <a class='trait' href='../syncbox/trait.Task.html' title='syncbox::Task'>Task</a> for <a class='struct' href='http://doc.rust-lang.org/nightly/alloc/boxed/struct.Box.html' title='alloc::boxed::Box'>Box</a>&lt;<a class='trait' href='../syncbox/trait.TaskBox.html' title='syncbox::TaskBox'>TaskBox</a>&gt;</code></li>
+    <li><code>impl <a class='trait' href='../syncbox/trait.Task.html' title='syncbox::Task'>Task</a> for <a class='struct' href='http://doc.rust-lang.org/nightly/alloc/boxed/struct.Box.html' title='alloc::boxed::Box'>Box</a>&lt;<a class='trait' href='../syncbox/trait.TaskBox.html' title='syncbox::TaskBox'>TaskBox</a>&gt;</code></li>
 </ul><script type="text/javascript" async
                               src="../implementors/syncbox/trait.Task.js">
                       </script></section>
@@ -90,6 +91,10 @@
                 <code>struct</code>, <code>enum</code>,
                 <code>trait</code>, <code>typedef</code> (or
                 <code>tdef</code>).
+            </p>
+            <p>
+                Search functions by type signature (e.g.
+                <code>vec -> usize</code>)
             </p>
         </div>
     </div>

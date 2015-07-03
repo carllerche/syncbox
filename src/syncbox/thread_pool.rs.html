@@ -1235,7 +1235,7 @@
 
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Task</span><span class='op'>+</span><span class='lifetime'>&#39;static</span>, <span class='ident'>Q</span>: <span class='ident'>WorkQueue</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;&gt;</span> <span class='ident'>Drop</span> <span class='kw'>for</span> <span class='ident'>ThreadPoolInner</span><span class='op'>&lt;</span><span class='ident'>T</span>, <span class='ident'>Q</span><span class='op'>&gt;</span> {
     <span class='kw'>fn</span> <span class='ident'>drop</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) {
-        <span class='self'>self</span>.<span class='ident'>shutdown</span>(<span class='ident'>Lifecycle</span>::<span class='ident'>Stop</span>);
+        <span class='self'>self</span>.<span class='ident'>shutdown</span>(<span class='ident'>Lifecycle</span>::<span class='ident'>Shutdown</span>);
     }
 }
 
@@ -1644,6 +1644,10 @@
                 <code>struct</code>, <code>enum</code>,
                 <code>trait</code>, <code>typedef</code> (or
                 <code>tdef</code>).
+            </p>
+            <p>
+                Search functions by type signature (e.g.
+                <code>vec -> usize</code>)
             </p>
         </div>
     </div>
