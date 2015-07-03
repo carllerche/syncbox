@@ -45,7 +45,7 @@
             <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
                 [<span class='inner'>&#x2212;</span>]
             </a>
-        </span><a id='src-103501' class='srclink' href='http://doc.rust-lang.org/nightly/core/atomic/struct.AtomicIsize.html?gotosrc=103501' title='goto source code'>[src]</a></span></h1>
+        </span><a id='src-103416' class='srclink' href='http://doc.rust-lang.org/nightly/core/atomic/struct.AtomicIsize.html?gotosrc=103416' title='goto source code'>[src]</a></span></h1>
 <pre class='rust struct'>pub struct AtomicIsize {
     // some fields omitted
 }</pre><div class='docblock'><p>A signed integer type which can be safely shared between threads.</p>
@@ -106,11 +106,11 @@
 
 <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>some_isize</span>.<span class='ident'>swap</span>(<span class='number'>10</span>, <span class='ident'>Ordering</span>::<span class='ident'>Relaxed</span>), <span class='number'>5</span>);
 </pre>
-</div><h4 id='method.compare_and_swap' class='method'><code>fn <a href='#method.compare_and_swap' class='fnname'>compare_and_swap</a>(&amp;self, current: <a href='http://doc.rust-lang.org/nightly/std/primitive.isize.html'>isize</a>, new: <a href='http://doc.rust-lang.org/nightly/std/primitive.isize.html'>isize</a>, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>) -&gt; <a href='http://doc.rust-lang.org/nightly/std/primitive.isize.html'>isize</a></code></h4>
-<div class='docblock'><p>Stores a value into the <code>isize</code> if the current value is the same as the <code>current</code> value.</p>
+</div><h4 id='method.compare_and_swap' class='method'><code>fn <a href='#method.compare_and_swap' class='fnname'>compare_and_swap</a>(&amp;self, old: <a href='http://doc.rust-lang.org/nightly/std/primitive.isize.html'>isize</a>, new: <a href='http://doc.rust-lang.org/nightly/std/primitive.isize.html'>isize</a>, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>) -&gt; <a href='http://doc.rust-lang.org/nightly/std/primitive.isize.html'>isize</a></code></h4>
+<div class='docblock'><p>Stores a value into the isize if the current value is the same as the expected value.</p>
 
-<p>The return value is always the previous value. If it is equal to <code>current</code>, then the value
-was updated.</p>
+<p>The return value is always the previous value. If it is equal to <code>old</code>, then the value was
+updated.</p>
 
 <p><code>compare_and_swap</code> also takes an <code>Ordering</code> argument which describes the memory ordering of
 this operation.</p>
