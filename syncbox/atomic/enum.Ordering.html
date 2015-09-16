@@ -24,17 +24,17 @@
 
     
 
-    <section class="sidebar">
+    <nav class="sidebar">
         
         <p class='location'><a href='../index.html'>syncbox</a>::<wbr><a href='index.html'>atomic</a></p><script>window.sidebarCurrent = {name: 'Ordering', ty: 'enum', relpath: ''};</script><script defer src="sidebar-items.js"></script>
-    </section>
+    </nav>
 
     <nav class="sub">
         <form class="search-form js-only">
             <div class="search-container">
                 <input class="search-input" name="search"
                        autocomplete="off"
-                       placeholder="Click or press 'S' to search, '?' for more options..."
+                       placeholder="Click or press ‘S’ to search, ‘?’ for more options…"
                        type="search">
             </div>
         </form>
@@ -45,7 +45,7 @@
             <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
                 [<span class='inner'>&#x2212;</span>]
             </a>
-        </span><a id='src-103486' class='srclink' href='http://doc.rust-lang.org/nightly/core/atomic/enum.Ordering.html?gotosrc=103486' title='goto source code'>[src]</a></span></h1>
+        </span><a id='src-119312' class='srclink' href='https://doc.rust-lang.org/nightly/core/sync/atomic/enum.Ordering.html?gotosrc=119312' title='goto source code'>[src]</a></span></h1>
 <pre class='rust enum'>pub enum Ordering {
     Relaxed,
     Release,
@@ -60,8 +60,8 @@ instructions around atomic operations. At its most restrictive,
 to be moved either before or after the atomic operation; on the other end
 &quot;relaxed&quot; atomics allow all reorderings.</p>
 
-<p>Rust&#39;s memory orderings are <a href="http://gcc.gnu.org/wiki/Atomic/GCCMM/AtomicSync">the same as
-C++&#39;s</a>.</p>
+<p>Rust&#39;s memory orderings are <a href="http://llvm.org/docs/LangRef.html#memory-model-for-concurrent-operations">the same as
+LLVM&#39;s</a>.</p>
 </div><h2 class='variants'>Variants</h2>
 <table><tr><td id='variant.Relaxed'><code>Relaxed</code></td><td><div class='docblock'><p>No ordering constraints, only atomic operations.</p>
 </div></td></tr><tr><td id='variant.Release'><code>Release</code></td><td><div class='docblock'><p>When coupled with a store, all previous writes become visible
@@ -74,47 +74,56 @@ in another thread.</p>
 <code>Release</code> ordering.</p>
 </div></td></tr><tr><td id='variant.SeqCst'><code>SeqCst</code></td><td><div class='docblock'><p>Like <code>AcqRel</code> with the additional guarantee that all threads see all
 sequentially consistent operations in the same order.</p>
-</div></td></tr></table><h2 id='implementations'>Trait Implementations</h2><h3 id='derived_implementations'>Derived Implementations </h3><h3 class='impl'><code>impl <a class='trait' href='http://doc.rust-lang.org/nightly/core/clone/trait.Clone.html' title='core::clone::Clone'>Clone</a> for <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a></code></h3><div class='impl-items'><h4 id='method.clone' class='method'><code>fn <a href='http://doc.rust-lang.org/nightly/core/clone/trait.Clone.html#method.clone' class='fnname'>clone</a>(&amp;self) -&gt; <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a></code></h4>
-<h4 id='method.clone_from' class='method'><code>fn <a href='http://doc.rust-lang.org/nightly/core/clone/trait.Clone.html#method.clone_from' class='fnname'>clone_from</a>(&amp;mut self, source: &amp;Self)</code></h4>
-</div><h3 class='impl'><code>impl <a class='trait' href='http://doc.rust-lang.org/nightly/core/marker/trait.Copy.html' title='core::marker::Copy'>Copy</a> for <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a></code></h3><div class='impl-items'></div></section>
+</div></td></tr></table><h2 id='implementations'>Trait Implementations</h2><h3 id='derived_implementations'>Derived Implementations </h3><h3 class='impl'><code>impl <a class='trait' href='https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html' title='core::clone::Clone'>Clone</a> for <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a></code></h3><div class='impl-items'><h4 id='method.clone' class='method'><code>fn <a href='https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html#method.clone' class='fnname'>clone</a>(&amp;self) -&gt; <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a></code></h4>
+<h4 id='method.clone_from' class='method'><code>fn <a href='https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html#method.clone_from' class='fnname'>clone_from</a>(&amp;mut self, source: &amp;Self)</code></h4>
+</div><h3 class='impl'><code>impl <a class='trait' href='https://doc.rust-lang.org/nightly/core/marker/trait.Copy.html' title='core::marker::Copy'>Copy</a> for <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a></code></h3><div class='impl-items'></div></section>
     <section id='search' class="content hidden"></section>
 
     <section class="footer"></section>
 
-    <div id="help" class="hidden">
-        <div class="shortcuts">
-            <h1>Keyboard shortcuts</h1>
-            <dl>
-                <dt>?</dt>
-                <dd>Show this help dialog</dd>
-                <dt>S</dt>
-                <dd>Focus the search field</dd>
-                <dt>&larrb;</dt>
-                <dd>Move up in search results</dd>
-                <dt>&rarrb;</dt>
-                <dd>Move down in search results</dd>
-                <dt>&#9166;</dt>
-                <dd>Go to active search result</dd>
-            </dl>
+    <aside id="help" class="hidden">
+        <div>
+            <h1 class="hidden">Help</h1>
+
+            <div class="shortcuts">
+                <h2>Keyboard Shortcuts</h2>
+
+                <dl>
+                    <dt>?</dt>
+                    <dd>Show this help dialog</dd>
+                    <dt>S</dt>
+                    <dd>Focus the search field</dd>
+                    <dt>&larrb;</dt>
+                    <dd>Move up in search results</dd>
+                    <dt>&rarrb;</dt>
+                    <dd>Move down in search results</dd>
+                    <dt>&#9166;</dt>
+                    <dd>Go to active search result</dd>
+                </dl>
+            </div>
+
+            <div class="infos">
+                <h2>Search Tricks</h2>
+
+                <p>
+                    Prefix searches with a type followed by a colon (e.g.
+                    <code>fn:</code>) to restrict the search to a given type.
+                </p>
+
+                <p>
+                    Accepted types are: <code>fn</code>, <code>mod</code>,
+                    <code>struct</code>, <code>enum</code>,
+                    <code>trait</code>, <code>type</code>, <code>macro</code>,
+                    and <code>const</code>.
+                </p>
+
+                <p>
+                    Search functions by type signature (e.g.
+                    <code>vec -> usize</code>)
+                </p>
+            </div>
         </div>
-        <div class="infos">
-            <h1>Search tricks</h1>
-            <p>
-                Prefix searches with a type followed by a colon (e.g.
-                <code>fn:</code>) to restrict the search to a given type.
-            </p>
-            <p>
-                Accepted types are: <code>fn</code>, <code>mod</code>,
-                <code>struct</code>, <code>enum</code>,
-                <code>trait</code>, <code>typedef</code> (or
-                <code>tdef</code>).
-            </p>
-            <p>
-                Search functions by type signature (e.g.
-                <code>vec -> usize</code>)
-            </p>
-        </div>
-    </div>
+    </aside>
 
     
 
