@@ -6,10 +6,10 @@ use std::{thread, usize};
 use time::Duration;
 
 /// A queue that can be used to back a thread pool
-pub trait WorkQueue<T> : SyncQueue<Option<T>> + Clone + Send + 'static {
+pub trait WorkQueue<T: Send> : SyncQueue<Option<T>> + Clone + Send + 'static {
 }
 
-impl<T, Q: SyncQueue<Option<T>> + Clone + Send + 'static> WorkQueue<T> for Q {
+impl<T: Send, Q: SyncQueue<Option<T>> + Clone + Send + 'static> WorkQueue<T> for Q {
 }
 
 pub struct ThreadPool<T: Task+'static, Q: WorkQueue<T> = LinkedQueue<Option<T>>> {

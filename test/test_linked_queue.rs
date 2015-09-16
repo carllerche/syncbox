@@ -30,11 +30,12 @@ pub fn test_single_threaded_put_take() {
 pub fn test_single_threaded_offer_timeout() {
     let q = LinkedQueue::with_capacity(1);
 
-    q.offer(1);
+    q.offer(1).unwrap();
 
     let now = time::precise_time_ns();
-    q.offer_ms(2, 200);
+    let result = q.offer_ms(2, 200);
     let delta = time::precise_time_ns() - now;
+    assert!(result.is_err());
     assert!(delta >= 200_000_000, "actual={}", delta);
 }
 
