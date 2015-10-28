@@ -14,45 +14,66 @@ pub struct LinkedQueue<T: Send> {
 }
 
 impl<T: Send> LinkedQueue<T> {
+    /// Constructs a new, empty `LinkedQueue<T>` with capacity `usize::MAX`.
     pub fn new() -> LinkedQueue<T> {
         LinkedQueue::with_capacity(usize::MAX)
     }
 
+    /// Constructs a new, empty `LinkedQueue<T>` with the specified capacity.
     pub fn with_capacity(capacity: usize) -> LinkedQueue<T> {
         LinkedQueue {
             inner: Arc::new(QueueInner::new(capacity))
         }
     }
 
+    /// Returns the number of elements in the queue.
     pub fn len(&self) -> usize {
         self.inner.len()
     }
 
+    /// Returns `true` if the queue contains no elements.
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
+    /// Adds the element `e` to the queue if possible.
+    ///
+    /// # Errors
+    ///
+    /// A call to `offer` will fail if the queue is full; the provided element
+    /// `e` is returned in the `Err` variant.
     pub fn offer(&self, e: T) -> Result<(), T> {
         self.inner.offer(e)
     }
 
+    /// Adds the element `e` to the queue, blocking for up to `ms` milliseconds.
+    ///
+    /// # Errors
+    ///
+    /// A call to `offer_ms` will fail if the element cannot be added within the
+    /// timeout; the provided element `e` is returned in the `Err` variant.
     pub fn offer_ms(&self, e: T, ms: u32) -> Result<(), T> {
         self.inner.offer_ms(e, ms)
     }
 
+    /// Adds the element `e` to the queue, blocking until it can be added.
+    // TODO(soon): decide on documenting panic?
     pub fn put(&self, e: T) {
         self.inner.put(e);
     }
 
+    /// Takes from the queue if there is an element available.
     pub fn poll(&self) -> Option<T> {
         self.inner.poll()
     }
 
+    /// Takes from the queue, blocking for up to `ms` milliseconds.
     pub fn poll_ms(&self, ms: u32) -> Option<T> {
         self.inner.poll_ms(ms)
     }
 
     /// Takes from the queue, blocking until there is an element available.
+    // TODO(soon): decide on documenting panic?
     pub fn take(&self) -> T {
         self.inner.take()
     }
