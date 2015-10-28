@@ -7,11 +7,11 @@ use time::{Duration, SteadyTime};
 
 /// A value that should not be used until the delay has expired.
 pub trait Delayed {
+    /// Returns he delay associated with the value.
     fn delay(&self) -> Duration;
 }
 
 impl<T: Delayed> Delayed for Option<T> {
-    /// The delay associated with the value
     fn delay(&self) -> Duration {
         match *self {
             Some(ref v) => v.delay(),
@@ -25,6 +25,7 @@ impl<T: Delayed> Delayed for Option<T> {
 pub struct Delay<T>(pub T, pub Duration);
 
 impl<T> Delay<T> {
+    /// Moves the value out of the `Delay<T>`.
     pub fn unwrap(self) -> T {
         self.0
     }
