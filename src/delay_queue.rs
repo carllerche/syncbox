@@ -20,7 +20,7 @@ impl<T: Delayed> Delayed for Option<T> {
     }
 }
 
-/// Associate a delay with a value
+/// Associate a delay with a value.
 #[derive(Eq, PartialEq, Ord, PartialOrd, Debug)]
 pub struct Delay<T>(pub T, pub Duration);
 
@@ -65,7 +65,7 @@ struct Inner<T> {
 }
 
 impl<T: Delayed + Send> DelayQueue<T> {
-    /// Create a new `DelayQueue`
+    /// Constructs a new `DelayQueue`.
     pub fn new() -> DelayQueue<T> {
         DelayQueue {
             inner: Arc::new(Inner {
@@ -75,8 +75,7 @@ impl<T: Delayed + Send> DelayQueue<T> {
         }
     }
 
-    /// Retrieves and removes the head of the queue, blocking if necessary for
-    /// up to `timeout`.
+    /// Takes from the queue, blocking for up to `timeout`.
     pub fn poll_timeout(&self, timeout: Duration) -> Option<T> {
         let end = SteadyTime::now() + timeout;
         let mut queue = self.inner.queue.lock().unwrap();
