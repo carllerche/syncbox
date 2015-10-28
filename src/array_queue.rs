@@ -39,15 +39,18 @@ struct Node<T> {
     value: Option<T>,
 }
 
+// TODO: find a way to get the size of a cacheline instead of hardcoding 64?
+type CachelinePadding = [u8; 64];
+
 struct State<T> {
-    _pad0: [u8; 64],
+    _pad0: CachelinePadding,
     buffer: Vec<UnsafeCell<Node<T>>>,
     mask: usize,
-    _pad1: [u8; 64],
+    _pad1: CachelinePadding,
     enqueue_pos: AtomicUsize,
-    _pad2: [u8; 64],
+    _pad2: CachelinePadding,
     dequeue_pos: AtomicUsize,
-    _pad3: [u8; 64],
+    _pad3: CachelinePadding,
 }
 
 unsafe impl<T: Send + 'static> Send for State<T> {}
