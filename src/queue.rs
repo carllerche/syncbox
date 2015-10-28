@@ -11,6 +11,12 @@ pub trait Queue<T: Send> {
     /// elements.
     fn is_empty(&self) -> bool;
 
+    /// Adds the element `e` to the queue if possible.
+    ///
+    /// # Errors
+    ///
+    /// A call to `offer` will fail if the queue is full; the provided element
+    /// `e` is returned in the `Err` variant.
     fn offer(&self, e: T) -> Result<(), T>;
 }
 
@@ -19,5 +25,6 @@ pub trait SyncQueue<T: Send> : Queue<T> {
     /// until an element becomes available.
     fn take(&self) -> T;
 
+    /// Adds the element `e` to the queue, blocking until it can be added.
     fn put(&self, e: T);
 }
