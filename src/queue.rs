@@ -1,6 +1,8 @@
 // TODO:
 // - Consider splitting up the trait into Consume / Produce.
 // - Break up SyncQueue from Queue
+
+/// An interface for queues of elements of type `T`.
 pub trait Queue<T: Send> {
 
     /// Takes from the queue if there is an element available.
@@ -18,6 +20,11 @@ pub trait Queue<T: Send> {
     fn offer(&self, e: T) -> Result<(), T>;
 }
 
+/// An interface for synchronous queues of elements of type `T`.
+///
+/// This extends `Queue` with blocking analogs of `poll` and `offer`. Both
+/// `take` and `put` will block the calling thread until the operation
+/// succeeds.
 pub trait SyncQueue<T: Send> : Queue<T> {
     /// Takes from the queue, blocking until there is an element available.
     fn take(&self) -> T;
