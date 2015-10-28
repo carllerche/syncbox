@@ -56,21 +56,30 @@ struct State<T> {
 unsafe impl<T: Send + 'static> Send for State<T> {}
 unsafe impl<T: Sync> Sync for State<T> {}
 
+/// A bounded, array-based queue, with compare-and-swap based operations.
 pub struct ArrayQueue<T> {
     state: Arc<State<T>>,
 }
 
 impl<T: Send + 'static> ArrayQueue<T> {
+    /// Constructs a new, empty `ArrayQueue<T>` with the specified capacity.
     pub fn with_capacity(capacity: usize) -> ArrayQueue<T> {
         ArrayQueue{
             state: Arc::new(State::with_capacity(capacity))
         }
     }
 
+    /// Adds the element `e` to the queue if possible.
+    ///
+    /// # Errors
+    ///
+    /// A call to `push` will fail if the queue is full; the provided element
+    /// `value` is returned in the `Err` variant.
     pub fn push(&self, value: T) -> Result<(), T> {
         self.state.push(value)
     }
 
+    /// Takes from the queue if there is an element available.
     pub fn pop(&self) -> Option<T> {
         self.state.pop()
     }
