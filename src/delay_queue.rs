@@ -104,7 +104,7 @@ impl<T: Delayed + Send> DelayQueue<T> {
 
     fn finish_pop<'a>(&self, mut queue: MutexGuard<'a, BinaryHeap<Entry<T>>>) -> T {
         if queue.len() > 1 {
-            self.inner.condvar.notify_all();
+            self.inner.condvar.notify_one();
         }
 
         queue.pop().unwrap().val
@@ -142,10 +142,10 @@ impl<T: Delayed + Send> Queue<T> for DelayQueue<T> {
         match queue.peek() {
             Some(e) => {
                 if entry.time < e.time {
-                    self.inner.condvar.notify_all()
+                    self.inner.condvar.notify_one()
                 }
             }
-            None => self.inner.condvar.notify_all(),
+            None => self.inner.condvar.notify_one(),
         }
 
         queue.push(entry);
