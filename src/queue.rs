@@ -3,12 +3,10 @@
 // - Break up SyncQueue from Queue
 pub trait Queue<T: Send> {
 
-    /// Retrieves and removes the head of this queue or returns None if the
-    /// queue is empty.
+    /// Takes from the queue if there is an element available.
     fn poll(&self) -> Option<T>;
 
-    /// Returns true if the underlying data structure does not contain any
-    /// elements.
+    /// Returns `true` if the queue contains no elements.
     fn is_empty(&self) -> bool;
 
     /// Adds the element `e` to the queue if possible.
@@ -21,8 +19,7 @@ pub trait Queue<T: Send> {
 }
 
 pub trait SyncQueue<T: Send> : Queue<T> {
-    /// Retrieves and removes the head of this queue, waiting if necessary
-    /// until an element becomes available.
+    /// Takes from the queue, blocking until there is an element available.
     fn take(&self) -> T;
 
     /// Adds the element `e` to the queue, blocking until it can be added.
