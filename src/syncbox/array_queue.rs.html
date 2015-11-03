@@ -258,6 +258,18 @@
 <span id="216">216</span>
 <span id="217">217</span>
 <span id="218">218</span>
+<span id="219">219</span>
+<span id="220">220</span>
+<span id="221">221</span>
+<span id="222">222</span>
+<span id="223">223</span>
+<span id="224">224</span>
+<span id="225">225</span>
+<span id="226">226</span>
+<span id="227">227</span>
+<span id="228">228</span>
+<span id="229">229</span>
+<span id="230">230</span>
 </pre><pre class='rust '>
 <span class='comment'>/* Copyright (c) 2010-2011 Dmitry Vyukov. All rights reserved.
  * Redistribution and use in source and binary forms, with or without
@@ -300,35 +312,47 @@
     <span class='ident'>value</span>: <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>,
 }
 
+<span class='comment'>// TODO: find a way to get the size of a cacheline instead of hardcoding 64?</span>
+<span class='kw'>type</span> <span class='ident'>CachelinePadding</span> <span class='op'>=</span> [<span class='ident'>u8</span>; <span class='number'>64</span>];
+
 <span class='kw'>struct</span> <span class='ident'>State</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
-    <span class='ident'>_pad0</span>: [<span class='ident'>u8</span>; <span class='number'>64</span>],
+    <span class='ident'>_pad0</span>: <span class='ident'>CachelinePadding</span>,
     <span class='ident'>buffer</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>UnsafeCell</span><span class='op'>&lt;</span><span class='ident'>Node</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;&gt;</span><span class='op'>&gt;</span>,
     <span class='ident'>mask</span>: <span class='ident'>usize</span>,
-    <span class='ident'>_pad1</span>: [<span class='ident'>u8</span>; <span class='number'>64</span>],
+    <span class='ident'>_pad1</span>: <span class='ident'>CachelinePadding</span>,
     <span class='ident'>enqueue_pos</span>: <span class='ident'>AtomicUsize</span>,
-    <span class='ident'>_pad2</span>: [<span class='ident'>u8</span>; <span class='number'>64</span>],
+    <span class='ident'>_pad2</span>: <span class='ident'>CachelinePadding</span>,
     <span class='ident'>dequeue_pos</span>: <span class='ident'>AtomicUsize</span>,
-    <span class='ident'>_pad3</span>: [<span class='ident'>u8</span>; <span class='number'>64</span>],
+    <span class='ident'>_pad3</span>: <span class='ident'>CachelinePadding</span>,
 }
 
 <span class='kw'>unsafe</span> <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Send</span> <span class='op'>+</span> <span class='lifetime'>&#39;static</span><span class='op'>&gt;</span> <span class='ident'>Send</span> <span class='kw'>for</span> <span class='ident'>State</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {}
 <span class='kw'>unsafe</span> <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Sync</span><span class='op'>&gt;</span> <span class='ident'>Sync</span> <span class='kw'>for</span> <span class='ident'>State</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {}
 
+<span class='doccomment'>/// A bounded, array-based queue, with compare-and-swap based operations.</span>
 <span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>ArrayQueue</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
     <span class='ident'>state</span>: <span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>State</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;&gt;</span>,
 }
 
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Send</span> <span class='op'>+</span> <span class='lifetime'>&#39;static</span><span class='op'>&gt;</span> <span class='ident'>ArrayQueue</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
+    <span class='doccomment'>/// Constructs a new, empty `ArrayQueue&lt;T&gt;` with the specified capacity.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>with_capacity</span>(<span class='ident'>capacity</span>: <span class='ident'>usize</span>) <span class='op'>-&gt;</span> <span class='ident'>ArrayQueue</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
         <span class='ident'>ArrayQueue</span>{
             <span class='ident'>state</span>: <span class='ident'>Arc</span>::<span class='ident'>new</span>(<span class='ident'>State</span>::<span class='ident'>with_capacity</span>(<span class='ident'>capacity</span>))
         }
     }
 
+    <span class='doccomment'>/// Adds the element `e` to the queue if possible.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// # Errors</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// A call to `push` will fail if the queue is full; the provided element</span>
+    <span class='doccomment'>/// `value` is returned in the `Err` variant.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>push</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>value</span>: <span class='ident'>T</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span>(), <span class='ident'>T</span><span class='op'>&gt;</span> {
         <span class='self'>self</span>.<span class='ident'>state</span>.<span class='ident'>push</span>(<span class='ident'>value</span>)
     }
 
+    <span class='doccomment'>/// Takes from the queue if there is an element available.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>pop</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
         <span class='self'>self</span>.<span class='ident'>state</span>.<span class='ident'>pop</span>()
     }

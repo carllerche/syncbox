@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["ArrayQueue",""]]});
+initSidebarItems({"struct":[["ArrayQueue","A bounded, array-based queue, with compare-and-swap based operations."]]});
