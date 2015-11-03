@@ -63,28 +63,50 @@
 <span id="21">21</span>
 <span id="22">22</span>
 <span id="23">23</span>
+<span id="24">24</span>
+<span id="25">25</span>
+<span id="26">26</span>
+<span id="27">27</span>
+<span id="28">28</span>
+<span id="29">29</span>
+<span id="30">30</span>
+<span id="31">31</span>
+<span id="32">32</span>
+<span id="33">33</span>
+<span id="34">34</span>
 </pre><pre class='rust '>
 <span class='comment'>// TODO:</span>
 <span class='comment'>// - Consider splitting up the trait into Consume / Produce.</span>
 <span class='comment'>// - Break up SyncQueue from Queue</span>
+
+<span class='doccomment'>/// An interface for queues of elements of type `T`.</span>
 <span class='kw'>pub</span> <span class='kw'>trait</span> <span class='ident'>Queue</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Send</span><span class='op'>&gt;</span> {
 
-    <span class='doccomment'>/// Retrieves and removes the head of this queue or returns None if the</span>
-    <span class='doccomment'>/// queue is empty.</span>
+    <span class='doccomment'>/// Takes from the queue if there is an element available.</span>
     <span class='kw'>fn</span> <span class='ident'>poll</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>;
 
-    <span class='doccomment'>/// Returns true if the underlying data structure does not contain any</span>
-    <span class='doccomment'>/// elements.</span>
+    <span class='doccomment'>/// Returns `true` if the queue contains no elements.</span>
     <span class='kw'>fn</span> <span class='ident'>is_empty</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span>;
 
+    <span class='doccomment'>/// Adds the element `e` to the queue if possible.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// # Errors</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// A call to `offer` will fail if the queue is full; the provided element</span>
+    <span class='doccomment'>/// `e` is returned in the `Err` variant.</span>
     <span class='kw'>fn</span> <span class='ident'>offer</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>e</span>: <span class='ident'>T</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span>(), <span class='ident'>T</span><span class='op'>&gt;</span>;
 }
 
+<span class='doccomment'>/// An interface for synchronous queues of elements of type `T`.</span>
+<span class='doccomment'>///</span>
+<span class='doccomment'>/// This extends `Queue` with blocking analogs of `poll` and `offer`. Both</span>
+<span class='doccomment'>/// `take` and `put` will block the calling thread until the operation</span>
+<span class='doccomment'>/// succeeds.</span>
 <span class='kw'>pub</span> <span class='kw'>trait</span> <span class='ident'>SyncQueue</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Send</span><span class='op'>&gt;</span> : <span class='ident'>Queue</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
-    <span class='doccomment'>/// Retrieves and removes the head of this queue, waiting if necessary</span>
-    <span class='doccomment'>/// until an element becomes available.</span>
+    <span class='doccomment'>/// Takes from the queue, blocking until there is an element available.</span>
     <span class='kw'>fn</span> <span class='ident'>take</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>T</span>;
 
+    <span class='doccomment'>/// Adds the element `e` to the queue, blocking until it can be added.</span>
     <span class='kw'>fn</span> <span class='ident'>put</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>e</span>: <span class='ident'>T</span>);
 }
 </pre>

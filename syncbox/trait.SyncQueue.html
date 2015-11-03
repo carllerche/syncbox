@@ -45,16 +45,21 @@
             <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
                 [<span class='inner'>&#x2212;</span>]
             </a>
-        </span><a id='src-1064' class='srclink' href='../src/syncbox/queue.rs.html#17-23' title='goto source code'>[src]</a></span></h1>
+        </span><a id='src-1064' class='srclink' href='../src/syncbox/queue.rs.html#28-34' title='goto source code'>[src]</a></span></h1>
 <pre class='rust trait'>pub trait SyncQueue&lt;T: <a class='trait' href='https://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a>&gt;: <a class='trait' href='../syncbox/trait.Queue.html' title='syncbox::Queue'>Queue</a>&lt;T&gt; {
     fn <a href='#tymethod.take' class='fnname'>take</a>(&amp;self) -&gt; T;
     fn <a href='#tymethod.put' class='fnname'>put</a>(&amp;self, e: T);
-}</pre>
+}</pre><div class='docblock'><p>An interface for synchronous queues of elements of type <code>T</code>.</p>
+
+<p>This extends <code>Queue</code> with blocking analogs of <code>poll</code> and <code>offer</code>. Both
+<code>take</code> and <code>put</code> will block the calling thread until the operation
+succeeds.</p>
+</div>
             <h2 id='required-methods'>Required Methods</h2>
             <div class='methods'>
-        <h3 id='tymethod.take' class='method stab '><code>fn <a href='#tymethod.take' class='fnname'>take</a>(&amp;self) -&gt; T</code></h3><div class='docblock'><p>Retrieves and removes the head of this queue, waiting if necessary
-until an element becomes available.</p>
-</div><h3 id='tymethod.put' class='method stab '><code>fn <a href='#tymethod.put' class='fnname'>put</a>(&amp;self, e: T)</code></h3></div>
+        <h3 id='tymethod.take' class='method stab '><code>fn <a href='#tymethod.take' class='fnname'>take</a>(&amp;self) -&gt; T</code></h3><div class='docblock'><p>Takes from the queue, blocking until there is an element available.</p>
+</div><h3 id='tymethod.put' class='method stab '><code>fn <a href='#tymethod.put' class='fnname'>put</a>(&amp;self, e: T)</code></h3><div class='docblock'><p>Adds the element <code>e</code> to the queue, blocking until it can be added.</p>
+</div></div>
         <h2 id='implementors'>Implementors</h2>
         <ul class='item-list' id='implementors-list'>
     <li><code>impl&lt;T: <a class='trait' href='../syncbox/trait.Delayed.html' title='syncbox::Delayed'>Delayed</a> + <a class='trait' href='https://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a>&gt; <a class='trait' href='../syncbox/trait.SyncQueue.html' title='syncbox::SyncQueue'>SyncQueue</a>&lt;T&gt; for <a class='struct' href='../syncbox/struct.DelayQueue.html' title='syncbox::DelayQueue'>DelayQueue</a>&lt;T&gt;</code></li>

@@ -1,1 +1,1 @@
-initSidebarItems({"trait":[["Queue",""],["SyncQueue",""]]});
+initSidebarItems({"trait":[["Queue","An interface for queues of elements of type `T`."],["SyncQueue","An interface for synchronous queues of elements of type `T`."]]});
