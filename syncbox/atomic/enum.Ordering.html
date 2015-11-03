@@ -45,7 +45,7 @@
             <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
                 [<span class='inner'>&#x2212;</span>]
             </a>
-        </span><a id='src-119312' class='srclink' href='https://doc.rust-lang.org/nightly/core/sync/atomic/enum.Ordering.html?gotosrc=119312' title='goto source code'>[src]</a></span></h1>
+        </span><a id='src-27022' class='srclink' href='https://doc.rust-lang.org/nightly/core/sync/atomic/enum.Ordering.html?gotosrc=27022' title='goto source code'>[src]</a></span></h1>
 <pre class='rust enum'>pub enum Ordering {
     Relaxed,
     Release,
@@ -63,7 +63,8 @@ to be moved either before or after the atomic operation; on the other end
 <p>Rust&#39;s memory orderings are <a href="http://llvm.org/docs/LangRef.html#memory-model-for-concurrent-operations">the same as
 LLVM&#39;s</a>.</p>
 </div><h2 class='variants'>Variants</h2>
-<table><tr><td id='variant.Relaxed'><code>Relaxed</code></td><td><div class='docblock'><p>No ordering constraints, only atomic operations.</p>
+<table><tr><td id='variant.Relaxed'><code>Relaxed</code></td><td><div class='docblock'><p>No ordering constraints, only atomic operations. Corresponds to LLVM&#39;s
+<code>Monotonic</code> ordering.</p>
 </div></td></tr><tr><td id='variant.Release'><code>Release</code></td><td><div class='docblock'><p>When coupled with a store, all previous writes become visible
 to another thread that performs a load with <code>Acquire</code> ordering
 on the same value.</p>
