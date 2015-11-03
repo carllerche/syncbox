@@ -21,7 +21,7 @@ pub fn test_two_thread_basic() {
     let tp = ThreadPool::fixed_size(2);
     let (tx, rx) = sync_channel(0);
 
-    for i in (0..2i32) {
+    for i in 0..2i32 {
         let tx = tx.clone();
         tp.run(move || {
             debug!("send; task={}; msg=hi", i);
@@ -46,7 +46,7 @@ pub fn test_two_threads_task_queue_up() {
     let tp = ThreadPool::fixed_size(2);
     let (tx, rx) = sync_channel(0);
 
-    for i in (0..4i32) {
+    for i in 0..4i32 {
         let tx = tx.clone();
         tp.run(move || {
             debug!("send; task={}; msg=hi", i);
