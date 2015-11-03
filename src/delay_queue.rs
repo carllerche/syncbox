@@ -131,6 +131,9 @@ impl<T: Delayed + Send> Queue<T> for DelayQueue<T> {
 
     fn offer(&self, e: T) -> Result<(), T> {
         let delay = e.delay();
+
+        assert!(delay >= Duration::milliseconds(0), "delay must be greater or equal to 0");
+
         let entry = Entry::new(e, delay);
         let mut queue = self.inner.queue.lock().unwrap();
 
@@ -152,18 +155,22 @@ impl<T: Delayed + Send> Queue<T> for DelayQueue<T> {
 
 impl<T: Delayed + Send> SyncQueue<T> for DelayQueue<T> {
     fn take(&self) -> T {
+        #[derive(Debug)]
         enum Need {
             Wait,
             WaitTimeout(Duration),
         }
 
+        trace!("acquiring lock");
         let mut queue = self.inner.queue.lock().unwrap();
 
         loop {
             let now = SteadyTime::now();
 
+            trace!("peeking into queue");
             let need = match queue.peek() {
                 Some(e) => {
+                    trace!("value present; entry={:?}; now={:?}", e.time, now);
                     if e.time <= now {
                         break;
                     }
@@ -173,6 +180,8 @@ impl<T: Delayed + Send> SyncQueue<T> for DelayQueue<T> {
                 None => Need::Wait
             };
 
+            trace!("need={:?}", need);
+
             queue = match need {
                 Need::Wait => {
                     self.inner.condvar.wait(queue).unwrap()
@@ -180,6 +189,7 @@ impl<T: Delayed + Send> SyncQueue<T> for DelayQueue<T> {
                 Need::WaitTimeout(t) => {
                     // TODO: Check the cast
                     let timeout = t.num_milliseconds() as u32;
+                    trace!("condvar wait; timeout={:?}; t={:?}", timeout, t.num_milliseconds());
 
                     self.inner.condvar.wait_timeout_ms(queue, timeout).unwrap().0
                 }
