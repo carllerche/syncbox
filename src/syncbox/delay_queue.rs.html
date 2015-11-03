@@ -296,11 +296,11 @@
 
 <span class='doccomment'>/// A value that should not be used until the delay has expired.</span>
 <span class='kw'>pub</span> <span class='kw'>trait</span> <span class='ident'>Delayed</span> {
+    <span class='doccomment'>/// Returns he delay associated with the value.</span>
     <span class='kw'>fn</span> <span class='ident'>delay</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>Duration</span>;
 }
 
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Delayed</span><span class='op'>&gt;</span> <span class='ident'>Delayed</span> <span class='kw'>for</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
-    <span class='doccomment'>/// The delay associated with the value</span>
     <span class='kw'>fn</span> <span class='ident'>delay</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>Duration</span> {
         <span class='kw'>match</span> <span class='op'>*</span><span class='self'>self</span> {
             <span class='prelude-val'>Some</span>(<span class='kw-2'>ref</span> <span class='ident'>v</span>) <span class='op'>=&gt;</span> <span class='ident'>v</span>.<span class='ident'>delay</span>(),
@@ -309,11 +309,12 @@
     }
 }
 
-<span class='doccomment'>/// Associate a delay with a value</span>
+<span class='doccomment'>/// Associate a delay with a value.</span>
 <span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Eq</span>, <span class='ident'>PartialEq</span>, <span class='ident'>Ord</span>, <span class='ident'>PartialOrd</span>, <span class='ident'>Debug</span>)]</span>
 <span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Delay</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>(<span class='kw'>pub</span> <span class='ident'>T</span>, <span class='kw'>pub</span> <span class='ident'>Duration</span>);
 
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> <span class='ident'>Delay</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
+    <span class='doccomment'>/// Moves the value out of the `Delay&lt;T&gt;`.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>unwrap</span>(<span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>T</span> {
         <span class='self'>self</span>.<span class='number'>0</span>
     }
@@ -353,7 +354,7 @@
 }
 
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span>: <span class='ident'>Delayed</span> <span class='op'>+</span> <span class='ident'>Send</span><span class='op'>&gt;</span> <span class='ident'>DelayQueue</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
-    <span class='doccomment'>/// Create a new `DelayQueue`</span>
+    <span class='doccomment'>/// Constructs a new `DelayQueue`.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>() <span class='op'>-&gt;</span> <span class='ident'>DelayQueue</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
         <span class='ident'>DelayQueue</span> {
             <span class='ident'>inner</span>: <span class='ident'>Arc</span>::<span class='ident'>new</span>(<span class='ident'>Inner</span> {
@@ -363,8 +364,7 @@
         }
     }
 
-    <span class='doccomment'>/// Retrieves and removes the head of the queue, blocking if necessary for</span>
-    <span class='doccomment'>/// up to `timeout`.</span>
+    <span class='doccomment'>/// Takes from the queue, blocking for up to `timeout`.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>poll_timeout</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>timeout</span>: <span class='ident'>Duration</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
         <span class='kw'>let</span> <span class='ident'>end</span> <span class='op'>=</span> <span class='ident'>SteadyTime</span>::<span class='ident'>now</span>() <span class='op'>+</span> <span class='ident'>timeout</span>;
         <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>queue</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>inner</span>.<span class='ident'>queue</span>.<span class='ident'>lock</span>().<span class='ident'>unwrap</span>();
