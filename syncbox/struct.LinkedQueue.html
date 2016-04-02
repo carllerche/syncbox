@@ -9,6 +9,7 @@
 
     <title>syncbox::LinkedQueue - Rust</title>
 
+    <link rel="stylesheet" type="text/css" href="../rustdoc.css">
     <link rel="stylesheet" type="text/css" href="../main.css">
 
     
@@ -45,7 +46,7 @@
             <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
                 [<span class='inner'>&#x2212;</span>]
             </a>
-        </span><a id='src-494' class='srclink' href='../src/syncbox/linked_queue.rs.html#12-14' title='goto source code'>[src]</a></span></h1>
+        </span><a id='src-497' class='srclink' href='../src/syncbox/linked_queue.rs.html#12-14' title='goto source code'>[src]</a></span></h1>
 <pre class='rust struct'>pub struct LinkedQueue&lt;T: <a class='trait' href='https://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a>&gt; {
     // some fields omitted
 }</pre><div class='docblock'><p>A queue in which values are contained by a linked list.</p>
@@ -55,37 +56,37 @@ It is also mostly a placeholder until a lock-free version is implemented,
 so it has not been tuned for performance.</p>
 </div><h2 id='methods'>Methods</h2><h3 class='impl'><code>impl&lt;T: <a class='trait' href='https://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a>&gt; <a class='struct' href='../syncbox/struct.LinkedQueue.html' title='syncbox::LinkedQueue'>LinkedQueue</a>&lt;T&gt;</code></h3><div class='impl-items'><h4 id='method.new' class='method'><code>fn <a href='#method.new' class='fnname'>new</a>() -&gt; <a class='struct' href='../syncbox/struct.LinkedQueue.html' title='syncbox::LinkedQueue'>LinkedQueue</a>&lt;T&gt;</code></h4>
 <div class='docblock'><p>Constructs a new, empty <code>LinkedQueue&lt;T&gt;</code> with capacity <code>usize::MAX</code>.</p>
-</div><h4 id='method.with_capacity' class='method'><code>fn <a href='#method.with_capacity' class='fnname'>with_capacity</a>(capacity: <a href='https://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a>) -&gt; <a class='struct' href='../syncbox/struct.LinkedQueue.html' title='syncbox::LinkedQueue'>LinkedQueue</a>&lt;T&gt;</code></h4>
+</div><h4 id='method.with_capacity' class='method'><code>fn <a href='#method.with_capacity' class='fnname'>with_capacity</a>(capacity: <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a>) -&gt; <a class='struct' href='../syncbox/struct.LinkedQueue.html' title='syncbox::LinkedQueue'>LinkedQueue</a>&lt;T&gt;</code></h4>
 <div class='docblock'><p>Constructs a new, empty <code>LinkedQueue&lt;T&gt;</code> with the specified capacity.</p>
-</div><h4 id='method.len' class='method'><code>fn <a href='#method.len' class='fnname'>len</a>(&amp;self) -&gt; <a href='https://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a></code></h4>
+</div><h4 id='method.len' class='method'><code>fn <a href='#method.len' class='fnname'>len</a>(&amp;self) -&gt; <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a></code></h4>
 <div class='docblock'><p>Returns the number of elements in the queue.</p>
-</div><h4 id='method.is_empty' class='method'><code>fn <a href='#method.is_empty' class='fnname'>is_empty</a>(&amp;self) -&gt; <a href='https://doc.rust-lang.org/nightly/std/primitive.bool.html'>bool</a></code></h4>
+</div><h4 id='method.is_empty' class='method'><code>fn <a href='#method.is_empty' class='fnname'>is_empty</a>(&amp;self) -&gt; <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.bool.html'>bool</a></code></h4>
 <div class='docblock'><p>Returns <code>true</code> if the queue contains no elements.</p>
-</div><h4 id='method.offer' class='method'><code>fn <a href='#method.offer' class='fnname'>offer</a>(&amp;self, e: T) -&gt; <a class='enum' href='https://doc.rust-lang.org/nightly/core/result/enum.Result.html' title='core::result::Result'>Result</a>&lt;<a href='https://doc.rust-lang.org/nightly/std/primitive.tuple.html'>()</a>, T&gt;</code></h4>
+</div><h4 id='method.offer' class='method'><code>fn <a href='#method.offer' class='fnname'>offer</a>(&amp;self, e: T) -&gt; <a class='enum' href='https://doc.rust-lang.org/nightly/core/result/enum.Result.html' title='core::result::Result'>Result</a>&lt;<a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.tuple.html'>()</a>, T&gt;</code></h4>
 <div class='docblock'><p>Adds the element <code>e</code> to the queue if possible.</p>
 
 <h1 id='errors' class='section-header'><a href='#errors'>Errors</a></h1>
 <p>A call to <code>offer</code> will fail if the queue is full; the provided element
 <code>e</code> is returned in the <code>Err</code> variant.</p>
-</div><h4 id='method.offer_ms' class='method'><code>fn <a href='#method.offer_ms' class='fnname'>offer_ms</a>(&amp;self, e: T, ms: <a href='https://doc.rust-lang.org/nightly/std/primitive.u32.html'>u32</a>) -&gt; <a class='enum' href='https://doc.rust-lang.org/nightly/core/result/enum.Result.html' title='core::result::Result'>Result</a>&lt;<a href='https://doc.rust-lang.org/nightly/std/primitive.tuple.html'>()</a>, T&gt;</code></h4>
+</div><h4 id='method.offer_ms' class='method'><code>fn <a href='#method.offer_ms' class='fnname'>offer_ms</a>(&amp;self, e: T, ms: <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.u32.html'>u32</a>) -&gt; <a class='enum' href='https://doc.rust-lang.org/nightly/core/result/enum.Result.html' title='core::result::Result'>Result</a>&lt;<a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.tuple.html'>()</a>, T&gt;</code></h4>
 <div class='docblock'><p>Adds the element <code>e</code> to the queue, blocking for up to <code>ms</code> milliseconds.</p>
 
-<h1 id='errors' class='section-header'><a href='#errors'>Errors</a></h1>
+<h1 id='errors-1' class='section-header'><a href='#errors-1'>Errors</a></h1>
 <p>A call to <code>offer_ms</code> will fail if the element cannot be added within the
 timeout; the provided element <code>e</code> is returned in the <code>Err</code> variant.</p>
 </div><h4 id='method.put' class='method'><code>fn <a href='#method.put' class='fnname'>put</a>(&amp;self, e: T)</code></h4>
 <div class='docblock'><p>Adds the element <code>e</code> to the queue, blocking until it can be added.</p>
 </div><h4 id='method.poll' class='method'><code>fn <a href='#method.poll' class='fnname'>poll</a>(&amp;self) -&gt; <a class='enum' href='https://doc.rust-lang.org/nightly/core/option/enum.Option.html' title='core::option::Option'>Option</a>&lt;T&gt;</code></h4>
 <div class='docblock'><p>Takes from the queue if there is an element available.</p>
-</div><h4 id='method.poll_ms' class='method'><code>fn <a href='#method.poll_ms' class='fnname'>poll_ms</a>(&amp;self, ms: <a href='https://doc.rust-lang.org/nightly/std/primitive.u32.html'>u32</a>) -&gt; <a class='enum' href='https://doc.rust-lang.org/nightly/core/option/enum.Option.html' title='core::option::Option'>Option</a>&lt;T&gt;</code></h4>
+</div><h4 id='method.poll_ms' class='method'><code>fn <a href='#method.poll_ms' class='fnname'>poll_ms</a>(&amp;self, ms: <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.u32.html'>u32</a>) -&gt; <a class='enum' href='https://doc.rust-lang.org/nightly/core/option/enum.Option.html' title='core::option::Option'>Option</a>&lt;T&gt;</code></h4>
 <div class='docblock'><p>Takes from the queue, blocking for up to <code>ms</code> milliseconds.</p>
 </div><h4 id='method.take' class='method'><code>fn <a href='#method.take' class='fnname'>take</a>(&amp;self) -&gt; T</code></h4>
 <div class='docblock'><p>Takes from the queue, blocking until there is an element available.</p>
-</div></div><h2 id='implementations'>Trait Implementations</h2><h3 class='impl'><code>impl&lt;T: <a class='trait' href='https://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a>&gt; <a class='trait' href='../syncbox/trait.Queue.html' title='syncbox::Queue'>Queue</a>&lt;T&gt; for <a class='struct' href='../syncbox/struct.LinkedQueue.html' title='syncbox::LinkedQueue'>LinkedQueue</a>&lt;T&gt;</code></h3><div class='impl-items'><h4 id='method.poll' class='method'><code>fn <a href='../syncbox/trait.Queue.html#method.poll' class='fnname'>poll</a>(&amp;self) -&gt; <a class='enum' href='https://doc.rust-lang.org/nightly/core/option/enum.Option.html' title='core::option::Option'>Option</a>&lt;T&gt;</code></h4>
-<h4 id='method.is_empty' class='method'><code>fn <a href='../syncbox/trait.Queue.html#method.is_empty' class='fnname'>is_empty</a>(&amp;self) -&gt; <a href='https://doc.rust-lang.org/nightly/std/primitive.bool.html'>bool</a></code></h4>
-<h4 id='method.offer' class='method'><code>fn <a href='../syncbox/trait.Queue.html#method.offer' class='fnname'>offer</a>(&amp;self, e: T) -&gt; <a class='enum' href='https://doc.rust-lang.org/nightly/core/result/enum.Result.html' title='core::result::Result'>Result</a>&lt;<a href='https://doc.rust-lang.org/nightly/std/primitive.tuple.html'>()</a>, T&gt;</code></h4>
-</div><h3 class='impl'><code>impl&lt;T: <a class='trait' href='https://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a>&gt; <a class='trait' href='../syncbox/trait.SyncQueue.html' title='syncbox::SyncQueue'>SyncQueue</a>&lt;T&gt; for <a class='struct' href='../syncbox/struct.LinkedQueue.html' title='syncbox::LinkedQueue'>LinkedQueue</a>&lt;T&gt;</code></h3><div class='impl-items'><h4 id='method.take' class='method'><code>fn <a href='../syncbox/trait.SyncQueue.html#method.take' class='fnname'>take</a>(&amp;self) -&gt; T</code></h4>
-<h4 id='method.put' class='method'><code>fn <a href='../syncbox/trait.SyncQueue.html#method.put' class='fnname'>put</a>(&amp;self, e: T)</code></h4>
+</div></div><h2 id='implementations'>Trait Implementations</h2><h3 class='impl'><code>impl&lt;T: <a class='trait' href='https://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a>&gt; <a class='trait' href='../syncbox/trait.Queue.html' title='syncbox::Queue'>Queue</a>&lt;T&gt; for <a class='struct' href='../syncbox/struct.LinkedQueue.html' title='syncbox::LinkedQueue'>LinkedQueue</a>&lt;T&gt;</code></h3><div class='impl-items'><h4 id='method.poll-1' class='method'><code>fn <a href='../syncbox/trait.Queue.html#method.poll' class='fnname'>poll</a>(&amp;self) -&gt; <a class='enum' href='https://doc.rust-lang.org/nightly/core/option/enum.Option.html' title='core::option::Option'>Option</a>&lt;T&gt;</code></h4>
+<h4 id='method.is_empty-1' class='method'><code>fn <a href='../syncbox/trait.Queue.html#method.is_empty' class='fnname'>is_empty</a>(&amp;self) -&gt; <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.bool.html'>bool</a></code></h4>
+<h4 id='method.offer-1' class='method'><code>fn <a href='../syncbox/trait.Queue.html#method.offer' class='fnname'>offer</a>(&amp;self, e: T) -&gt; <a class='enum' href='https://doc.rust-lang.org/nightly/core/result/enum.Result.html' title='core::result::Result'>Result</a>&lt;<a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.tuple.html'>()</a>, T&gt;</code></h4>
+</div><h3 class='impl'><code>impl&lt;T: <a class='trait' href='https://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a>&gt; <a class='trait' href='../syncbox/trait.SyncQueue.html' title='syncbox::SyncQueue'>SyncQueue</a>&lt;T&gt; for <a class='struct' href='../syncbox/struct.LinkedQueue.html' title='syncbox::LinkedQueue'>LinkedQueue</a>&lt;T&gt;</code></h3><div class='impl-items'><h4 id='method.take-1' class='method'><code>fn <a href='../syncbox/trait.SyncQueue.html#method.take' class='fnname'>take</a>(&amp;self) -&gt; T</code></h4>
+<h4 id='method.put-1' class='method'><code>fn <a href='../syncbox/trait.SyncQueue.html#method.put' class='fnname'>put</a>(&amp;self, e: T)</code></h4>
 </div><h3 class='impl'><code>impl&lt;T: <a class='trait' href='https://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a>&gt; <a class='trait' href='https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html' title='core::clone::Clone'>Clone</a> for <a class='struct' href='../syncbox/struct.LinkedQueue.html' title='syncbox::LinkedQueue'>LinkedQueue</a>&lt;T&gt;</code></h3><div class='impl-items'><h4 id='method.clone' class='method'><code>fn <a href='https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html#method.clone' class='fnname'>clone</a>(&amp;self) -&gt; <a class='struct' href='../syncbox/struct.LinkedQueue.html' title='syncbox::LinkedQueue'>LinkedQueue</a>&lt;T&gt;</code></h4>
 <h4 id='method.clone_from' class='method'><code>fn <a href='https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html#method.clone_from' class='fnname'>clone_from</a>(&amp;mut self, source: &amp;Self)</code></h4>
 </div></section>
@@ -147,6 +148,6 @@ timeout; the provided element <code>e</code> is returned in the <code>Err</code>
     <script src="../jquery.js"></script>
     <script src="../main.js"></script>
     
-    <script async src="../search-index.js"></script>
+    <script defer src="../search-index.js"></script>
 </body>
 </html>
