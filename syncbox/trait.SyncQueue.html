@@ -9,6 +9,7 @@
 
     <title>syncbox::SyncQueue - Rust</title>
 
+    <link rel="stylesheet" type="text/css" href="../rustdoc.css">
     <link rel="stylesheet" type="text/css" href="../main.css">
 
     
@@ -24,10 +25,10 @@
 
     
 
-    <section class="sidebar">
+    <nav class="sidebar">
         
         <p class='location'><a href='index.html'>syncbox</a></p><script>window.sidebarCurrent = {name: 'SyncQueue', ty: 'trait', relpath: ''};</script><script defer src="sidebar-items.js"></script>
-    </section>
+    </nav>
 
     <nav class="sub">
         <form class="search-form js-only">
@@ -42,11 +43,11 @@
 
     <section id='main' class="content trait">
 <h1 class='fqn'><span class='in-band'>Trait <a href='index.html'>syncbox</a>::<wbr><a class='trait' href=''>SyncQueue</a></span><span class='out-of-band'><span id='render-detail'>
-            <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
-                [<span class='inner'>&#x2212;</span>]
-            </a>
-        </span><a id='src-7710' class='srclink' href='../src/syncbox/queue.rs.html#28-34' title='goto source code'>[src]</a></span></h1>
-<pre class='rust trait'>pub trait SyncQueue&lt;T: <a class='trait' href='http://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a>&gt;: <a class='trait' href='../syncbox/trait.Queue.html' title='syncbox::Queue'>Queue</a>&lt;T&gt; {
+                   <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
+                       [<span class='inner'>&#x2212;</span>]
+                   </a>
+               </span><a id='src-1048' class='srclink' href='../src/syncbox/src/queue.rs.html#28-34' title='goto source code'>[src]</a></span></h1>
+<pre class='rust trait'>pub trait SyncQueue&lt;T: <a class='trait' href='https://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a>&gt;: <a class='trait' href='../syncbox/trait.Queue.html' title='syncbox::Queue'>Queue</a>&lt;T&gt; {
     fn <a href='#tymethod.take' class='fnname'>take</a>(&amp;self) -&gt; T;
     fn <a href='#tymethod.put' class='fnname'>put</a>(&amp;self, e: T);
 }</pre><div class='docblock'><p>An interface for synchronous queues of elements of type <code>T</code>.</p>
@@ -62,19 +63,21 @@ succeeds.</p>
 </div></div>
         <h2 id='implementors'>Implementors</h2>
         <ul class='item-list' id='implementors-list'>
-    <li><code>impl&lt;T: <a class='trait' href='../syncbox/trait.Delayed.html' title='syncbox::Delayed'>Delayed</a> + <a class='trait' href='http://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a>&gt; <a class='trait' href='../syncbox/trait.SyncQueue.html' title='syncbox::SyncQueue'>SyncQueue</a>&lt;T&gt; for <a class='struct' href='../syncbox/struct.DelayQueue.html' title='syncbox::DelayQueue'>DelayQueue</a>&lt;T&gt;</code></li>
-<li><code>impl&lt;T: <a class='trait' href='http://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a>&gt; <a class='trait' href='../syncbox/trait.SyncQueue.html' title='syncbox::SyncQueue'>SyncQueue</a>&lt;T&gt; for <a class='struct' href='../syncbox/struct.LinkedQueue.html' title='syncbox::LinkedQueue'>LinkedQueue</a>&lt;T&gt;</code></li>
+    <li><code>impl&lt;T: <a class='trait' href='../syncbox/trait.Delayed.html' title='syncbox::Delayed'>Delayed</a> + <a class='trait' href='https://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a>&gt; <a class='trait' href='../syncbox/trait.SyncQueue.html' title='syncbox::SyncQueue'>SyncQueue</a>&lt;T&gt; for <a class='struct' href='../syncbox/struct.DelayQueue.html' title='syncbox::DelayQueue'>DelayQueue</a>&lt;T&gt;</code></li>
+<li><code>impl&lt;T: <a class='trait' href='https://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a>&gt; <a class='trait' href='../syncbox/trait.SyncQueue.html' title='syncbox::SyncQueue'>SyncQueue</a>&lt;T&gt; for <a class='struct' href='../syncbox/struct.LinkedQueue.html' title='syncbox::LinkedQueue'>LinkedQueue</a>&lt;T&gt;</code></li>
 </ul><script type="text/javascript" async
-                              src="../implementors/syncbox/trait.SyncQueue.js">
-                      </script></section>
+                         src="../implementors/syncbox/trait.SyncQueue.js">
+                 </script></section>
     <section id='search' class="content hidden"></section>
 
     <section class="footer"></section>
 
-    <div id="help" class="hidden">
+    <aside id="help" class="hidden">
         <div>
+            <h1 class="hidden">Help</h1>
+
             <div class="shortcuts">
-                <h1>Keyboard Shortcuts</h1>
+                <h2>Keyboard Shortcuts</h2>
 
                 <dl>
                     <dt>?</dt>
@@ -91,7 +94,7 @@ succeeds.</p>
             </div>
 
             <div class="infos">
-                <h1>Search Tricks</h1>
+                <h2>Search Tricks</h2>
 
                 <p>
                     Prefix searches with a type followed by a colon (e.g.
@@ -101,17 +104,17 @@ succeeds.</p>
                 <p>
                     Accepted types are: <code>fn</code>, <code>mod</code>,
                     <code>struct</code>, <code>enum</code>,
-                    <code>trait</code>, <code>typedef</code> (or
-                    <code>tdef</code>).
+                    <code>trait</code>, <code>type</code>, <code>macro</code>,
+                    and <code>const</code>.
                 </p>
 
                 <p>
                     Search functions by type signature (e.g.
-                    <code>vec -> usize</code>)
+                    <code>vec -> usize</code> or <code>* -> vec</code>)
                 </p>
             </div>
         </div>
-    </div>
+    </aside>
 
     
 
@@ -123,6 +126,6 @@ succeeds.</p>
     <script src="../jquery.js"></script>
     <script src="../main.js"></script>
     
-    <script async src="../search-index.js"></script>
+    <script defer src="../search-index.js"></script>
 </body>
 </html>

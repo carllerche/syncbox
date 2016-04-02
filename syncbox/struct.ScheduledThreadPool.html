@@ -9,6 +9,7 @@
 
     <title>syncbox::ScheduledThreadPool - Rust</title>
 
+    <link rel="stylesheet" type="text/css" href="../rustdoc.css">
     <link rel="stylesheet" type="text/css" href="../main.css">
 
     
@@ -24,10 +25,10 @@
 
     
 
-    <section class="sidebar">
+    <nav class="sidebar">
         
         <p class='location'><a href='index.html'>syncbox</a></p><script>window.sidebarCurrent = {name: 'ScheduledThreadPool', ty: 'struct', relpath: ''};</script><script defer src="sidebar-items.js"></script>
-    </section>
+    </nav>
 
     <nav class="sub">
         <form class="search-form js-only">
@@ -42,31 +43,33 @@
 
     <section id='main' class="content struct">
 <h1 class='fqn'><span class='in-band'>Struct <a href='index.html'>syncbox</a>::<wbr><a class='struct' href=''>ScheduledThreadPool</a></span><span class='out-of-band'><span id='render-detail'>
-            <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
-                [<span class='inner'>&#x2212;</span>]
-            </a>
-        </span><a id='src-4196' class='srclink' href='../src/syncbox/thread_pool.rs.html#83-85' title='goto source code'>[src]</a></span></h1>
+                   <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
+                       [<span class='inner'>&#x2212;</span>]
+                   </a>
+               </span><a id='src-699' class='srclink' href='../src/syncbox/src/thread_pool.rs.html#83-85' title='goto source code'>[src]</a></span></h1>
 <pre class='rust struct'>pub struct ScheduledThreadPool {
     // some fields omitted
 }</pre><div class='docblock'><p>A thread pool that can schedule tasks to run after a given delay, or to
 execute periodically. Delayed tasks do not run before their associated
 delays, but besides that, there are no real-time guarantees about exactly
 when the task will run.</p>
-</div><h2 id='methods'>Methods</h2><h3 class='impl'><code>impl <a class='struct' href='../syncbox/struct.ScheduledThreadPool.html' title='syncbox::ScheduledThreadPool'>ScheduledThreadPool</a></code></h3><div class='impl-items'><h4 id='method.fixed_size' class='method'><code>fn <a href='#method.fixed_size' class='fnname'>fixed_size</a>(size: <a href='http://doc.rust-lang.org/nightly/std/primitive.u32.html'>u32</a>) -&gt; <a class='struct' href='../syncbox/struct.ScheduledThreadPool.html' title='syncbox::ScheduledThreadPool'>ScheduledThreadPool</a></code></h4>
+</div><h2 id='methods'>Methods</h2><h3 class='impl'><code>impl <a class='struct' href='../syncbox/struct.ScheduledThreadPool.html' title='syncbox::ScheduledThreadPool'>ScheduledThreadPool</a></code></h3><div class='impl-items'><h4 id='method.fixed_size' class='method'><code>fn <a href='#method.fixed_size' class='fnname'>fixed_size</a>(size: <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.u32.html'>u32</a>) -&gt; <a class='struct' href='../syncbox/struct.ScheduledThreadPool.html' title='syncbox::ScheduledThreadPool'>ScheduledThreadPool</a></code></h4>
 <h4 id='method.single_thread' class='method'><code>fn <a href='#method.single_thread' class='fnname'>single_thread</a>() -&gt; <a class='struct' href='../syncbox/struct.ScheduledThreadPool.html' title='syncbox::ScheduledThreadPool'>ScheduledThreadPool</a></code></h4>
-<h4 id='method.schedule_ms' class='method'><code>fn <a href='#method.schedule_ms' class='fnname'>schedule_ms</a>&lt;T: <a class='trait' href='../syncbox/trait.Task.html' title='syncbox::Task'>Task</a> + 'static&gt;(&amp;self, delay: <a href='http://doc.rust-lang.org/nightly/std/primitive.u32.html'>u32</a>, task: T)</code></h4>
-</div><h2 id='implementations'>Trait Implementations</h2><h3 class='impl'><code>impl&lt;T: <a class='trait' href='../syncbox/trait.Task.html' title='syncbox::Task'>Task</a> + 'static&gt; <a class='trait' href='../syncbox/trait.Run.html' title='syncbox::Run'>Run</a>&lt;T&gt; for <a class='struct' href='../syncbox/struct.ScheduledThreadPool.html' title='syncbox::ScheduledThreadPool'>ScheduledThreadPool</a></code></h3><div class='impl-items'><h4 id='method.run' class='method'><code>fn <a href='../syncbox/trait.Run.html#method.run' class='fnname'>run</a>(&amp;self, task: T)</code></h4>
-</div><h3 class='impl'><code>impl <a class='trait' href='http://doc.rust-lang.org/nightly/core/clone/trait.Clone.html' title='core::clone::Clone'>Clone</a> for <a class='struct' href='../syncbox/struct.ScheduledThreadPool.html' title='syncbox::ScheduledThreadPool'>ScheduledThreadPool</a></code></h3><div class='impl-items'><h4 id='method.clone' class='method'><code>fn <a href='http://doc.rust-lang.org/nightly/core/clone/trait.Clone.html#method.clone' class='fnname'>clone</a>(&amp;self) -&gt; <a class='struct' href='../syncbox/struct.ScheduledThreadPool.html' title='syncbox::ScheduledThreadPool'>ScheduledThreadPool</a></code></h4>
-<h4 id='method.clone_from' class='method'><code>fn <a href='http://doc.rust-lang.org/nightly/core/clone/trait.Clone.html#method.clone_from' class='fnname'>clone_from</a>(&amp;mut self, source: &amp;Self)</code></h4>
+<h4 id='method.schedule_ms' class='method'><code>fn <a href='#method.schedule_ms' class='fnname'>schedule_ms</a>&lt;T: <a class='trait' href='../syncbox/trait.Task.html' title='syncbox::Task'>Task</a> + 'static&gt;(&amp;self, delay: <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.u32.html'>u32</a>, task: T)</code></h4>
+</div><h2 id='implementations'>Trait Implementations</h2><h3 class='impl'><code>impl&lt;T: <a class='trait' href='../syncbox/trait.Task.html' title='syncbox::Task'>Task</a> + 'static&gt; <a class='trait' href='../syncbox/trait.Run.html' title='syncbox::Run'>Run</a>&lt;T&gt; for <a class='struct' href='../syncbox/struct.ScheduledThreadPool.html' title='syncbox::ScheduledThreadPool'>ScheduledThreadPool</a></code></h3><div class='impl-items'><h4 id='method.run' class='method'><code>fn <a href='../syncbox/trait.Run.html#tymethod.run' class='fnname'>run</a>(&amp;self, task: T)</code></h4>
+</div><h3 class='impl'><code>impl <a class='trait' href='https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html' title='core::clone::Clone'>Clone</a> for <a class='struct' href='../syncbox/struct.ScheduledThreadPool.html' title='syncbox::ScheduledThreadPool'>ScheduledThreadPool</a></code></h3><div class='impl-items'><h4 id='method.clone' class='method'><code>fn <a href='https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html#tymethod.clone' class='fnname'>clone</a>(&amp;self) -&gt; <a class='struct' href='../syncbox/struct.ScheduledThreadPool.html' title='syncbox::ScheduledThreadPool'>ScheduledThreadPool</a></code></h4>
+<h4 id='method.clone_from' class='method'><span class="since">1.0.0</span><code>fn <a href='https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html#method.clone_from' class='fnname'>clone_from</a>(&amp;mut self, source: &amp;Self)</code></h4>
 </div></section>
     <section id='search' class="content hidden"></section>
 
     <section class="footer"></section>
 
-    <div id="help" class="hidden">
+    <aside id="help" class="hidden">
         <div>
+            <h1 class="hidden">Help</h1>
+
             <div class="shortcuts">
-                <h1>Keyboard Shortcuts</h1>
+                <h2>Keyboard Shortcuts</h2>
 
                 <dl>
                     <dt>?</dt>
@@ -83,7 +86,7 @@ when the task will run.</p>
             </div>
 
             <div class="infos">
-                <h1>Search Tricks</h1>
+                <h2>Search Tricks</h2>
 
                 <p>
                     Prefix searches with a type followed by a colon (e.g.
@@ -93,17 +96,17 @@ when the task will run.</p>
                 <p>
                     Accepted types are: <code>fn</code>, <code>mod</code>,
                     <code>struct</code>, <code>enum</code>,
-                    <code>trait</code>, <code>typedef</code> (or
-                    <code>tdef</code>).
+                    <code>trait</code>, <code>type</code>, <code>macro</code>,
+                    and <code>const</code>.
                 </p>
 
                 <p>
                     Search functions by type signature (e.g.
-                    <code>vec -> usize</code>)
+                    <code>vec -> usize</code> or <code>* -> vec</code>)
                 </p>
             </div>
         </div>
-    </div>
+    </aside>
 
     
 
@@ -115,6 +118,6 @@ when the task will run.</p>
     <script src="../jquery.js"></script>
     <script src="../main.js"></script>
     
-    <script async src="../search-index.js"></script>
+    <script defer src="../search-index.js"></script>
 </body>
 </html>

@@ -9,6 +9,7 @@
 
     <title>syncbox::Task - Rust</title>
 
+    <link rel="stylesheet" type="text/css" href="../rustdoc.css">
     <link rel="stylesheet" type="text/css" href="../main.css">
 
     
@@ -24,10 +25,10 @@
 
     
 
-    <section class="sidebar">
+    <nav class="sidebar">
         
         <p class='location'><a href='index.html'>syncbox</a></p><script>window.sidebarCurrent = {name: 'Task', ty: 'trait', relpath: ''};</script><script defer src="sidebar-items.js"></script>
-    </section>
+    </nav>
 
     <nav class="sub">
         <form class="search-form js-only">
@@ -42,11 +43,11 @@
 
     <section id='main' class="content trait">
 <h1 class='fqn'><span class='in-band'>Trait <a href='index.html'>syncbox</a>::<wbr><a class='trait' href=''>Task</a></span><span class='out-of-band'><span id='render-detail'>
-            <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
-                [<span class='inner'>&#x2212;</span>]
-            </a>
-        </span><a id='src-7744' class='srclink' href='../src/syncbox/run.rs.html#8-11' title='goto source code'>[src]</a></span></h1>
-<pre class='rust trait'>pub trait Task: <a class='trait' href='http://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a> + 'static {
+                   <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
+                       [<span class='inner'>&#x2212;</span>]
+                   </a>
+               </span><a id='src-1062' class='srclink' href='../src/syncbox/src/run.rs.html#8-11' title='goto source code'>[src]</a></span></h1>
+<pre class='rust trait'>pub trait Task: <a class='trait' href='https://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a> + 'static {
     fn <a href='#tymethod.run' class='fnname'>run</a>(self);
 }</pre><div class='docblock'><p>A value that can run a unit of work.</p>
 </div>
@@ -56,18 +57,20 @@
 </div></div>
         <h2 id='implementors'>Implementors</h2>
         <ul class='item-list' id='implementors-list'>
-    <li><code>impl <a class='trait' href='../syncbox/trait.Task.html' title='syncbox::Task'>Task</a> for <a class='struct' href='http://doc.rust-lang.org/nightly/alloc/boxed/struct.Box.html' title='alloc::boxed::Box'>Box</a>&lt;<a class='trait' href='../syncbox/trait.TaskBox.html' title='syncbox::TaskBox'>TaskBox</a>&gt;</code></li>
+    <li><code>impl <a class='trait' href='../syncbox/trait.Task.html' title='syncbox::Task'>Task</a> for <a class='struct' href='https://doc.rust-lang.org/nightly/alloc/boxed/struct.Box.html' title='alloc::boxed::Box'>Box</a>&lt;<a class='trait' href='../syncbox/trait.TaskBox.html' title='syncbox::TaskBox'>TaskBox</a>&gt;</code></li>
 </ul><script type="text/javascript" async
-                              src="../implementors/syncbox/trait.Task.js">
-                      </script></section>
+                         src="../implementors/syncbox/trait.Task.js">
+                 </script></section>
     <section id='search' class="content hidden"></section>
 
     <section class="footer"></section>
 
-    <div id="help" class="hidden">
+    <aside id="help" class="hidden">
         <div>
+            <h1 class="hidden">Help</h1>
+
             <div class="shortcuts">
-                <h1>Keyboard Shortcuts</h1>
+                <h2>Keyboard Shortcuts</h2>
 
                 <dl>
                     <dt>?</dt>
@@ -84,7 +87,7 @@
             </div>
 
             <div class="infos">
-                <h1>Search Tricks</h1>
+                <h2>Search Tricks</h2>
 
                 <p>
                     Prefix searches with a type followed by a colon (e.g.
@@ -94,17 +97,17 @@
                 <p>
                     Accepted types are: <code>fn</code>, <code>mod</code>,
                     <code>struct</code>, <code>enum</code>,
-                    <code>trait</code>, <code>typedef</code> (or
-                    <code>tdef</code>).
+                    <code>trait</code>, <code>type</code>, <code>macro</code>,
+                    and <code>const</code>.
                 </p>
 
                 <p>
                     Search functions by type signature (e.g.
-                    <code>vec -> usize</code>)
+                    <code>vec -> usize</code> or <code>* -> vec</code>)
                 </p>
             </div>
         </div>
-    </div>
+    </aside>
 
     
 
@@ -116,6 +119,6 @@
     <script src="../jquery.js"></script>
     <script src="../main.js"></script>
     
-    <script async src="../search-index.js"></script>
+    <script defer src="../search-index.js"></script>
 </body>
 </html>

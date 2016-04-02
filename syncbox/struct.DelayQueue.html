@@ -9,6 +9,7 @@
 
     <title>syncbox::DelayQueue - Rust</title>
 
+    <link rel="stylesheet" type="text/css" href="../rustdoc.css">
     <link rel="stylesheet" type="text/css" href="../main.css">
 
     
@@ -24,10 +25,10 @@
 
     
 
-    <section class="sidebar">
+    <nav class="sidebar">
         
         <p class='location'><a href='index.html'>syncbox</a></p><script>window.sidebarCurrent = {name: 'DelayQueue', ty: 'struct', relpath: ''};</script><script defer src="sidebar-items.js"></script>
-    </section>
+    </nav>
 
     <nav class="sub">
         <form class="search-form js-only">
@@ -42,36 +43,38 @@
 
     <section id='main' class="content struct">
 <h1 class='fqn'><span class='in-band'>Struct <a href='index.html'>syncbox</a>::<wbr><a class='struct' href=''>DelayQueue</a></span><span class='out-of-band'><span id='render-detail'>
-            <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
-                [<span class='inner'>&#x2212;</span>]
-            </a>
-        </span><a id='src-1966' class='srclink' href='../src/syncbox/delay_queue.rs.html#58-60' title='goto source code'>[src]</a></span></h1>
-<pre class='rust struct'>pub struct DelayQueue&lt;T: <a class='trait' href='../syncbox/trait.Delayed.html' title='syncbox::Delayed'>Delayed</a> + <a class='trait' href='http://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a>&gt; {
+                   <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
+                       [<span class='inner'>&#x2212;</span>]
+                   </a>
+               </span><a id='src-367' class='srclink' href='../src/syncbox/src/delay_queue.rs.html#58-60' title='goto source code'>[src]</a></span></h1>
+<pre class='rust struct'>pub struct DelayQueue&lt;T: <a class='trait' href='../syncbox/trait.Delayed.html' title='syncbox::Delayed'>Delayed</a> + <a class='trait' href='https://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a>&gt; {
     // some fields omitted
 }</pre><div class='docblock'><p>An unbounded blocking queue of delayed values. When a value is pushed onto
 the queue, a delay is included. The value will only be able to be popped
 off once the specified delay has expired. The head of the queue is the
 value whose delay is expired and furthest in the past.</p>
-</div><h2 id='methods'>Methods</h2><h3 class='impl'><code>impl&lt;T: <a class='trait' href='../syncbox/trait.Delayed.html' title='syncbox::Delayed'>Delayed</a> + <a class='trait' href='http://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a>&gt; <a class='struct' href='../syncbox/struct.DelayQueue.html' title='syncbox::DelayQueue'>DelayQueue</a>&lt;T&gt;</code></h3><div class='impl-items'><h4 id='method.new' class='method'><code>fn <a href='#method.new' class='fnname'>new</a>() -&gt; <a class='struct' href='../syncbox/struct.DelayQueue.html' title='syncbox::DelayQueue'>DelayQueue</a>&lt;T&gt;</code></h4>
+</div><h2 id='methods'>Methods</h2><h3 class='impl'><code>impl&lt;T: <a class='trait' href='../syncbox/trait.Delayed.html' title='syncbox::Delayed'>Delayed</a> + <a class='trait' href='https://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a>&gt; <a class='struct' href='../syncbox/struct.DelayQueue.html' title='syncbox::DelayQueue'>DelayQueue</a>&lt;T&gt;</code></h3><div class='impl-items'><h4 id='method.new' class='method'><code>fn <a href='#method.new' class='fnname'>new</a>() -&gt; <a class='struct' href='../syncbox/struct.DelayQueue.html' title='syncbox::DelayQueue'>DelayQueue</a>&lt;T&gt;</code></h4>
 <div class='docblock'><p>Constructs a new <code>DelayQueue</code>.</p>
-</div><h4 id='method.poll_timeout' class='method'><code>fn <a href='#method.poll_timeout' class='fnname'>poll_timeout</a>(&amp;self, timeout: <a class='struct' href='https://doc.rust-lang.org/time/time/duration/struct.Duration.html' title='time::duration::Duration'>Duration</a>) -&gt; <a class='enum' href='http://doc.rust-lang.org/nightly/core/option/enum.Option.html' title='core::option::Option'>Option</a>&lt;T&gt;</code></h4>
+</div><h4 id='method.poll_timeout' class='method'><code>fn <a href='#method.poll_timeout' class='fnname'>poll_timeout</a>(&amp;self, timeout: <a class='struct' href='https://doc.rust-lang.org/time/time/duration/struct.Duration.html' title='time::duration::Duration'>Duration</a>) -&gt; <a class='enum' href='https://doc.rust-lang.org/nightly/core/option/enum.Option.html' title='core::option::Option'>Option</a>&lt;T&gt;</code></h4>
 <div class='docblock'><p>Takes from the queue, blocking for up to <code>timeout</code>.</p>
-</div></div><h2 id='implementations'>Trait Implementations</h2><h3 class='impl'><code>impl&lt;T: <a class='trait' href='../syncbox/trait.Delayed.html' title='syncbox::Delayed'>Delayed</a> + <a class='trait' href='http://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a>&gt; <a class='trait' href='../syncbox/trait.Queue.html' title='syncbox::Queue'>Queue</a>&lt;T&gt; for <a class='struct' href='../syncbox/struct.DelayQueue.html' title='syncbox::DelayQueue'>DelayQueue</a>&lt;T&gt;</code></h3><div class='impl-items'><h4 id='method.poll' class='method'><code>fn <a href='../syncbox/trait.Queue.html#method.poll' class='fnname'>poll</a>(&amp;self) -&gt; <a class='enum' href='http://doc.rust-lang.org/nightly/core/option/enum.Option.html' title='core::option::Option'>Option</a>&lt;T&gt;</code></h4>
-<h4 id='method.is_empty' class='method'><code>fn <a href='../syncbox/trait.Queue.html#method.is_empty' class='fnname'>is_empty</a>(&amp;self) -&gt; <a href='http://doc.rust-lang.org/nightly/std/primitive.bool.html'>bool</a></code></h4>
-<h4 id='method.offer' class='method'><code>fn <a href='../syncbox/trait.Queue.html#method.offer' class='fnname'>offer</a>(&amp;self, e: T) -&gt; <a class='enum' href='http://doc.rust-lang.org/nightly/core/result/enum.Result.html' title='core::result::Result'>Result</a>&lt;<a href='http://doc.rust-lang.org/nightly/std/primitive.tuple.html'>()</a>, T&gt;</code></h4>
-</div><h3 class='impl'><code>impl&lt;T: <a class='trait' href='../syncbox/trait.Delayed.html' title='syncbox::Delayed'>Delayed</a> + <a class='trait' href='http://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a>&gt; <a class='trait' href='../syncbox/trait.SyncQueue.html' title='syncbox::SyncQueue'>SyncQueue</a>&lt;T&gt; for <a class='struct' href='../syncbox/struct.DelayQueue.html' title='syncbox::DelayQueue'>DelayQueue</a>&lt;T&gt;</code></h3><div class='impl-items'><h4 id='method.take' class='method'><code>fn <a href='../syncbox/trait.SyncQueue.html#method.take' class='fnname'>take</a>(&amp;self) -&gt; T</code></h4>
-<h4 id='method.put' class='method'><code>fn <a href='../syncbox/trait.SyncQueue.html#method.put' class='fnname'>put</a>(&amp;self, e: T)</code></h4>
-</div><h3 class='impl'><code>impl&lt;T: <a class='trait' href='../syncbox/trait.Delayed.html' title='syncbox::Delayed'>Delayed</a> + <a class='trait' href='http://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a>&gt; <a class='trait' href='http://doc.rust-lang.org/nightly/core/clone/trait.Clone.html' title='core::clone::Clone'>Clone</a> for <a class='struct' href='../syncbox/struct.DelayQueue.html' title='syncbox::DelayQueue'>DelayQueue</a>&lt;T&gt;</code></h3><div class='impl-items'><h4 id='method.clone' class='method'><code>fn <a href='http://doc.rust-lang.org/nightly/core/clone/trait.Clone.html#method.clone' class='fnname'>clone</a>(&amp;self) -&gt; <a class='struct' href='../syncbox/struct.DelayQueue.html' title='syncbox::DelayQueue'>DelayQueue</a>&lt;T&gt;</code></h4>
-<h4 id='method.clone_from' class='method'><code>fn <a href='http://doc.rust-lang.org/nightly/core/clone/trait.Clone.html#method.clone_from' class='fnname'>clone_from</a>(&amp;mut self, source: &amp;Self)</code></h4>
+</div></div><h2 id='implementations'>Trait Implementations</h2><h3 class='impl'><code>impl&lt;T: <a class='trait' href='../syncbox/trait.Delayed.html' title='syncbox::Delayed'>Delayed</a> + <a class='trait' href='https://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a>&gt; <a class='trait' href='../syncbox/trait.Queue.html' title='syncbox::Queue'>Queue</a>&lt;T&gt; for <a class='struct' href='../syncbox/struct.DelayQueue.html' title='syncbox::DelayQueue'>DelayQueue</a>&lt;T&gt;</code></h3><div class='impl-items'><h4 id='method.poll' class='method'><code>fn <a href='../syncbox/trait.Queue.html#tymethod.poll' class='fnname'>poll</a>(&amp;self) -&gt; <a class='enum' href='https://doc.rust-lang.org/nightly/core/option/enum.Option.html' title='core::option::Option'>Option</a>&lt;T&gt;</code></h4>
+<h4 id='method.is_empty' class='method'><code>fn <a href='../syncbox/trait.Queue.html#tymethod.is_empty' class='fnname'>is_empty</a>(&amp;self) -&gt; <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.bool.html'>bool</a></code></h4>
+<h4 id='method.offer' class='method'><code>fn <a href='../syncbox/trait.Queue.html#tymethod.offer' class='fnname'>offer</a>(&amp;self, e: T) -&gt; <a class='enum' href='https://doc.rust-lang.org/nightly/core/result/enum.Result.html' title='core::result::Result'>Result</a>&lt;<a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.tuple.html'>()</a>, T&gt;</code></h4>
+</div><h3 class='impl'><code>impl&lt;T: <a class='trait' href='../syncbox/trait.Delayed.html' title='syncbox::Delayed'>Delayed</a> + <a class='trait' href='https://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a>&gt; <a class='trait' href='../syncbox/trait.SyncQueue.html' title='syncbox::SyncQueue'>SyncQueue</a>&lt;T&gt; for <a class='struct' href='../syncbox/struct.DelayQueue.html' title='syncbox::DelayQueue'>DelayQueue</a>&lt;T&gt;</code></h3><div class='impl-items'><h4 id='method.take' class='method'><code>fn <a href='../syncbox/trait.SyncQueue.html#tymethod.take' class='fnname'>take</a>(&amp;self) -&gt; T</code></h4>
+<h4 id='method.put' class='method'><code>fn <a href='../syncbox/trait.SyncQueue.html#tymethod.put' class='fnname'>put</a>(&amp;self, e: T)</code></h4>
+</div><h3 class='impl'><code>impl&lt;T: <a class='trait' href='../syncbox/trait.Delayed.html' title='syncbox::Delayed'>Delayed</a> + <a class='trait' href='https://doc.rust-lang.org/nightly/core/marker/trait.Send.html' title='core::marker::Send'>Send</a>&gt; <a class='trait' href='https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html' title='core::clone::Clone'>Clone</a> for <a class='struct' href='../syncbox/struct.DelayQueue.html' title='syncbox::DelayQueue'>DelayQueue</a>&lt;T&gt;</code></h3><div class='impl-items'><h4 id='method.clone' class='method'><code>fn <a href='https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html#tymethod.clone' class='fnname'>clone</a>(&amp;self) -&gt; <a class='struct' href='../syncbox/struct.DelayQueue.html' title='syncbox::DelayQueue'>DelayQueue</a>&lt;T&gt;</code></h4>
+<h4 id='method.clone_from' class='method'><span class="since">1.0.0</span><code>fn <a href='https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html#method.clone_from' class='fnname'>clone_from</a>(&amp;mut self, source: &amp;Self)</code></h4>
 </div></section>
     <section id='search' class="content hidden"></section>
 
     <section class="footer"></section>
 
-    <div id="help" class="hidden">
+    <aside id="help" class="hidden">
         <div>
+            <h1 class="hidden">Help</h1>
+
             <div class="shortcuts">
-                <h1>Keyboard Shortcuts</h1>
+                <h2>Keyboard Shortcuts</h2>
 
                 <dl>
                     <dt>?</dt>
@@ -88,7 +91,7 @@ value whose delay is expired and furthest in the past.</p>
             </div>
 
             <div class="infos">
-                <h1>Search Tricks</h1>
+                <h2>Search Tricks</h2>
 
                 <p>
                     Prefix searches with a type followed by a colon (e.g.
@@ -98,17 +101,17 @@ value whose delay is expired and furthest in the past.</p>
                 <p>
                     Accepted types are: <code>fn</code>, <code>mod</code>,
                     <code>struct</code>, <code>enum</code>,
-                    <code>trait</code>, <code>typedef</code> (or
-                    <code>tdef</code>).
+                    <code>trait</code>, <code>type</code>, <code>macro</code>,
+                    and <code>const</code>.
                 </p>
 
                 <p>
                     Search functions by type signature (e.g.
-                    <code>vec -> usize</code>)
+                    <code>vec -> usize</code> or <code>* -> vec</code>)
                 </p>
             </div>
         </div>
-    </div>
+    </aside>
 
     
 
@@ -120,6 +123,6 @@ value whose delay is expired and furthest in the past.</p>
     <script src="../jquery.js"></script>
     <script src="../main.js"></script>
     
-    <script async src="../search-index.js"></script>
+    <script defer src="../search-index.js"></script>
 </body>
 </html>

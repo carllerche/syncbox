@@ -9,6 +9,7 @@
 
     <title>syncbox::atomic::AtomicU64 - Rust</title>
 
+    <link rel="stylesheet" type="text/css" href="../../rustdoc.css">
     <link rel="stylesheet" type="text/css" href="../../main.css">
 
     
@@ -24,10 +25,10 @@
 
     
 
-    <section class="sidebar">
+    <nav class="sidebar">
         
         <p class='location'><a href='../index.html'>syncbox</a>::<wbr><a href='index.html'>atomic</a></p><script>window.sidebarCurrent = {name: 'AtomicU64', ty: 'struct', relpath: ''};</script><script defer src="sidebar-items.js"></script>
-    </section>
+    </nav>
 
     <nav class="sub">
         <form class="search-form js-only">
@@ -42,31 +43,33 @@
 
     <section id='main' class="content struct">
 <h1 class='fqn'><span class='in-band'>Struct <a href='../index.html'>syncbox</a>::<wbr><a href='index.html'>atomic</a>::<wbr><a class='struct' href=''>AtomicU64</a></span><span class='out-of-band'><span id='render-detail'>
-            <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
-                [<span class='inner'>&#x2212;</span>]
-            </a>
-        </span><a id='src-357' class='srclink' href='../../src/syncbox/atomic.rs.html#129-131' title='goto source code'>[src]</a></span></h1>
+                   <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
+                       [<span class='inner'>&#x2212;</span>]
+                   </a>
+               </span><a id='src-99' class='srclink' href='../../src/syncbox/src/atomic.rs.html#129-131' title='goto source code'>[src]</a></span></h1>
 <pre class='rust struct'>pub struct AtomicU64 {
     // some fields omitted
-}</pre><h2 id='methods'>Methods</h2><h3 class='impl'><code>impl <a class='struct' href='../../syncbox/atomic/struct.AtomicU64.html' title='syncbox::atomic::AtomicU64'>AtomicU64</a></code></h3><div class='impl-items'><h4 id='method.new' class='method'><code>fn <a href='#method.new' class='fnname'>new</a>(v: <a href='http://doc.rust-lang.org/nightly/std/primitive.u64.html'>u64</a>) -&gt; <a class='struct' href='../../syncbox/atomic/struct.AtomicU64.html' title='syncbox::atomic::AtomicU64'>AtomicU64</a></code></h4>
-<h4 id='method.load' class='method'><code>fn <a href='#method.load' class='fnname'>load</a>(&amp;self, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>) -&gt; <a href='http://doc.rust-lang.org/nightly/std/primitive.u64.html'>u64</a></code></h4>
-<h4 id='method.store' class='method'><code>fn <a href='#method.store' class='fnname'>store</a>(&amp;self, val: <a href='http://doc.rust-lang.org/nightly/std/primitive.u64.html'>u64</a>, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>)</code></h4>
-<h4 id='method.swap' class='method'><code>fn <a href='#method.swap' class='fnname'>swap</a>(&amp;self, val: <a href='http://doc.rust-lang.org/nightly/std/primitive.u64.html'>u64</a>, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>) -&gt; <a href='http://doc.rust-lang.org/nightly/std/primitive.u64.html'>u64</a></code></h4>
-<h4 id='method.compare_and_swap' class='method'><code>fn <a href='#method.compare_and_swap' class='fnname'>compare_and_swap</a>(&amp;self, old: <a href='http://doc.rust-lang.org/nightly/std/primitive.u64.html'>u64</a>, new: <a href='http://doc.rust-lang.org/nightly/std/primitive.u64.html'>u64</a>, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>) -&gt; <a href='http://doc.rust-lang.org/nightly/std/primitive.u64.html'>u64</a></code></h4>
-<h4 id='method.fetch_add' class='method'><code>fn <a href='#method.fetch_add' class='fnname'>fetch_add</a>(&amp;self, val: <a href='http://doc.rust-lang.org/nightly/std/primitive.u64.html'>u64</a>, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>) -&gt; <a href='http://doc.rust-lang.org/nightly/std/primitive.u64.html'>u64</a></code></h4>
-<h4 id='method.fetch_sub' class='method'><code>fn <a href='#method.fetch_sub' class='fnname'>fetch_sub</a>(&amp;self, val: <a href='http://doc.rust-lang.org/nightly/std/primitive.u64.html'>u64</a>, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>) -&gt; <a href='http://doc.rust-lang.org/nightly/std/primitive.u64.html'>u64</a></code></h4>
-<h4 id='method.fetch_and' class='method'><code>fn <a href='#method.fetch_and' class='fnname'>fetch_and</a>(&amp;self, val: <a href='http://doc.rust-lang.org/nightly/std/primitive.u64.html'>u64</a>, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>) -&gt; <a href='http://doc.rust-lang.org/nightly/std/primitive.u64.html'>u64</a></code></h4>
-<h4 id='method.fetch_or' class='method'><code>fn <a href='#method.fetch_or' class='fnname'>fetch_or</a>(&amp;self, val: <a href='http://doc.rust-lang.org/nightly/std/primitive.u64.html'>u64</a>, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>) -&gt; <a href='http://doc.rust-lang.org/nightly/std/primitive.u64.html'>u64</a></code></h4>
-<h4 id='method.fetch_xor' class='method'><code>fn <a href='#method.fetch_xor' class='fnname'>fetch_xor</a>(&amp;self, val: <a href='http://doc.rust-lang.org/nightly/std/primitive.u64.html'>u64</a>, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>) -&gt; <a href='http://doc.rust-lang.org/nightly/std/primitive.u64.html'>u64</a></code></h4>
+}</pre><h2 id='methods'>Methods</h2><h3 class='impl'><code>impl <a class='struct' href='../../syncbox/atomic/struct.AtomicU64.html' title='syncbox::atomic::AtomicU64'>AtomicU64</a></code></h3><div class='impl-items'><h4 id='method.new' class='method'><code>fn <a href='#method.new' class='fnname'>new</a>(v: <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.u64.html'>u64</a>) -&gt; <a class='struct' href='../../syncbox/atomic/struct.AtomicU64.html' title='syncbox::atomic::AtomicU64'>AtomicU64</a></code></h4>
+<h4 id='method.load' class='method'><code>fn <a href='#method.load' class='fnname'>load</a>(&amp;self, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>) -&gt; <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.u64.html'>u64</a></code></h4>
+<h4 id='method.store' class='method'><code>fn <a href='#method.store' class='fnname'>store</a>(&amp;self, val: <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.u64.html'>u64</a>, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>)</code></h4>
+<h4 id='method.swap' class='method'><code>fn <a href='#method.swap' class='fnname'>swap</a>(&amp;self, val: <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.u64.html'>u64</a>, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>) -&gt; <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.u64.html'>u64</a></code></h4>
+<h4 id='method.compare_and_swap' class='method'><code>fn <a href='#method.compare_and_swap' class='fnname'>compare_and_swap</a>(&amp;self, old: <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.u64.html'>u64</a>, new: <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.u64.html'>u64</a>, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>) -&gt; <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.u64.html'>u64</a></code></h4>
+<h4 id='method.fetch_add' class='method'><code>fn <a href='#method.fetch_add' class='fnname'>fetch_add</a>(&amp;self, val: <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.u64.html'>u64</a>, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>) -&gt; <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.u64.html'>u64</a></code></h4>
+<h4 id='method.fetch_sub' class='method'><code>fn <a href='#method.fetch_sub' class='fnname'>fetch_sub</a>(&amp;self, val: <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.u64.html'>u64</a>, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>) -&gt; <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.u64.html'>u64</a></code></h4>
+<h4 id='method.fetch_and' class='method'><code>fn <a href='#method.fetch_and' class='fnname'>fetch_and</a>(&amp;self, val: <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.u64.html'>u64</a>, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>) -&gt; <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.u64.html'>u64</a></code></h4>
+<h4 id='method.fetch_or' class='method'><code>fn <a href='#method.fetch_or' class='fnname'>fetch_or</a>(&amp;self, val: <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.u64.html'>u64</a>, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>) -&gt; <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.u64.html'>u64</a></code></h4>
+<h4 id='method.fetch_xor' class='method'><code>fn <a href='#method.fetch_xor' class='fnname'>fetch_xor</a>(&amp;self, val: <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.u64.html'>u64</a>, order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>) -&gt; <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.u64.html'>u64</a></code></h4>
 </div></section>
     <section id='search' class="content hidden"></section>
 
     <section class="footer"></section>
 
-    <div id="help" class="hidden">
+    <aside id="help" class="hidden">
         <div>
+            <h1 class="hidden">Help</h1>
+
             <div class="shortcuts">
-                <h1>Keyboard Shortcuts</h1>
+                <h2>Keyboard Shortcuts</h2>
 
                 <dl>
                     <dt>?</dt>
@@ -83,7 +86,7 @@
             </div>
 
             <div class="infos">
-                <h1>Search Tricks</h1>
+                <h2>Search Tricks</h2>
 
                 <p>
                     Prefix searches with a type followed by a colon (e.g.
@@ -93,17 +96,17 @@
                 <p>
                     Accepted types are: <code>fn</code>, <code>mod</code>,
                     <code>struct</code>, <code>enum</code>,
-                    <code>trait</code>, <code>typedef</code> (or
-                    <code>tdef</code>).
+                    <code>trait</code>, <code>type</code>, <code>macro</code>,
+                    and <code>const</code>.
                 </p>
 
                 <p>
                     Search functions by type signature (e.g.
-                    <code>vec -> usize</code>)
+                    <code>vec -> usize</code> or <code>* -> vec</code>)
                 </p>
             </div>
         </div>
-    </div>
+    </aside>
 
     
 
@@ -115,6 +118,6 @@
     <script src="../../jquery.js"></script>
     <script src="../../main.js"></script>
     
-    <script async src="../../search-index.js"></script>
+    <script defer src="../../search-index.js"></script>
 </body>
 </html>
