@@ -9,7 +9,6 @@
 
     <title>syncbox::atomic::Ordering - Rust</title>
 
-    <link rel="stylesheet" type="text/css" href="../../rustdoc.css">
     <link rel="stylesheet" type="text/css" href="../../main.css">
 
     
@@ -25,10 +24,10 @@
 
     
 
-    <nav class="sidebar">
+    <section class="sidebar">
         
         <p class='location'><a href='../index.html'>syncbox</a>::<wbr><a href='index.html'>atomic</a></p><script>window.sidebarCurrent = {name: 'Ordering', ty: 'enum', relpath: ''};</script><script defer src="sidebar-items.js"></script>
-    </nav>
+    </section>
 
     <nav class="sub">
         <form class="search-form js-only">
@@ -46,7 +45,7 @@
             <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
                 [<span class='inner'>&#x2212;</span>]
             </a>
-        </span><a id='src-27803' class='srclink' href='https://doc.rust-lang.org/nightly/core/sync/atomic/enum.Ordering.html?gotosrc=27803' title='goto source code'>[src]</a></span></h1>
+        </span><a id='src-103905' class='srclink' href='http://doc.rust-lang.org/nightly/core/atomic/enum.Ordering.html?gotosrc=103905' title='goto source code'>[src]</a></span></h1>
 <pre class='rust enum'>pub enum Ordering {
     Relaxed,
     Release,
@@ -64,8 +63,7 @@ to be moved either before or after the atomic operation; on the other end
 <p>Rust&#39;s memory orderings are <a href="http://llvm.org/docs/LangRef.html#memory-model-for-concurrent-operations">the same as
 LLVM&#39;s</a>.</p>
 </div><h2 class='variants'>Variants</h2>
-<table><tr><td id='variant.Relaxed'><code>Relaxed</code></td><td><div class='docblock'><p>No ordering constraints, only atomic operations. Corresponds to LLVM&#39;s
-<code>Monotonic</code> ordering.</p>
+<table><tr><td id='variant.Relaxed'><code>Relaxed</code></td><td><div class='docblock'><p>No ordering constraints, only atomic operations.</p>
 </div></td></tr><tr><td id='variant.Release'><code>Release</code></td><td><div class='docblock'><p>When coupled with a store, all previous writes become visible
 to another thread that performs a load with <code>Acquire</code> ordering
 on the same value.</p>
@@ -76,19 +74,17 @@ in another thread.</p>
 <code>Release</code> ordering.</p>
 </div></td></tr><tr><td id='variant.SeqCst'><code>SeqCst</code></td><td><div class='docblock'><p>Like <code>AcqRel</code> with the additional guarantee that all threads see all
 sequentially consistent operations in the same order.</p>
-</div></td></tr></table><h2 id='implementations'>Trait Implementations</h2><h3 id='derived_implementations'>Derived Implementations </h3><h3 class='impl'><code>impl <a class='trait' href='https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html' title='core::clone::Clone'>Clone</a> for <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a></code></h3><div class='impl-items'><h4 id='method.clone' class='method'><code>fn <a href='https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html#method.clone' class='fnname'>clone</a>(&amp;self) -&gt; <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a></code></h4>
-<h4 id='method.clone_from' class='method'><code>fn <a href='https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html#method.clone_from' class='fnname'>clone_from</a>(&amp;mut self, source: &amp;Self)</code></h4>
-</div><h3 class='impl'><code>impl <a class='trait' href='https://doc.rust-lang.org/nightly/core/marker/trait.Copy.html' title='core::marker::Copy'>Copy</a> for <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a></code></h3><div class='impl-items'></div></section>
+</div></td></tr></table><h2 id='implementations'>Trait Implementations</h2><h3 id='derived_implementations'>Derived Implementations </h3><h3 class='impl'><code>impl <a class='trait' href='http://doc.rust-lang.org/nightly/core/clone/trait.Clone.html' title='core::clone::Clone'>Clone</a> for <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a></code></h3><div class='impl-items'><h4 id='method.clone' class='method'><code>fn <a href='http://doc.rust-lang.org/nightly/core/clone/trait.Clone.html#method.clone' class='fnname'>clone</a>(&amp;self) -&gt; <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a></code></h4>
+<h4 id='method.clone_from' class='method'><code>fn <a href='http://doc.rust-lang.org/nightly/core/clone/trait.Clone.html#method.clone_from' class='fnname'>clone_from</a>(&amp;mut self, source: &amp;Self)</code></h4>
+</div><h3 class='impl'><code>impl <a class='trait' href='http://doc.rust-lang.org/nightly/core/marker/trait.Copy.html' title='core::marker::Copy'>Copy</a> for <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a></code></h3><div class='impl-items'></div></section>
     <section id='search' class="content hidden"></section>
 
     <section class="footer"></section>
 
-    <aside id="help" class="hidden">
+    <div id="help" class="hidden">
         <div>
-            <h1 class="hidden">Help</h1>
-
             <div class="shortcuts">
-                <h2>Keyboard Shortcuts</h2>
+                <h1>Keyboard Shortcuts</h1>
 
                 <dl>
                     <dt>?</dt>
@@ -105,7 +101,7 @@ sequentially consistent operations in the same order.</p>
             </div>
 
             <div class="infos">
-                <h2>Search Tricks</h2>
+                <h1>Search Tricks</h1>
 
                 <p>
                     Prefix searches with a type followed by a colon (e.g.
@@ -115,8 +111,8 @@ sequentially consistent operations in the same order.</p>
                 <p>
                     Accepted types are: <code>fn</code>, <code>mod</code>,
                     <code>struct</code>, <code>enum</code>,
-                    <code>trait</code>, <code>type</code>, <code>macro</code>,
-                    and <code>const</code>.
+                    <code>trait</code>, <code>typedef</code> (or
+                    <code>tdef</code>).
                 </p>
 
                 <p>
@@ -125,7 +121,7 @@ sequentially consistent operations in the same order.</p>
                 </p>
             </div>
         </div>
-    </aside>
+    </div>
 
     
 
@@ -137,6 +133,6 @@ sequentially consistent operations in the same order.</p>
     <script src="../../jquery.js"></script>
     <script src="../../main.js"></script>
     
-    <script defer src="../../search-index.js"></script>
+    <script async src="../../search-index.js"></script>
 </body>
 </html>

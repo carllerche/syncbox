@@ -9,7 +9,6 @@
 
     <title>syncbox::atomic::fence - Rust</title>
 
-    <link rel="stylesheet" type="text/css" href="../../rustdoc.css">
     <link rel="stylesheet" type="text/css" href="../../main.css">
 
     
@@ -25,10 +24,10 @@
 
     
 
-    <nav class="sidebar">
+    <section class="sidebar">
         
         <p class='location'><a href='../index.html'>syncbox</a>::<wbr><a href='index.html'>atomic</a></p><script>window.sidebarCurrent = {name: 'fence', ty: 'fn', relpath: ''};</script><script defer src="sidebar-items.js"></script>
-    </nav>
+    </section>
 
     <nav class="sub">
         <form class="search-form js-only">
@@ -46,7 +45,7 @@
             <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
                 [<span class='inner'>&#x2212;</span>]
             </a>
-        </span><a id='src-28062' class='srclink' href='https://doc.rust-lang.org/nightly/core/sync/atomic/fn.fence.html?gotosrc=28062' title='goto source code'>[src]</a></span></h1>
+        </span><a id='src-105312' class='srclink' href='http://doc.rust-lang.org/nightly/core/atomic/fn.fence.html?gotosrc=105312' title='goto source code'>[src]</a></span></h1>
 <pre class='rust fn'>pub fn fence(order: <a class='enum' href='../../syncbox/atomic/enum.Ordering.html' title='syncbox::atomic::Ordering'>Ordering</a>)</pre><div class='docblock'><p>An atomic fence.</p>
 
 <p>A fence &#39;A&#39; which has <code>Release</code> ordering semantics, synchronizes with a
@@ -64,19 +63,18 @@ other <code>SeqCst</code> operations and/or fences.</p>
 
 <p>Accepts <code>Acquire</code>, <code>Release</code>, <code>AcqRel</code> and <code>SeqCst</code> orderings.</p>
 
-<h1 id='panics' class='section-header'><a href='#panics'>Panics</a></h1>
+<h1 id="panics" class='section-header'><a
+                           href="#panics">Panics</a></h1>
 <p>Panics if <code>order</code> is <code>Relaxed</code>.</p>
 </div></section>
     <section id='search' class="content hidden"></section>
 
     <section class="footer"></section>
 
-    <aside id="help" class="hidden">
+    <div id="help" class="hidden">
         <div>
-            <h1 class="hidden">Help</h1>
-
             <div class="shortcuts">
-                <h2>Keyboard Shortcuts</h2>
+                <h1>Keyboard Shortcuts</h1>
 
                 <dl>
                     <dt>?</dt>
@@ -93,7 +91,7 @@ other <code>SeqCst</code> operations and/or fences.</p>
             </div>
 
             <div class="infos">
-                <h2>Search Tricks</h2>
+                <h1>Search Tricks</h1>
 
                 <p>
                     Prefix searches with a type followed by a colon (e.g.
@@ -103,8 +101,8 @@ other <code>SeqCst</code> operations and/or fences.</p>
                 <p>
                     Accepted types are: <code>fn</code>, <code>mod</code>,
                     <code>struct</code>, <code>enum</code>,
-                    <code>trait</code>, <code>type</code>, <code>macro</code>,
-                    and <code>const</code>.
+                    <code>trait</code>, <code>typedef</code> (or
+                    <code>tdef</code>).
                 </p>
 
                 <p>
@@ -113,7 +111,7 @@ other <code>SeqCst</code> operations and/or fences.</p>
                 </p>
             </div>
         </div>
-    </aside>
+    </div>
 
     
 
@@ -125,6 +123,6 @@ other <code>SeqCst</code> operations and/or fences.</p>
     <script src="../../jquery.js"></script>
     <script src="../../main.js"></script>
     
-    <script defer src="../../search-index.js"></script>
+    <script async src="../../search-index.js"></script>
 </body>
 </html>
